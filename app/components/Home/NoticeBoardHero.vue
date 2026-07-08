@@ -130,51 +130,51 @@ onUnmounted(stopAutoplay);
 
               <div class="absolute inset-0">
                 <div
-                  class="mx-auto flex h-full max-w-7xl items-end px-4 pb-4 sm:px-6 lg:px-8 lg:pb-8"
+                  class="mx-auto flex h-full max-w-7xl items-end px-4 pb-3 sm:px-6 lg:px-8 lg:pb-6"
                 >
                   <div
-                    class="w-full max-w-2xl rounded-card border border-white/12 bg-primary-dark/55 p-4 text-white shadow-elevated backdrop-blur-sm sm:p-5 lg:p-6"
+                    class="w-full max-w-xl rounded-card border border-white/12 bg-primary-dark/55 p-3 text-white shadow-elevated backdrop-blur-sm sm:p-4 lg:p-5"
                   >
                     <p class="text-caption font-semibold uppercase tracking-wide text-accent">
                       {{ slide.eyebrow }}
                     </p>
-                    <h1 class="mt-2 max-w-2xl font-display font-bold text-h1 text-white sm:text-h2">
+                    <h1 class="mt-2 max-w-xl font-display font-bold text-h3 text-white sm:text-h2">
                       {{ slide.title }}
                     </h1>
-                    <p class="mt-3 max-w-xl text-small text-white/85 sm:text-body">
+                    <p class="mt-2 max-w-lg text-caption text-white/80 sm:text-small">
                       {{ slide.body }}
                     </p>
 
                     <div
-                      class="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between"
+                      class="mt-3 flex flex-col gap-2 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <p class="max-w-xs text-caption uppercase tracking-[0.18em] text-white/70">
+                      <p class="max-w-xs text-[0.68rem] uppercase tracking-[0.16em] text-white/70">
                         {{ slide.caption }}
                       </p>
 
-                      <div class="flex flex-wrap items-center gap-2">
+                      <div class="flex flex-wrap items-center gap-1.5">
                         <NuxtLink
                           :to="slide.ctaHref"
-                          class="inline-flex items-center justify-center gap-2 rounded-control bg-white px-4 py-2.5 text-caption font-semibold text-primary transition-colors hover:bg-white/90 sm:px-5 sm:py-3 sm:text-small"
+                          class="inline-flex items-center justify-center gap-1.5 rounded-control bg-white px-3 py-2 text-[0.68rem] font-semibold text-primary transition-colors hover:bg-white/90 sm:px-4 sm:py-2.5 sm:text-caption"
                         >
                           {{ slide.ctaLabel }}
                           <Icon
                             name="lucide:arrow-right"
-                            class="size-3.5 sm:size-4"
+                            class="size-3"
                             aria-hidden="true"
                           />
                         </NuxtLink>
 
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2.5">
                           <button
                             type="button"
                             aria-label="Previous slide"
-                            class="rounded-full border border-white/20 p-1.5 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+                            class="rounded-full border border-white/20 p-1 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
                             @click="prev"
                           >
                             <Icon
                               name="lucide:chevron-left"
-                              class="size-3.5"
+                              class="size-3"
                               aria-hidden="true"
                             />
                           </button>
@@ -187,11 +187,11 @@ onUnmounted(stopAutoplay);
                               role="tab"
                               :aria-selected="dotIndex === currentIndex"
                               :aria-label="`Show slide ${dotIndex + 1}`"
-                              class="h-1.5 rounded-full transition-all"
+                              class="h-1 rounded-full transition-all"
                               :class="
                                 dotIndex === currentIndex
-                                  ? 'w-6 bg-white'
-                                  : 'w-1.5 bg-white/40 hover:bg-white/60'
+                                  ? 'w-5 bg-white'
+                                  : 'w-1 bg-white/40 hover:bg-white/60'
                               "
                               @click="goTo(dotIndex)"
                             />
@@ -200,12 +200,12 @@ onUnmounted(stopAutoplay);
                           <button
                             type="button"
                             aria-label="Next slide"
-                            class="rounded-full border border-white/20 p-1.5 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+                            class="rounded-full border border-white/20 p-1 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
                             @click="next"
                           >
                             <Icon
                               name="lucide:chevron-right"
-                              class="size-3.5"
+                              class="size-3"
                               aria-hidden="true"
                             />
                           </button>
