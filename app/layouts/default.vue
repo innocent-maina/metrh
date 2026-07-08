@@ -14,5 +14,9 @@
     </main>
 
     <AppFooter />
+
+    <PagePulseTracker />
+    <CookieNoticeBanner />
+    <WhatsAppFloatingButton />
   </div>
 </template>

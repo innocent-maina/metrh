@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { supabaseAdmin } from "~~/server/utils/supabase-admin";
+import { readBody } from "h3";
+import { createSignedStorageUpload } from "~~/server/utils/storage-upload";
 
 const signUploadSchema = z.object({
   jobSlug: z
@@ -18,18 +19,10 @@ function sanitizeFileName(fileName: string) {
 export default defineEventHandler(async (event) => {
   const body = signUploadSchema.parse(await readBody(event));
   const fileName = sanitizeFileName(body.fileName);
-  const path = `applications/${body.jobSlug}/${Date.now()}-${fileName}`;
 
-  const { data, error } = await supabaseAdmin()
-    .storage.from("documents")
-    .createSignedUploadUrl(path);
-
-  if (error || !data) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: "Could not create an upload link.",
-    });
-  }
-
-  return data;
+  return createSignedStorageUpload({
+    bucket: "documents",
+    folder: `applications/${body.jobSlug}`,
+    fileName,
+  });
 });

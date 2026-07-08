@@ -27,13 +27,106 @@ const emit = defineEmits<{
   (event: "cancel"): void;
 }>();
 
+const supabase = useSupabaseClient();
+const uploadingFields = reactive<Record<string, boolean>>({});
+const uploadErrors = reactive<Record<string, string | null>>({});
+const formRef = ref<HTMLFormElement | null>(null);
+
 function updateField(key: string, value: unknown) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
+}
+
+const isUploading = computed(() =>
+  Object.values(uploadingFields).some((value) => value),
+);
+
+function getStoredFileName(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  try {
+    const url = new URL(raw);
+    return url.pathname.split("/").filter(Boolean).pop() ?? raw;
+  } catch {
+    const noQuery = raw.includes("?") ? raw.slice(0, raw.indexOf("?")) : raw;
+    return noQuery.split("/").filter(Boolean).pop() ?? raw;
+  }
+}
+
+function resolvePublicUploadUrl(field: CrudField, value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+  if (field.uploadBucket !== "media") return raw;
+
+  return supabase.storage.from("media").getPublicUrl(raw).data.publicUrl;
+}
+
+async function handleUploadChange(field: CrudField, event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
+
+  uploadErrors[field.key] = null;
+
+  if (!file) return;
+  if (!field.uploadBucket || !field.uploadFolder) {
+    uploadErrors[field.key] = "This field is missing upload settings.";
+    input.value = "";
+    return;
+  }
+
+  uploadingFields[field.key] = true;
+
+  try {
+    const upload = await $fetch<{
+      path: string;
+      token: string;
+      signedUrl: string;
+    }>("/api/storage/dashboard/sign-upload", {
+      method: "POST",
+      body: {
+        bucket: field.uploadBucket,
+        folder: field.uploadFolder,
+        fileName: file.name,
+      },
+    });
+
+    const { error } = await supabase.storage
+      .from(field.uploadBucket)
+      .uploadToSignedUrl(upload.path, upload.token, file, {
+        contentType: file.type || "application/octet-stream",
+      });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const storedValue =
+      field.uploadBucket === "media"
+        ? supabase.storage.from(field.uploadBucket).getPublicUrl(upload.path).data.publicUrl
+        : upload.path;
+
+    updateField(field.key, storedValue);
+  } catch (error) {
+    uploadErrors[field.key] =
+      error instanceof Error ? error.message : "Could not upload the file.";
+    input.value = "";
+  } finally {
+    uploadingFields[field.key] = false;
+  }
 }
 
 function close() {
   emit("cancel");
   emit("update:open", false);
+}
+
+function handleSubmit() {
+  if (!formRef.value?.reportValidity()) {
+    return;
+  }
+
+  emit("submit");
 }
 </script>
 
@@ -90,22 +183,35 @@ function close() {
               </div>
             </header>
 
-            <form class="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6" @submit.prevent="emit('submit')">
+            <form
+              ref="formRef"
+              class="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6"
+              @submit.prevent="handleSubmit"
+            >
               <div class="grid gap-4 md:grid-cols-2">
                 <label
                   v-for="field in fields"
                   v-show="!field.serverOnly"
                   :key="field.key"
                   class="space-y-2"
-                  :class="field.kind === 'textarea' || field.kind === 'json' ? 'md:col-span-2' : ''"
+                  :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' || field.kind === 'richtext' ? 'md:col-span-2' : ''"
                 >
                   <span class="block text-small font-semibold text-ink">
                     {{ field.label }}
                     <span v-if="field.required" class="text-danger">*</span>
                   </span>
 
+                  <RichTextEditor
+                    v-if="field.kind === 'richtext'"
+                    :model-value="String(modelValue[field.key] ?? '')"
+                    :placeholder="field.placeholder"
+                    :required="field.required"
+                    :disabled="readOnly || disabled || field.disabled"
+                    @update:model-value="updateField(field.key, $event)"
+                  />
+
                   <textarea
-                    v-if="field.kind === 'textarea' || field.kind === 'json'"
+                    v-else-if="field.kind === 'textarea' || field.kind === 'json'"
                     :rows="field.rows ?? 5"
                     class="w-full rounded-card border border-border bg-white px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
                     :placeholder="field.placeholder"
@@ -114,6 +220,42 @@ function close() {
                     :value="String(modelValue[field.key] ?? '')"
                     @input="updateField(field.key, ($event.target as HTMLTextAreaElement).value)"
                   />
+
+                  <div v-else-if="field.kind === 'upload'" class="space-y-3">
+                    <div
+                      v-if="field.uploadPreview === 'image' && resolvePublicUploadUrl(field, modelValue[field.key])"
+                      class="overflow-hidden rounded-card border border-border bg-surface-alt"
+                    >
+                      <img
+                        :src="resolvePublicUploadUrl(field, modelValue[field.key])"
+                        :alt="field.label"
+                        class="max-h-56 w-full object-cover"
+                      />
+                    </div>
+
+                    <div
+                      v-else-if="String(modelValue[field.key] ?? '').trim()"
+                      class="rounded-card border border-border bg-surface-alt px-4 py-3 text-small text-ink"
+                    >
+                      <p class="font-semibold text-ink">Current file</p>
+                      <p class="mt-1 break-all text-ink-muted">
+                        {{ getStoredFileName(modelValue[field.key]) }}
+                      </p>
+                    </div>
+
+                    <input
+                      type="file"
+                      class="w-full rounded-card border border-border bg-white px-3 py-2.5 text-body text-ink outline-none transition-colors file:mr-4 file:rounded-control file:border-0 file:bg-surface-alt file:px-3 file:py-1.5 file:text-small file:font-semibold file:text-ink hover:file:bg-surface-alt focus:border-primary"
+                      :accept="field.accept"
+                      :required="field.required && !String(modelValue[field.key] ?? '').trim()"
+                      :disabled="readOnly || disabled || field.disabled || uploadingFields[field.key]"
+                      @change="handleUploadChange(field, $event)"
+                    />
+
+                    <p class="text-caption text-ink-muted">
+                      {{ uploadingFields[field.key] ? "Uploading..." : field.helpText ?? "Choose a file to upload directly to Supabase storage." }}
+                    </p>
+                  </div>
 
                   <select
                     v-else-if="field.kind === 'select'"
@@ -153,8 +295,11 @@ function close() {
                     @input="updateField(field.key, ($event.target as HTMLInputElement).value)"
                   />
 
-                  <p v-if="field.helpText" class="text-caption text-ink-muted">
+                  <p v-if="field.helpText && field.kind !== 'upload'" class="text-caption text-ink-muted">
                     {{ field.helpText }}
+                  </p>
+                  <p v-if="uploadErrors[field.key]" class="text-caption text-danger">
+                    {{ uploadErrors[field.key] }}
                   </p>
                 </label>
               </div>
@@ -170,9 +315,9 @@ function close() {
                 <button
                   type="submit"
                   class="rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="loading"
+                  :disabled="loading || isUploading"
                 >
-                  {{ loading ? "Saving..." : submitLabel }}
+                  {{ loading ? "Saving..." : isUploading ? "Uploading..." : submitLabel }}
                 </button>
               </div>
               <div v-else class="mt-6 border-t border-border pt-4">

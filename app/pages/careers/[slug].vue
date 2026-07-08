@@ -1,13 +1,117 @@
 <script setup lang="ts">
+import type { Database } from "~~/types/database.types";
+
 definePageMeta({ layout: "default" });
 
 const route = useRoute();
+const slug = String(route.params.slug);
+const supabase = useSupabaseClient<Database>();
 const { recruitmentRounds } = useMetrhContent();
-const supabase = useSupabaseClient();
 
-const posting = computed(() =>
-  recruitmentRounds.find((round) => round.slug === route.params.slug),
-);
+type JobPostingRow = {
+  id: string;
+  reference_no: string | null;
+  title: string;
+  slug: string;
+  department: string | null;
+  employment_type: string;
+  positions_count: number;
+  description: string;
+  requirements: string | null;
+  responsibilities: string | null;
+  how_to_apply: string | null;
+  status: "draft" | "open" | "closed";
+  application_deadline: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function formatDateLabel(value: string | null | undefined) {
+  if (!value) return "No deadline listed";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatEmploymentType(value: string) {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+const { data: postingData } = await useAsyncData(`public-career-${slug}`, async () => {
+  try {
+    const { data: row, error } = await supabase
+      .from("job_postings")
+      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,status,application_deadline,created_at,updated_at")
+      .eq("slug", slug)
+      .eq("status", "open")
+      .maybeSingle();
+
+    if (error) throw error;
+
+    const data = row as JobPostingRow | null;
+
+    if (data) {
+      return {
+        posting: {
+          id: data.id,
+          slug: data.slug,
+          referenceNo: data.reference_no ?? data.slug,
+          title: data.title,
+          department: data.department,
+          employmentType: formatEmploymentType(data.employment_type),
+          positionsCount: data.positions_count,
+          description: data.description,
+          requirements: data.requirements,
+          responsibilities: data.responsibilities,
+          howToApply: data.how_to_apply,
+          status: data.status,
+          deadlineLabel: formatDateLabel(data.application_deadline),
+        },
+        relatedPostings: [],
+      };
+    }
+  } catch (error) {
+    console.warn("[careers] Falling back to seeded posting.", error);
+  }
+
+  const fallback = recruitmentRounds.find((entry) => entry.slug === slug);
+  if (!fallback) return null;
+
+  return {
+    posting: {
+      id: fallback.slug,
+      slug: fallback.slug,
+      referenceNo: fallback.referenceNo,
+      title: fallback.title,
+      department: null,
+      employmentType: "Archived",
+      positionsCount: fallback.positions.reduce((count, position) => count + position.posts, 0),
+      description: fallback.description,
+      requirements: null,
+      responsibilities: null,
+      howToApply: null,
+      status: fallback.status,
+      deadlineLabel: fallback.deadlineLabel,
+    },
+    relatedPostings: recruitmentRounds
+      .filter((entry) => entry.slug !== slug)
+      .slice(0, 3)
+      .map((entry) => ({
+        slug: entry.slug,
+        title: entry.title,
+        referenceNo: entry.referenceNo,
+        status: entry.status,
+      })),
+  };
+});
+
+const posting = computed(() => postingData.value?.posting ?? null);
+const relatedPostings = computed(() => postingData.value?.relatedPostings ?? []);
 
 if (!posting.value) {
   throw createError({ statusCode: 404, statusMessage: "Posting not found." });
@@ -15,7 +119,7 @@ if (!posting.value) {
 
 useSeoMeta({
   title: () => `${posting.value?.title} — MeTRH Careers`,
-  description: () => posting.value?.summary,
+  description: () => posting.value?.description,
 });
 
 const isOpen = computed(() => posting.value?.status === "open");
@@ -78,10 +182,7 @@ async function submitApplication() {
   const hasAllowedExtension = /\.(pdf|docx?|DOCX?|DOC?)$/i.test(
     resumeFile.value.name,
   );
-  if (
-    !allowedTypes.includes(resumeFile.value.type) &&
-    !hasAllowedExtension
-  ) {
+  if (!allowedTypes.includes(resumeFile.value.type) && !hasAllowedExtension) {
     formError.value = "Upload a PDF or Word document.";
     return;
   }
@@ -158,8 +259,8 @@ async function submitApplication() {
             class="rounded-full px-3 py-1.5 text-caption font-semibold uppercase tracking-wide"
             :class="
               isOpen
-            ? 'bg-success/10 text-success'
-            : 'bg-surface-alt text-ink-muted'
+                ? 'bg-success/10 text-success'
+                : 'bg-surface-alt text-ink-muted'
             "
           >
             {{ posting.status }}
@@ -171,40 +272,64 @@ async function submitApplication() {
         <p class="mt-2 text-small text-ink-muted">
           Deadline: {{ posting.deadlineLabel }}
         </p>
-        <p class="mt-5 text-body text-ink-muted">
+
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-card bg-surface-alt p-4">
+            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+              Department
+            </p>
+            <p class="mt-1 text-small text-ink">
+              {{ posting.department || "Not specified" }}
+            </p>
+          </div>
+          <div class="rounded-card bg-surface-alt p-4">
+            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+              Employment type
+            </p>
+            <p class="mt-1 text-small text-ink">
+              {{ posting.employmentType }}
+            </p>
+          </div>
+          <div class="rounded-card bg-surface-alt p-4">
+            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+              Positions
+            </p>
+            <p class="mt-1 text-small text-ink">
+              {{ posting.positionsCount }}
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-6 text-body text-ink-muted whitespace-pre-line">
           {{ posting.description }}
         </p>
 
-        <div class="mt-8 overflow-x-auto">
-          <table class="min-w-full border-separate border-spacing-0">
-            <thead>
-              <tr class="text-left">
-                <th class="border-b border-border px-4 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                  Position
-                </th>
-                <th class="border-b border-border px-4 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                  Posts
-                </th>
-                <th class="border-b border-border px-4 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                  Terms
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="position in posting.positions" :key="position.title">
-                <td class="border-b border-border px-4 py-4 text-small font-medium text-ink">
-                  {{ position.title }}
-                </td>
-                <td class="border-b border-border px-4 py-4 text-small text-ink-muted">
-                  {{ position.posts }}
-                </td>
-                <td class="border-b border-border px-4 py-4 text-small text-ink-muted">
-                  {{ position.terms }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <section v-if="posting.requirements" class="mt-8">
+          <h2 class="font-display font-semibold text-h3 text-ink">
+            Requirements
+          </h2>
+          <div class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink whitespace-pre-line">
+            {{ posting.requirements }}
+          </div>
+        </section>
+
+        <section v-if="posting.responsibilities" class="mt-8">
+          <h2 class="font-display font-semibold text-h3 text-ink">
+            Responsibilities
+          </h2>
+          <div class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink whitespace-pre-line">
+            {{ posting.responsibilities }}
+          </div>
+        </section>
+
+        <section v-if="posting.howToApply" class="mt-8">
+          <h2 class="font-display font-semibold text-h3 text-ink">
+            How to apply
+          </h2>
+          <div class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink whitespace-pre-line">
+            {{ posting.howToApply }}
+          </div>
+        </section>
 
         <div
           v-if="isOpen"
@@ -322,20 +447,22 @@ async function submitApplication() {
           </p>
         </div>
 
-        <div class="rounded-card border border-border bg-white p-5">
+        <div v-if="relatedPostings.length" class="rounded-card border border-border bg-white p-5">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
-            Positions
+            Related postings
           </p>
           <ul class="mt-4 space-y-3">
             <li
-              v-for="position in posting.positions"
-              :key="position.title"
+              v-for="item in relatedPostings"
+              :key="item.slug"
               class="rounded-control border border-border px-3 py-2.5"
             >
-              <p class="text-small font-medium text-ink">{{ position.title }}</p>
-              <p class="text-caption text-ink-muted">
-                {{ position.posts }} post(s) · {{ position.terms }}
-              </p>
+              <NuxtLink :to="`/careers/${item.slug}`" class="block">
+                <p class="text-small font-medium text-ink">{{ item.title }}</p>
+                <p class="text-caption text-ink-muted">
+                  {{ item.referenceNo }} · {{ item.status }}
+                </p>
+              </NuxtLink>
             </li>
           </ul>
         </div>

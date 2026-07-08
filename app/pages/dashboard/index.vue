@@ -187,18 +187,5 @@ const dashboardImages = useHospitalMedia();
         </NuxtLink>
       </div>
     </section>
-
-    <section
-      class="rounded-card border border-dashed border-border bg-surface-alt p-6"
-    >
-      <p class="text-small font-semibold uppercase tracking-wide text-info">
-        Next up
-      </p>
-      <p class="mt-2 text-small text-ink-muted">
-        The section routes now open role-aware CRUD tables with create, edit,
-        open, and delete actions where the current role is allowed to use them.
-        This overview stays as the starting point for those screens.
-      </p>
-    </section>
   </div>
 </template>

@@ -388,6 +388,28 @@ create table public.contact_submissions (
 create index idx_contact_submissions_status on public.contact_submissions (status, created_at desc);
 
 -- ----------------------------------------------------------------------------
+-- 10.5. PAGE PULSES (lightweight visitor activity tracking)
+-- ----------------------------------------------------------------------------
+create table public.page_pulses (
+  id               uuid primary key default gen_random_uuid(),
+  session_id       uuid not null,
+  path             text not null,
+  page_title       text,
+  referrer         text,
+  language         text,
+  user_agent       text,
+  ip_address       inet,
+  screen_width     int,
+  screen_height    int,
+  viewport_width   int,
+  viewport_height  int,
+  created_at       timestamptz not null default now()
+);
+
+create index idx_page_pulses_session on public.page_pulses (session_id, created_at desc);
+create index idx_page_pulses_path on public.page_pulses (path, created_at desc);
+
+-- ----------------------------------------------------------------------------
 -- 11. STATIC / LEGAL PAGES (privacy, terms, cookies — CMS-editable, not hardcoded)
 -- ----------------------------------------------------------------------------
 create table public.pages (
@@ -452,6 +474,7 @@ alter table public.downloads           enable row level security;
 alter table public.media_albums        enable row level security;
 alter table public.media_items         enable row level security;
 alter table public.contact_submissions enable row level security;
+alter table public.page_pulses         enable row level security;
 alter table public.pages               enable row level security;
 alter table public.site_settings       enable row level security;
 
@@ -574,6 +597,10 @@ create policy "contact_submissions_staff_read" on public.contact_submissions
   for select using (public.has_role('front_desk') or public.has_role('content_editor') or public.has_role('super_admin'));
 create policy "contact_submissions_staff_update" on public.contact_submissions
   for update using (public.has_role('front_desk') or public.has_role('super_admin'));
+
+-- ---- page pulses: service-role inserts via API; only super_admin can read
+create policy "page_pulses_super_admin_read" on public.page_pulses
+  for select using (public.has_role('super_admin'));
 
 -- ---- legal/static pages: public reads published; content_editor manages
 create policy "pages_public_read_published" on public.pages

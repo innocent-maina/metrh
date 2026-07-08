@@ -1,19 +1,138 @@
 <script setup lang="ts">
+import type { Database } from "~~/types/database.types";
+
 definePageMeta({ layout: "default" });
 
 const route = useRoute();
+const slug = String(route.params.slug);
+const supabase = useSupabaseClient<Database>();
 
-useSeoMeta({
-  title: "Tender details — MeTRH",
-  description:
-    "Tender detail page for Meru Teaching and Referral Hospital procurement notices.",
+function formatDateLabel(value: string | null | undefined) {
+  if (!value) return "Not listed";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatTenderCategory(value: string) {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+type TenderRow = {
+  id: string;
+  tender_number: string;
+  title: string;
+  slug: string;
+  category: string;
+  description: string | null;
+  status: "draft" | "open" | "closed" | "awarded" | "cancelled";
+  opening_date: string | null;
+  closing_date: string | null;
+  awarded_to: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type TenderDocumentRow = {
+  id: string;
+  tender_id: string;
+  file_name: string;
+  file_url: string;
+  file_size_kb: number | null;
+  created_at: string;
+};
+
+const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async () => {
+  try {
+    const { data: tenderRow, error } = await supabase
+      .from("tenders")
+      .select("id,tender_number,title,slug,category,description,status,opening_date,closing_date,awarded_to,created_at,updated_at")
+      .eq("slug", slug)
+      .neq("status", "draft")
+      .maybeSingle();
+
+    if (error) throw error;
+    const tender = tenderRow as TenderRow | null;
+    if (!tender) return null;
+
+    const [{ data: documentsResult, error: documentsError }, { data: relatedTendersResult, error: relatedError }] =
+      await Promise.all([
+        supabase
+          .from("tender_documents")
+          .select("id,tender_id,file_name,file_url,file_size_kb,created_at")
+          .eq("tender_id", tender.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("tenders")
+          .select("id,tender_number,title,slug,category,description,status,opening_date,closing_date,awarded_to,created_at,updated_at")
+          .neq("status", "draft")
+          .order("closing_date", { ascending: true })
+          .limit(5),
+      ]);
+
+    if (documentsError) throw documentsError;
+    if (relatedError) throw relatedError;
+
+    const documentRows = (documentsResult ?? []) as TenderDocumentRow[];
+    const relatedRows = (relatedTendersResult ?? []) as TenderRow[];
+
+    return {
+      tender: {
+        id: tender.id,
+        tenderNumber: tender.tender_number,
+        title: tender.title,
+        slug: tender.slug,
+        category: formatTenderCategory(tender.category),
+        description: tender.description,
+        status: tender.status,
+        openingLabel: formatDateLabel(tender.opening_date),
+        closingLabel: formatDateLabel(tender.closing_date),
+        awardedTo: tender.awarded_to,
+      },
+      documents: documentRows.map((document) => ({
+        id: document.id,
+        fileName: document.file_name,
+        fileUrl: document.file_url,
+        fileSizeKb: document.file_size_kb,
+        createdAt: document.created_at,
+      })),
+      relatedTenders: relatedRows
+        .filter((entry) => entry.slug !== slug)
+        .slice(0, 3)
+        .map((entry) => ({
+          slug: entry.slug,
+          title: entry.title,
+          tenderNumber: entry.tender_number,
+          status: entry.status,
+        })),
+    };
+  } catch (error) {
+    console.warn("[tenders] Could not load tender detail.", error);
+    return null;
+  }
 });
 
-const tender = computed<null>(() => null);
+const tender = computed(() => tenderData.value?.tender ?? null);
+const documents = computed(() => tenderData.value?.documents ?? []);
+const relatedTenders = computed(() => tenderData.value?.relatedTenders ?? []);
+
+if (!tender.value) {
+  throw createError({ statusCode: 404, statusMessage: "Tender not found." });
+}
+
+useSeoMeta({
+  title: () => `${tender.value?.title} — MeTRH`,
+  description: () => tender.value?.description ?? tender.value?.title,
+});
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
     <div class="mb-8">
       <NuxtLink
         to="/tenders"
@@ -24,23 +143,127 @@ const tender = computed<null>(() => null);
       </NuxtLink>
     </div>
 
-    <div class="rounded-card border border-dashed border-border bg-white p-10 text-center shadow-card">
-      <Icon name="lucide:file-question" class="mx-auto size-8 text-ink-muted" aria-hidden="true" />
-      <h1 class="mt-4 font-display font-semibold text-h2 text-ink">
-        Tender not found
-      </h1>
-      <p class="mt-3 text-body text-ink-muted">
-        No public tender matches “{{ route.params.slug }}” yet. Once procurement
-        publishes a notice, this route will render the detail view and attached
-        documents.
-      </p>
-      <NuxtLink
-        to="/contact"
-        class="mt-6 inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
-      >
-        Ask procurement
-        <Icon name="lucide:arrow-right" class="size-4" />
-      </NuxtLink>
+    <div v-if="tender" class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <article class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="rounded-full bg-surface-alt px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            {{ tender.tenderNumber }}
+          </span>
+          <span
+            class="rounded-full px-3 py-1.5 text-caption font-semibold uppercase tracking-wide"
+            :class="
+              tender.status === 'open'
+                ? 'bg-success/10 text-success'
+                : tender.status === 'awarded'
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-surface-alt text-ink-muted'
+            "
+          >
+            {{ tender.status }}
+          </span>
+        </div>
+        <h1 class="mt-4 font-display font-bold text-h1 text-ink">
+          {{ tender.title }}
+        </h1>
+        <p class="mt-2 text-small text-ink-muted">
+          {{ tender.category }}
+        </p>
+
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-card bg-surface-alt p-4">
+            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+              Opening date
+            </p>
+            <p class="mt-1 text-small text-ink">
+              {{ tender.openingLabel }}
+            </p>
+          </div>
+          <div class="rounded-card bg-surface-alt p-4">
+            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+              Closing date
+            </p>
+            <p class="mt-1 text-small text-ink">
+              {{ tender.closingLabel }}
+            </p>
+          </div>
+          <div v-if="tender.awardedTo" class="rounded-card bg-surface-alt p-4 sm:col-span-2">
+            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+              Awarded to
+            </p>
+            <p class="mt-1 text-small text-ink">
+              {{ tender.awardedTo }}
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-6 text-body text-ink-muted whitespace-pre-line">
+          {{ tender.description || "No description has been published for this tender yet." }}
+        </p>
+
+        <section class="mt-8">
+          <h2 class="font-display font-semibold text-h3 text-ink">
+            Tender documents
+          </h2>
+          <div v-if="documents.length" class="mt-3 grid gap-4 md:grid-cols-2">
+            <article
+              v-for="document in documents"
+              :key="document.id"
+              class="rounded-card border border-border bg-surface-alt p-4"
+            >
+              <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                {{ document.fileSizeKb ? `${document.fileSizeKb} KB` : "Document" }}
+              </p>
+              <p class="mt-1 font-medium text-ink">
+                {{ document.fileName }}
+              </p>
+              <a
+                :href="document.fileUrl"
+                target="_blank"
+                rel="noreferrer"
+                class="mt-3 inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
+              >
+                Download
+                <Icon name="lucide:arrow-right" class="size-4" />
+              </a>
+            </article>
+          </div>
+          <div v-else class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink-muted">
+            No tender documents are attached to this notice yet.
+          </div>
+        </section>
+      </article>
+
+      <aside class="space-y-4">
+        <div class="rounded-card border border-border bg-white p-5">
+          <p class="text-small font-semibold uppercase tracking-wide text-info">
+            Tender status
+          </p>
+          <p class="mt-3 text-small text-ink-muted">
+            {{ tender.status === "open" ? "Accepting submissions now." : "Not currently open for new submissions." }}
+          </p>
+        </div>
+
+        <div v-if="relatedTenders.length" class="rounded-card border border-border bg-white p-5">
+          <p class="text-small font-semibold uppercase tracking-wide text-info">
+            Other tenders
+          </p>
+          <ul class="mt-4 space-y-3">
+            <li v-for="item in relatedTenders" :key="item.slug">
+              <NuxtLink
+                :to="`/tenders/${item.slug}`"
+                class="block rounded-control border border-border px-3 py-2.5 hover:border-primary/30 hover:bg-surface-alt"
+              >
+                <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                  {{ item.tenderNumber }}
+                </p>
+                <p class="mt-1 text-small font-medium text-ink">
+                  {{ item.title }}
+                </p>
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
+      </aside>
     </div>
   </div>
 </template>

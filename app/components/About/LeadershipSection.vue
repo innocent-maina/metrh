@@ -16,6 +16,13 @@ interface TeamMember {
 // photos. This component only renders what's actually in the table.
 const supabase = useSupabaseClient();
 
+function resolveMediaUrl(value: string | null) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
+
+  return supabase.storage.from("media").getPublicUrl(value).data.publicUrl;
+}
+
 const { data: teamMembers, pending } = await useAsyncData<TeamMember[]>(
   "team-members-active",
   async () => {
@@ -81,7 +88,7 @@ const { data: teamMembers, pending } = await useAsyncData<TeamMember[]>(
         >
           <img
             v-if="member.photo_url"
-            :src="member.photo_url"
+            :src="resolveMediaUrl(member.photo_url)"
             :alt="member.full_name"
             class="size-16 rounded-full object-cover"
           />

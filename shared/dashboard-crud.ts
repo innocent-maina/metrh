@@ -14,12 +14,14 @@ import type {
 export type CrudFieldKind =
   | "text"
   | "textarea"
+  | "richtext"
   | "select"
   | "number"
   | "checkbox"
   | "date"
   | "time"
-  | "json";
+  | "json"
+  | "upload";
 
 export interface CrudOption {
   label: string;
@@ -41,6 +43,10 @@ export interface CrudField {
   serverOnly?: boolean;
   disabled?: boolean;
   defaultValue?: unknown;
+  accept?: string;
+  uploadBucket?: "media" | "documents";
+  uploadFolder?: string;
+  uploadPreview?: "image";
 }
 
 export interface CrudColumn {
@@ -230,8 +236,23 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "slug", label: "Slug", kind: "text", required: true },
           { key: "excerpt", label: "Excerpt", kind: "textarea", rows: 3 },
-          { key: "content", label: "Content", kind: "textarea", rows: 12, required: true },
-          { key: "cover_image_url", label: "Cover image URL", kind: "text" },
+          {
+            key: "content",
+            label: "Content",
+            kind: "richtext",
+            required: true,
+            placeholder: "Write the full story here.",
+            helpText: "Use the toolbar to add headings, lists, quotes, links, bold, and italic text.",
+          },
+          {
+            key: "cover_image_url",
+            label: "Cover image",
+            kind: "upload",
+            accept: "image/*",
+            uploadBucket: "media",
+            uploadFolder: "blog/posts/covers",
+            uploadPreview: "image",
+          },
           {
             key: "category_id",
             label: "Category",
@@ -243,7 +264,15 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "published_at", label: "Published on", kind: "date" },
           { key: "seo_title", label: "SEO title", kind: "text" },
           { key: "seo_description", label: "SEO description", kind: "textarea", rows: 3 },
-          { key: "seo_og_image_url", label: "SEO image URL", kind: "text" },
+          {
+            key: "seo_og_image_url",
+            label: "SEO image",
+            kind: "upload",
+            accept: "image/*",
+            uploadBucket: "media",
+            uploadFolder: "blog/posts/seo",
+            uploadPreview: "image",
+          },
           { key: "reading_minutes", label: "Reading minutes", kind: "number" },
         ]),
         stampFields: { create: ["author_id"] },
@@ -523,7 +552,15 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "email", label: "Email", kind: "text", required: true },
           { key: "phone", label: "Phone", kind: "text" },
           { key: "cover_letter", label: "Cover letter", kind: "textarea", rows: 8 },
-          { key: "resume_url", label: "Resume URL", kind: "text", required: true },
+          {
+            key: "resume_url",
+            label: "Resume",
+            kind: "upload",
+            required: true,
+            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            uploadBucket: "documents",
+            uploadFolder: "jobs/applications/resumes",
+          },
           { key: "status", label: "Status", kind: "select", options: applicationStatuses },
           { key: "reviewer_notes", label: "Reviewer notes", kind: "textarea", rows: 5 },
         ]),
@@ -578,7 +615,7 @@ export const dashboardSections: CrudSectionConfig[] = [
         defaultSort: { key: "created_at", ascending: false },
         columns: baseColumns([
           { key: "file_name", label: "File name" },
-          { key: "file_url", label: "File URL" },
+          { key: "file_url", label: "Document" },
           { key: "file_size_kb", label: "Size", kind: "number" },
         ]),
         fields: fields([
@@ -591,7 +628,15 @@ export const dashboardSections: CrudSectionConfig[] = [
             required: true,
           },
           { key: "file_name", label: "File name", kind: "text", required: true },
-          { key: "file_url", label: "File URL", kind: "text", required: true },
+          {
+            key: "file_url",
+            label: "Document",
+            kind: "upload",
+            required: true,
+            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            uploadBucket: "documents",
+            uploadFolder: "tenders/documents",
+          },
           { key: "file_size_kb", label: "File size (KB)", kind: "number" },
         ]),
       },
@@ -613,7 +658,15 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "description", label: "Description", kind: "textarea", rows: 4 },
           { key: "category", label: "Category", kind: "text" },
-          { key: "file_url", label: "File URL", kind: "text", required: true },
+          {
+            key: "file_url",
+            label: "Document",
+            kind: "upload",
+            required: true,
+            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            uploadBucket: "documents",
+            uploadFolder: "tenders/downloads",
+          },
           { key: "file_size_kb", label: "File size (KB)", kind: "number" },
           { key: "is_published", label: "Published", kind: "checkbox" },
         ]),
@@ -648,7 +701,15 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "slug", label: "Slug", kind: "text", required: true },
           { key: "description", label: "Description", kind: "textarea", rows: 5 },
           { key: "event_date", label: "Event date", kind: "date" },
-          { key: "cover_image_url", label: "Cover image URL", kind: "text" },
+          {
+            key: "cover_image_url",
+            label: "Cover image",
+            kind: "upload",
+            accept: "image/*",
+            uploadBucket: "media",
+            uploadFolder: "media/albums/covers",
+            uploadPreview: "image",
+          },
           { key: "status", label: "Status", kind: "select", options: publishStatuses },
         ]),
         stampFields: { create: ["created_by"] },
@@ -664,7 +725,7 @@ export const dashboardSections: CrudSectionConfig[] = [
         defaultSort: { key: "display_order", ascending: true },
         columns: baseColumns([
           { key: "type", label: "Type" },
-          { key: "file_url", label: "File URL" },
+          { key: "file_url", label: "Media file" },
           { key: "display_order", label: "Order", kind: "number" },
         ]),
         fields: fields([
@@ -677,7 +738,15 @@ export const dashboardSections: CrudSectionConfig[] = [
             required: true,
           },
           { key: "type", label: "Type", kind: "select", options: mediaTypes, required: true },
-          { key: "file_url", label: "File URL", kind: "text", required: true },
+          {
+            key: "file_url",
+            label: "Media file",
+            kind: "upload",
+            required: true,
+            accept: "image/*,video/*",
+            uploadBucket: "media",
+            uploadFolder: "media/items",
+          },
           { key: "caption", label: "Caption", kind: "textarea", rows: 3 },
           { key: "display_order", label: "Display order", kind: "number" },
         ]),
@@ -712,7 +781,15 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "full_name", label: "Full name", kind: "text", required: true },
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "bio", label: "Bio", kind: "textarea", rows: 7 },
-          { key: "photo_url", label: "Photo URL", kind: "text" },
+          {
+            key: "photo_url",
+            label: "Photo",
+            kind: "upload",
+            accept: "image/*",
+            uploadBucket: "media",
+            uploadFolder: "team/members",
+            uploadPreview: "image",
+          },
           { key: "department", label: "Department", kind: "text" },
           { key: "display_order", label: "Display order", kind: "number" },
           { key: "is_active", label: "Active", kind: "checkbox" },
@@ -781,7 +858,15 @@ export const dashboardSections: CrudSectionConfig[] = [
         fields: fields([
           { key: "id", label: "User ID", kind: "text", required: true },
           { key: "full_name", label: "Full name", kind: "text", required: true },
-          { key: "avatar_url", label: "Avatar URL", kind: "text" },
+          {
+            key: "avatar_url",
+            label: "Avatar",
+            kind: "upload",
+            accept: "image/*",
+            uploadBucket: "media",
+            uploadFolder: "profiles/avatars",
+            uploadPreview: "image",
+          },
           { key: "phone", label: "Phone", kind: "text" },
           { key: "job_title", label: "Job title", kind: "text" },
           { key: "is_active", label: "Active", kind: "checkbox" },

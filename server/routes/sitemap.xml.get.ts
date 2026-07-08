@@ -1,28 +1,61 @@
-export default defineEventHandler(() => {
+import { supabaseAdmin } from "~~/server/utils/supabase-admin";
+
+function uniqueRoutes(routes: string[]) {
+  return Array.from(new Set(routes));
+}
+
+type RouteSlugRow = {
+  slug: string;
+};
+
+export default defineEventHandler(async () => {
   const config = useRuntimeConfig();
   const baseUrl = config.public.siteUrl.replace(/\/$/, "");
+  let dynamicRoutes: string[] = [];
 
-  const routes = [
+  try {
+    const admin = supabaseAdmin();
+    const [
+      blogPostsResult,
+      mediaAlbumsResult,
+      jobPostingsResult,
+      tendersResult,
+    ] = await Promise.all([
+      admin.from("blog_posts").select("slug").eq("status", "published"),
+      admin.from("media_albums").select("slug").eq("status", "published"),
+      admin.from("job_postings").select("slug").eq("status", "open"),
+      admin.from("tenders").select("slug").neq("status", "draft"),
+    ]);
+
+    const blogRows = (blogPostsResult.data ?? []) as RouteSlugRow[];
+    const mediaRows = (mediaAlbumsResult.data ?? []) as RouteSlugRow[];
+    const jobRows = (jobPostingsResult.data ?? []) as RouteSlugRow[];
+    const tenderRows = (tendersResult.data ?? []) as RouteSlugRow[];
+
+    dynamicRoutes = [
+      ...blogRows.map((row) => `/blog/${row.slug}`),
+      ...mediaRows.map((row) => `/events/${row.slug}`),
+      ...jobRows.map((row) => `/careers/${row.slug}`),
+      ...tenderRows.map((row) => `/tenders/${row.slug}`),
+    ];
+  } catch (error) {
+    console.warn("[sitemap] Falling back to static routes.", error);
+  }
+
+  const routes = uniqueRoutes([
     "/",
     "/about",
     "/services",
     "/contact",
     "/blog",
-    "/blog/first-spinal-surgeries-in-the-region",
-    "/blog/oesophageal-cancer-screening-partnership",
-    "/blog/new-ward-block-and-cancer-centre",
-    "/blog/community-blood-drive-results",
     "/events",
-    "/events/arsenal-kenya-supporters-club-blood-drive",
-    "/events/manchester-united-fans-kenya-blood-donation",
-    "/events/county-mass-blood-donation",
     "/careers",
-    "/careers/metrh-hrm-02-2025-2026",
     "/tenders",
     "/privacy-policy",
     "/terms-of-use",
     "/cookie-policy",
-  ];
+    ...dynamicRoutes,
+  ]);
 
   const urls = routes
     .map(

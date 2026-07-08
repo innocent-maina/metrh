@@ -1,7 +1,28 @@
 <script setup lang="ts">
+import type { Database } from "~~/types/database.types";
+
 definePageMeta({ layout: "default" });
 
+const supabase = useSupabaseClient<Database>();
 const { recruitmentRounds } = useMetrhContent();
+
+type JobPostingRow = {
+  id: string;
+  reference_no: string | null;
+  title: string;
+  slug: string;
+  department: string | null;
+  employment_type: string;
+  positions_count: number;
+  description: string;
+  requirements: string | null;
+  responsibilities: string | null;
+  how_to_apply: string | null;
+  status: "draft" | "open" | "closed";
+  application_deadline: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 useSeoMeta({
   title: "Careers & Opportunities — MeTRH",
@@ -17,10 +38,83 @@ const statusOptions = [
   { label: "Closed", value: "closed" },
 ] as const;
 
+function formatDateLabel(value: string | null | undefined) {
+  if (!value) return "No deadline listed";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatEmploymentType(value: string) {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+const { data: careerIndex } = await useAsyncData("public-careers-index", async () => {
+  try {
+    const { data: rows, error } = await supabase
+      .from("job_postings")
+      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,status,application_deadline,created_at,updated_at")
+      .eq("status", "open")
+      .order("application_deadline", { ascending: true });
+
+    if (error) throw error;
+
+    const data = rows as JobPostingRow[];
+
+    return {
+      source: "database",
+      rounds: (data ?? []).map((posting) => ({
+        id: posting.id,
+        slug: posting.slug,
+        referenceNo: posting.reference_no ?? posting.slug,
+        title: posting.title,
+        status: posting.status,
+        deadlineLabel: formatDateLabel(posting.application_deadline),
+        summary: posting.description,
+        description: posting.description,
+        positionsCount: posting.positions_count,
+        department: posting.department,
+        employmentType: formatEmploymentType(posting.employment_type),
+        requirements: posting.requirements,
+        responsibilities: posting.responsibilities,
+        howToApply: posting.how_to_apply,
+      })),
+    };
+  } catch (error) {
+    console.warn("[careers] Falling back to seeded rounds.", error);
+    return {
+      source: "fallback",
+      rounds: recruitmentRounds.map((round) => ({
+        id: round.slug,
+        slug: round.slug,
+        referenceNo: round.referenceNo,
+        title: round.title,
+        status: round.status,
+        deadlineLabel: round.deadlineLabel,
+        summary: round.summary,
+        description: round.description,
+        positionsCount: round.positions.reduce((count, position) => count + position.posts, 0),
+        department: null,
+        employmentType: "Archived",
+        requirements: null,
+        responsibilities: null,
+        howToApply: null,
+      })),
+    };
+  }
+});
+
+const rounds = computed(() => careerIndex.value?.rounds ?? []);
+
 const filteredRounds = computed(() => {
   const term = search.value.trim().toLowerCase();
 
-  return recruitmentRounds.filter((round) => {
+  return rounds.value.filter((round) => {
     if (activeFilter.value !== "all" && round.status !== activeFilter.value) {
       return false;
     }
@@ -30,13 +124,14 @@ const filteredRounds = computed(() => {
     return (
       round.title.toLowerCase().includes(term) ||
       round.referenceNo.toLowerCase().includes(term) ||
-      round.summary.toLowerCase().includes(term)
+      round.summary.toLowerCase().includes(term) ||
+      (round.department?.toLowerCase().includes(term) ?? false)
     );
   });
 });
 
 const openCount = computed(
-  () => recruitmentRounds.filter((round) => round.status === "open").length,
+  () => rounds.value.filter((round) => round.status === "open").length,
 );
 
 const careerImages = useHospitalMedia();
@@ -113,8 +208,8 @@ const careerImages = useHospitalMedia();
                 {{ openCount }} open roles
               </p>
               <p class="mt-1 text-small text-ink-muted">
-                No current openings are seeded in this build, but the route is
-                ready for live postings from the dashboard.
+                Public listings show open vacancies. Archived examples remain
+                available in the fallback dataset when no live jobs are present.
               </p>
             </div>
 

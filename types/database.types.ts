@@ -371,6 +371,28 @@ export interface Database {
           Database["public"]["Tables"]["contact_submissions"]["Row"]
         >;
       };
+      page_pulses: {
+        Row: {
+          id: string;
+          session_id: string;
+          path: string;
+          page_title: string | null;
+          referrer: string | null;
+          language: string | null;
+          user_agent: string | null;
+          ip_address: string | null;
+          screen_width: number | null;
+          screen_height: number | null;
+          viewport_width: number | null;
+          viewport_height: number | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["page_pulses"]["Row"]> & {
+          session_id: string;
+          path: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["page_pulses"]["Row"]>;
+      };
       pages: {
         Row: {
           id: string;

@@ -1,7 +1,32 @@
 <script setup lang="ts">
+import type { Database } from "~~/types/database.types";
+import { richTextToPlainText } from "~~/shared/rich-text";
+
 definePageMeta({ layout: "default" });
 
+const supabase = useSupabaseClient<Database>();
 const { milestoneStories } = useMetrhContent();
+
+type BlogCategoryRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+};
+
+type BlogPostRow = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  category_id: string | null;
+  published_at: string | null;
+  reading_minutes: number | null;
+  view_count: number;
+  created_at: string;
+  updated_at: string;
+};
 
 useSeoMeta({
   title: "Blog & News — MeTRH",
@@ -12,32 +37,133 @@ useSeoMeta({
 const search = ref("");
 const activeCategory = ref("all");
 
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function formatDateLabel(value: string | null | undefined) {
+  if (!value) return "Unpublished";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function summarize(text: string | null | undefined, fallback = "") {
+  const source = richTextToPlainText(text ?? fallback).trim();
+  if (!source) return "";
+
+  const collapsed = source.replace(/\s+/g, " ");
+  return collapsed.length > 180
+    ? `${collapsed.slice(0, 177).trimEnd()}...`
+    : collapsed;
+}
+
+const { data: blogIndex } = await useAsyncData("public-blog-index", async () => {
+  try {
+    const [categoriesResult, postsResult] = await Promise.all([
+      supabase
+        .from("blog_categories")
+        .select("id,name,slug,description")
+        .order("name", { ascending: true }),
+      supabase
+        .from("blog_posts")
+        .select("id,title,slug,excerpt,content,category_id,published_at,reading_minutes,view_count,created_at,updated_at")
+        .eq("status", "published")
+        .order("published_at", { ascending: false }),
+    ]);
+
+    if (categoriesResult.error) throw categoriesResult.error;
+    if (postsResult.error) throw postsResult.error;
+
+    const categoriesRows = (categoriesResult.data ?? []) as BlogCategoryRow[];
+    const postRows = (postsResult.data ?? []) as BlogPostRow[];
+
+    const categories = categoriesRows.map((category) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+    }));
+
+    const categoriesById = new Map(categories.map((category) => [category.id, category]));
+    const posts = postRows.map((post) => {
+      const category = post.category_id ? categoriesById.get(post.category_id) : null;
+      return {
+        id: post.id,
+        slug: post.slug,
+        title: post.title,
+        summary: summarize(post.excerpt, post.content),
+        bodyText: richTextToPlainText(post.content),
+        category: category?.name ?? "Uncategorized",
+        categorySlug: category?.slug ?? slugify(category?.name ?? "Uncategorized"),
+        yearLabel: formatDateLabel(post.published_at ?? post.created_at),
+        publishedAt: post.published_at,
+        readingMinutes: post.reading_minutes,
+        viewCount: post.view_count,
+        createdAt: post.created_at,
+        updatedAt: post.updated_at,
+      };
+    });
+
+    return { categories, posts };
+  } catch (error) {
+    console.warn("[blog] Falling back to seeded stories.", error);
+    return {
+      categories: Array.from(
+        new Map(
+          milestoneStories.map((story) => [
+            slugify(story.category),
+            { slug: slugify(story.category), name: story.category },
+          ]),
+        ).values(),
+      ),
+      posts: milestoneStories.map((story) => ({
+        id: story.slug,
+        slug: story.slug,
+        title: story.title,
+        summary: story.summary,
+        body: story.body,
+        bodyText: story.body,
+        category: story.category,
+        categorySlug: slugify(story.category),
+        yearLabel: story.yearLabel,
+        publishedAt: null,
+        readingMinutes: null,
+        viewCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      })),
+    };
+  }
+});
+
 const categories = computed(() => [
   { slug: "all", name: "All stories" },
-  ...Array.from(new Set(milestoneStories.map((story) => story.category))).map(
-    (category) => ({
-      slug: slugify(category),
-      name: category,
-    }),
-  ),
+  ...(blogIndex.value?.categories ?? []).map((category) => ({
+    slug: category.slug,
+    name: category.name,
+  })),
 ]);
-
-function slugify(input: string) {
-  return input.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-}
 
 const filteredStories = computed(() => {
   const term = search.value.trim().toLowerCase();
+  const stories = blogIndex.value?.posts ?? [];
 
-  return milestoneStories.filter((story) => {
+  return stories.filter((story) => {
     const categoryMatch =
-      activeCategory.value === "all" || slugify(story.category) === activeCategory.value;
+      activeCategory.value === "all" || story.categorySlug === activeCategory.value;
     if (!categoryMatch) return false;
     if (!term) return true;
     return (
       story.title.toLowerCase().includes(term) ||
       story.summary.toLowerCase().includes(term) ||
-      story.body.toLowerCase().includes(term)
+      story.bodyText.toLowerCase().includes(term)
     );
   });
 });
