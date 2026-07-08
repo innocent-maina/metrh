@@ -11,14 +11,16 @@ const contactSubmissionSchema = z.object({
 export default defineEventHandler(async (event) => {
   const body = contactSubmissionSchema.parse(await readBody(event));
   const config = useRuntimeConfig();
+  const supabaseUrl = config.public.supabase?.url ?? config.public.supabaseUrl;
+  const supabaseKey = config.supabase.secretKey ?? config.supabaseSecretKey;
 
   const response = await fetch(
-    `${config.public.supabaseUrl}/rest/v1/contact_submissions`,
+    `${supabaseUrl}/rest/v1/contact_submissions`,
     {
       method: "POST",
       headers: {
-        apikey: config.supabaseSecretKey,
-        Authorization: `Bearer ${config.supabaseSecretKey}`,
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
         Prefer: "return=minimal",
       },

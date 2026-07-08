@@ -17,13 +17,15 @@ const jobApplicationSchema = z.object({
 export default defineEventHandler(async (event) => {
   const body = jobApplicationSchema.parse(await readBody(event));
   const config = useRuntimeConfig();
+  const supabaseUrl = config.public.supabase?.url ?? config.public.supabaseUrl;
+  const supabaseKey = config.supabase.secretKey ?? config.supabaseSecretKey;
 
   const postingResponse = await fetch(
-    `${config.public.supabaseUrl}/rest/v1/job_postings?slug=eq.${body.jobSlug}&select=id,status,slug`,
+    `${supabaseUrl}/rest/v1/job_postings?slug=eq.${body.jobSlug}&select=id,status,slug`,
     {
       headers: {
-        apikey: config.supabaseSecretKey,
-        Authorization: `Bearer ${config.supabaseSecretKey}`,
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
       },
     },
   );
@@ -57,12 +59,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const response = await fetch(
-    `${config.public.supabaseUrl}/rest/v1/job_applications`,
+    `${supabaseUrl}/rest/v1/job_applications`,
     {
       method: "POST",
       headers: {
-        apikey: config.supabaseSecretKey,
-        Authorization: `Bearer ${config.supabaseSecretKey}`,
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
         Prefer: "return=minimal",
       },

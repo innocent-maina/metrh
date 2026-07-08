@@ -20,8 +20,9 @@ export function supabaseAdmin(): SupabaseClient<Database> {
   if (cachedAdminClient) return cachedAdminClient;
 
   const config = useRuntimeConfig();
-  const url = config.public.supabaseUrl;
-  const serviceRoleKey = config.supabaseSecretKey;
+  const url = config.public.supabase?.url ?? config.public.supabaseUrl;
+  const serviceRoleKey =
+    config.supabase.secretKey ?? config.supabase.serviceKey ?? config.supabaseSecretKey;
 
   if (!url || !serviceRoleKey) {
     throw createError({

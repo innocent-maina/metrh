@@ -12,11 +12,6 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: "en" },
-      link: [
-        { rel: "icon", type: "image/png", href: "/icon.png" },
-        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
-        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-      ],
       meta: [{ name: "theme-color", content: "#0B4F5C" }],
     },
   },
@@ -75,8 +70,15 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    supabaseSecretKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+    supabase: {
+      serviceKey: process.env.NUXT_SUPABASE_SERVICE_KEY ?? "",
+      secretKey: process.env.NUXT_SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+    },
     public: {
+      supabase: {
+        url: process.env.NUXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "",
+        key: process.env.NUXT_PUBLIC_SUPABASE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "",
+      },
       supabaseUrl: process.env.SUPABASE_URL ?? "",
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? "",
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? "https://www.metrh.or.ke",
