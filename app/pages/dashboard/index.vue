@@ -22,41 +22,71 @@ const { data: contactCount } = await useAsyncData(
   "dashboard-contact-count",
   async () => {
     if (!canReadContacts.value) return null;
-    const { count, error } = await supabase
-      .from("contact_submissions")
-      .select("id", { count: "exact", head: true });
+    try {
+      const { count, error } = await supabase
+        .from("contact_submissions")
+        .select("id", { count: "exact", head: true });
 
-    if (error) throw error;
-    return count ?? 0;
+      if (error) {
+        console.warn("Unable to load contact submission count:", error.message);
+        return null;
+      }
+
+      return count ?? 0;
+    } catch (error) {
+      console.warn("Unable to load contact submission count:", error);
+      return null;
+    }
   },
+  { default: () => null },
 );
 
 const { data: openJobsCount } = await useAsyncData(
   "dashboard-open-jobs-count",
   async () => {
     if (!canReadCareers.value) return null;
-    const { count, error } = await supabase
-      .from("job_postings")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "open");
+    try {
+      const { count, error } = await supabase
+        .from("job_postings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "open");
 
-    if (error) throw error;
-    return count ?? 0;
+      if (error) {
+        console.warn("Unable to load open jobs count:", error.message);
+        return null;
+      }
+
+      return count ?? 0;
+    } catch (error) {
+      console.warn("Unable to load open jobs count:", error);
+      return null;
+    }
   },
+  { default: () => null },
 );
 
 const { data: openTendersCount } = await useAsyncData(
   "dashboard-open-tenders-count",
   async () => {
     if (!canReadProcurement.value) return null;
-    const { count, error } = await supabase
-      .from("tenders")
-      .select("id", { count: "exact", head: true })
-      .neq("status", "draft");
+    try {
+      const { count, error } = await supabase
+        .from("tenders")
+        .select("id", { count: "exact", head: true })
+        .neq("status", "draft");
 
-    if (error) throw error;
-    return count ?? 0;
+      if (error) {
+        console.warn("Unable to load open tenders count:", error.message);
+        return null;
+      }
+
+      return count ?? 0;
+    } catch (error) {
+      console.warn("Unable to load open tenders count:", error);
+      return null;
+    }
   },
+  { default: () => null },
 );
 
 const quickLinks = computed(() => {

@@ -19,15 +19,25 @@ const supabase = useSupabaseClient();
 const { data: teamMembers, pending } = await useAsyncData<TeamMember[]>(
   "team-members-active",
   async () => {
-    const { data, error } = await supabase
-      .from("team_members")
-      .select("id, full_name, title, bio, photo_url, department")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("team_members")
+        .select("id, full_name, title, bio, photo_url, department")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.warn("Unable to load leadership profiles:", error.message);
+        return [];
+      }
+
+      return data ?? [];
+    } catch (error) {
+      console.warn("Unable to load leadership profiles:", error);
+      return [];
+    }
   },
+  { default: () => [] },
 );
 </script>
 
