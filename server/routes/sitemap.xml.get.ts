@@ -20,7 +20,7 @@ export default defineEventHandler(() => {
     "/careers/metrh-hrm-02-2025-2026",
     "/tenders",
     "/privacy-policy",
-    "/terms-of-service",
+    "/terms-of-use",
     "/cookie-policy",
   ];
 

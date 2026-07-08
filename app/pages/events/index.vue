@@ -41,6 +41,8 @@ const filteredAlbums = computed(() => {
     );
   });
 });
+
+const eventsImages = useHospitalMedia();
 </script>
 
 <template>
@@ -61,6 +63,13 @@ const filteredAlbums = computed(() => {
         </div>
       </div>
     </section>
+
+    <PageMediaStrip
+      :items="eventsImages"
+      title="Events and media"
+      subtitle="Blood drives and community activity shown between the overview and the archive."
+      compact
+    />
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

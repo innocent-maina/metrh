@@ -58,7 +58,7 @@ export default defineNuxtConfig({
         "/tenders",
         "/tenders/**",
         "/privacy-policy",
-        "/terms-of-service",
+        "/terms-of-use",
         "/cookie-policy",
       ],
     },
@@ -66,7 +66,10 @@ export default defineNuxtConfig({
     cookieOptions: {
       httpOnly: false,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      // Local `nuxt dev` runs over http://localhost, even if NODE_ENV is set to
+      // production in the shell. Secure cookies would never round-trip there,
+      // which makes serverSupabaseUser() think the session is missing.
+      secure: !process.dev && process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // staff sessions: 7 days
     },
   },

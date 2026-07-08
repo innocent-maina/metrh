@@ -38,6 +38,8 @@ const filteredRounds = computed(() => {
 const openCount = computed(
   () => recruitmentRounds.filter((round) => round.status === "open").length,
 );
+
+const careerImages = useHospitalMedia();
 </script>
 
 <template>
@@ -58,6 +60,13 @@ const openCount = computed(
         </div>
       </div>
     </section>
+
+    <PageMediaStrip
+      :items="careerImages"
+      title="Careers at MeTRH"
+      subtitle="Recruitment and capacity-building images placed between the intro and listings."
+      compact
+    />
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

@@ -4,6 +4,9 @@ const affiliations = [
   "Meru University of Science and Technology",
   "Kenya Medical Training College (KMTC)",
 ];
+
+const homeImages = useHospitalMedia();
+const teachingImages = computed(() => homeImages.value.slice(5, 10));
 </script>
 
 <template>
@@ -46,6 +49,13 @@ const affiliations = [
           </li>
         </ul>
       </div>
+
+      <PageMediaStrip
+        :items="teachingImages"
+        title="Teaching context"
+        subtitle="The academic side of MeTRH, shown below the affiliations list."
+        compact
+      />
     </div>
   </section>
 </template>

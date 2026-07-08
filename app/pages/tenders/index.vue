@@ -17,6 +17,8 @@ const statusOptions = [
 ] as const;
 const openTenderCount = 0;
 const downloadCount = 0;
+
+const tenderImages = useHospitalMedia();
 </script>
 
 <template>
@@ -38,6 +40,13 @@ const downloadCount = 0;
         </div>
       </div>
     </section>
+
+    <PageMediaStrip
+      :items="tenderImages"
+      title="Procurement visuals"
+      subtitle="Planning, operations, and infrastructure imagery before the notice area."
+      compact
+    />
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

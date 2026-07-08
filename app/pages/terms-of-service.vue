@@ -1,7 +1,3 @@
 <script setup lang="ts">
-definePageMeta({ layout: "default" });
+await navigateTo("/terms-of-use", { redirectCode: 301 });
 </script>
-
-<template>
-  <LegalPageBody slug="terms-of-service" />
-</template>

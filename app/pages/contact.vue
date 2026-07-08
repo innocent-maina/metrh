@@ -21,6 +21,8 @@ const isSubmitting = ref(false);
 const errorMessage = ref("");
 const successMessage = ref("");
 
+const contactImages = useHospitalMedia();
+
 function resetForm() {
   form.name = "";
   form.email = "";
@@ -92,6 +94,13 @@ async function submitForm() {
         </div>
       </div>
     </section>
+
+    <PageMediaStrip
+      :items="contactImages"
+      title="Visit and reach us"
+      subtitle="Contact details supported by real hospital imagery."
+      compact
+    />
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">

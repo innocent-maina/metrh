@@ -58,11 +58,11 @@ watch(
           class="flex items-center gap-2 shrink-0"
           aria-label="MeTRH home"
         >
-          <span
-            class="flex size-9 items-center justify-center rounded-control bg-primary text-white font-display font-bold text-sm"
-            aria-hidden="true"
-            >M</span
-          >
+          <img
+            src="/logo.jpg"
+            alt="MeTRH logo"
+            class="size-10 rounded-control border border-border bg-white object-cover shadow-sm"
+          />
           <span
             class="font-display font-semibold text-h4 text-ink leading-none"
           >

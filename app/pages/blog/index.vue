@@ -41,6 +41,8 @@ const filteredStories = computed(() => {
     );
   });
 });
+
+const blogImages = useHospitalMedia();
 </script>
 
 <template>
@@ -61,6 +63,13 @@ const filteredStories = computed(() => {
         </div>
       </div>
     </section>
+
+    <PageMediaStrip
+      :items="blogImages"
+      title="Blog imagery"
+      subtitle="Stories, outreach, and hospital milestones with matching visuals."
+      compact
+    />
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

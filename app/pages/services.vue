@@ -56,6 +56,8 @@ const activeLabel = computed(() =>
     ? "all service areas"
     : categoryOptions.value.find((option) => option.slug === activeCategory.value)?.name ?? "selected area",
 );
+
+const serviceImages = useHospitalMedia();
 </script>
 
 <template>
@@ -104,6 +106,13 @@ const activeLabel = computed(() =>
         </div>
       </div>
     </section>
+
+    <PageMediaStrip
+      :items="serviceImages"
+      title="Services in practice"
+      subtitle="Relevant images placed between the overview and the service list."
+      compact
+    />
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

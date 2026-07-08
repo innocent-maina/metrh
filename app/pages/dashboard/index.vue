@@ -5,7 +5,8 @@ const { me, hasRole, isSuperAdmin } = useDashboardRoles();
 const supabase = useSupabaseClient();
 
 const canReadContacts = computed(
-  () => hasRole("front_desk") || hasRole("content_editor") || isSuperAdmin.value,
+  () =>
+    hasRole("front_desk") || hasRole("content_editor") || isSuperAdmin.value,
 );
 const canReadCareers = computed(
   () => hasRole("hr_manager") || isSuperAdmin.value,
@@ -17,26 +18,32 @@ const canEditContent = computed(
   () => hasRole("content_editor") || isSuperAdmin.value,
 );
 
-const { data: contactCount } = await useAsyncData("dashboard-contact-count", async () => {
-  if (!canReadContacts.value) return null;
-  const { count, error } = await supabase
-    .from("contact_submissions")
-    .select("id", { count: "exact", head: true });
+const { data: contactCount } = await useAsyncData(
+  "dashboard-contact-count",
+  async () => {
+    if (!canReadContacts.value) return null;
+    const { count, error } = await supabase
+      .from("contact_submissions")
+      .select("id", { count: "exact", head: true });
 
-  if (error) throw error;
-  return count ?? 0;
-});
+    if (error) throw error;
+    return count ?? 0;
+  },
+);
 
-const { data: openJobsCount } = await useAsyncData("dashboard-open-jobs-count", async () => {
-  if (!canReadCareers.value) return null;
-  const { count, error } = await supabase
-    .from("job_postings")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "open");
+const { data: openJobsCount } = await useAsyncData(
+  "dashboard-open-jobs-count",
+  async () => {
+    if (!canReadCareers.value) return null;
+    const { count, error } = await supabase
+      .from("job_postings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open");
 
-  if (error) throw error;
-  return count ?? 0;
-});
+    if (error) throw error;
+    return count ?? 0;
+  },
+);
 
 const { data: openTendersCount } = await useAsyncData(
   "dashboard-open-tenders-count",
@@ -54,13 +61,19 @@ const { data: openTendersCount } = await useAsyncData(
 
 const quickLinks = computed(() => {
   const sections = useDashboardSections();
-  return sections.filter((section) => section.roles.some((role) => hasRole(role)));
+  return sections.filter((section) =>
+    section.roles.some((role) => hasRole(role)),
+  );
 });
+
+const dashboardImages = useHospitalMedia();
 </script>
 
 <template>
   <div class="space-y-8">
-    <section class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card">
+    <section
+      class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card"
+    >
       <div class="max-w-3xl">
         <p class="text-small font-semibold uppercase tracking-wide text-info">
           Dashboard overview
@@ -76,24 +89,39 @@ const quickLinks = computed(() => {
     </section>
 
     <section class="grid gap-4 md:grid-cols-3">
-      <div v-if="contactCount !== null" class="rounded-card border border-border bg-white p-5">
-        <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+      <div
+        v-if="contactCount !== null"
+        class="rounded-card border border-border bg-white p-5"
+      >
+        <p
+          class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+        >
           Contact submissions
         </p>
         <p class="mt-2 tabular-nums text-h2 text-primary">
           {{ contactCount }}
         </p>
       </div>
-      <div v-if="openJobsCount !== null" class="rounded-card border border-border bg-white p-5">
-        <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+      <div
+        v-if="openJobsCount !== null"
+        class="rounded-card border border-border bg-white p-5"
+      >
+        <p
+          class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+        >
           Open jobs
         </p>
         <p class="mt-2 tabular-nums text-h2 text-primary">
           {{ openJobsCount }}
         </p>
       </div>
-      <div v-if="openTendersCount !== null" class="rounded-card border border-border bg-white p-5">
-        <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+      <div
+        v-if="openTendersCount !== null"
+        class="rounded-card border border-border bg-white p-5"
+      >
+        <p
+          class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+        >
           Active tenders
         </p>
         <p class="mt-2 tabular-nums text-h2 text-primary">
@@ -103,9 +131,7 @@ const quickLinks = computed(() => {
     </section>
 
     <section class="rounded-card border border-border bg-white p-6 shadow-card">
-      <h3 class="font-display font-semibold text-h3 text-ink">
-        Quick links
-      </h3>
+      <h3 class="font-display font-semibold text-h3 text-ink">Quick links</h3>
       <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <NuxtLink
           v-for="section in quickLinks"
@@ -114,7 +140,9 @@ const quickLinks = computed(() => {
           class="rounded-card border border-border bg-surface-alt p-5 hover:border-primary/30 hover:bg-surface transition-colors"
         >
           <div class="flex items-start gap-3">
-            <span class="flex size-10 shrink-0 items-center justify-center rounded-control bg-primary/10 text-primary">
+            <span
+              class="flex size-10 shrink-0 items-center justify-center rounded-control bg-primary/10 text-primary"
+            >
               <Icon :name="section.icon" class="size-5" />
             </span>
             <div>
@@ -130,14 +158,16 @@ const quickLinks = computed(() => {
       </div>
     </section>
 
-    <section class="rounded-card border border-dashed border-border bg-surface-alt p-6">
+    <section
+      class="rounded-card border border-dashed border-border bg-surface-alt p-6"
+    >
       <p class="text-small font-semibold uppercase tracking-wide text-info">
         Next up
       </p>
       <p class="mt-2 text-small text-ink-muted">
-        The next pass fills in the list-and-form CRUD screens for the section
-        routes above. This overview is already role-aware and ready to link
-        into them.
+        The section routes now open role-aware CRUD tables with create, edit,
+        open, and delete actions where the current role is allowed to use them.
+        This overview stays as the starting point for those screens.
       </p>
     </section>
   </div>

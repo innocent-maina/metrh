@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { me, load, hasRole, isSuperAdmin, reset } = useDashboardRoles();
+const dashboardImages = useHospitalMedia();
 
 await load();
 
@@ -24,9 +25,11 @@ async function handleSignOut() {
     <aside class="border-b border-border bg-primary-dark text-white lg:border-b-0 lg:border-r lg:border-white/10">
       <div class="px-4 py-5 sm:px-6">
         <NuxtLink to="/dashboard" class="flex items-center gap-3">
-          <span class="flex size-10 items-center justify-center rounded-control bg-white text-primary-dark font-display font-bold">
-            M
-          </span>
+          <img
+            src="/logo.jpg"
+            alt="MeTRH logo"
+            class="size-10 rounded-control bg-white object-cover"
+          />
           <div>
             <p class="font-display font-semibold text-h4 leading-none">
               MeTRH Dashboard
@@ -121,6 +124,13 @@ async function handleSignOut() {
       <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <slot />
       </main>
+
+      <PageMediaStrip
+        :items="dashboardImages"
+        title="Operational context"
+        subtitle="Internal pages get their own image context lower down in the layout."
+        compact
+      />
     </div>
   </div>
 </template>

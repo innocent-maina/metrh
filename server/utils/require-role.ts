@@ -5,7 +5,9 @@ import type { Database, AppRole } from "~~/types/database.types";
 /**
  * Ensures the request is authenticated. Throws 401 otherwise.
  * Returns the request-scoped Supabase client (cookie-authenticated, so all
- * queries made with it are still subject to RLS) and the authenticated user.
+ * queries made with it are still subject to RLS) and the authenticated
+ * JWT claims. Supabase server auth exposes the user identifier as `sub`, not
+ * `id`, so callers should use `userId` for profile/role lookups.
  */
 export async function requireAuth(event: H3Event) {
   const client = await serverSupabaseClient<Database>(event);
@@ -15,7 +17,15 @@ export async function requireAuth(event: H3Event) {
     throw createError({ statusCode: 401, statusMessage: "Sign in required." });
   }
 
-  return { client, user };
+  const userId = user.sub;
+  if (!userId) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "Invalid sign-in session.",
+    });
+  }
+
+  return { client, user, userId };
 }
 
 /**
@@ -27,13 +37,17 @@ export async function requireAuth(event: H3Event) {
  * defense.
  */
 export async function requireRole(event: H3Event, role: AppRole) {
-  const { client, user } = await requireAuth(event);
+  return requireAnyRole(event, [role]);
+}
+
+export async function requireAnyRole(event: H3Event, roles: AppRole[]) {
+  const { client, user, userId } = await requireAuth(event);
 
   type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
-  const { data: roles, error } = await client
+  const { data: userRoles, error } = await client
     .from("user_roles")
     .select("role")
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   if (error) {
     throw createError({
@@ -42,9 +56,12 @@ export async function requireRole(event: H3Event, role: AppRole) {
     });
   }
 
-  const roleRows: Pick<UserRoleRow, "role">[] = roles ?? [];
+  const roleRows: Pick<UserRoleRow, "role">[] = userRoles ?? [];
+  const allowedRoles = new Set(roles);
   const hasRole = roleRows.some(
-    (entry) => entry.role === role || entry.role === "super_admin",
+    (entry) =>
+      entry.role === "super_admin" ||
+      allowedRoles.has(entry.role),
   );
 
   if (!hasRole) {
@@ -54,5 +71,5 @@ export async function requireRole(event: H3Event, role: AppRole) {
     });
   }
 
-  return { client, user };
+  return { client, user, userId };
 }

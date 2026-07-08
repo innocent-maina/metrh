@@ -16,6 +16,8 @@ const scaleStats = [
   { value: "2", label: "General surgical theatres" },
   { value: "~150%", label: "Average bed occupancy" },
 ];
+
+const aboutImages = useHospitalMedia();
 </script>
 
 <template>
@@ -37,6 +39,12 @@ const scaleStats = [
     </section>
 
     <MissionValues />
+
+    <PageMediaStrip
+      :items="aboutImages"
+      title="About MeTRH in images"
+      subtitle="Hospital scale, service growth, and daily care in one visual row."
+    />
 
     <StatsStrip
       title="Scale & capacity"

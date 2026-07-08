@@ -12,7 +12,7 @@ const quickLinks = [
 
 const legalLinks = [
   { label: "Privacy Policy", to: "/privacy-policy" },
-  { label: "Terms of Service", to: "/terms-of-service" },
+  { label: "Terms of Use", to: "/terms-of-use" },
   { label: "Cookie Policy", to: "/cookie-policy" },
 ];
 
@@ -25,7 +25,14 @@ const currentYear = new Date().getFullYear();
       class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 grid gap-10 md:grid-cols-4"
     >
       <div class="md:col-span-1">
-        <p class="font-display font-semibold text-h4">MeTRH</p>
+        <div class="flex items-center gap-3">
+          <img
+            src="/logo.jpg"
+            alt="MeTRH logo"
+            class="size-11 rounded-control bg-white object-cover"
+          />
+          <p class="font-display font-semibold text-h4">MeTRH</p>
+        </div>
         <p class="text-small text-white/70 mt-1">
           Exemplary Health Care for You
         </p>

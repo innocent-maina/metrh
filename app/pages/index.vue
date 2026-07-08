@@ -20,7 +20,7 @@ const stats = [
 <template>
   <div>
     <NoticeBoardHero />
-    <QuickAccessTiles />
+    <!-- <QuickAccessTiles /> -->
     <ServicesOverviewTeaser />
     <StatsStrip title="MeTRH at a glance" :stats="stats" />
     <CommunityImpact />
