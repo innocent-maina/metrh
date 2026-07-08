@@ -11,7 +11,6 @@ type MediaKey =
   | "services"
   | "contact"
   | "blog"
-  | "events"
   | "careers"
   | "tenders"
   | "legal"
@@ -218,38 +217,6 @@ const mediaSets: Record<MediaKey, HospitalMediaItem[]> = {
       "News items that document how the hospital serves Meru.",
     ),
   ],
-  events: [
-    image(
-      "donation-3.jpg",
-      "Community donation activity",
-      "Events",
-      "Outreach and fundraising photos from public events.",
-    ),
-    image(
-      "donation-4.jpg",
-      "Hospital donation campaign",
-      "Participation",
-      "Community members showing up for blood drive work.",
-    ),
-    image(
-      "blood-1.jpg",
-      "Blood drive at MeTRH",
-      "Blood drive",
-      "A direct look at donor-led public health action.",
-    ),
-    image(
-      "blood-2.jpg",
-      "Blood donation campaign imagery",
-      "Media",
-      "Album-style records for outreach and donor campaigns.",
-    ),
-    image(
-      "blood-3.jpg",
-      "Hospital blood bank activity",
-      "Outreach",
-      "Event coverage that links donations to real patient care.",
-    ),
-  ],
   careers: [
     image(
       "new-machine-2.jpg",
@@ -420,7 +387,6 @@ function resolveKey(path: string): MediaKey {
   if (normalized.startsWith("/services")) return "services";
   if (normalized.startsWith("/contact")) return "contact";
   if (normalized.startsWith("/blog")) return "blog";
-  if (normalized.startsWith("/events")) return "events";
   if (normalized.startsWith("/careers")) return "careers";
   if (normalized.startsWith("/tenders")) return "tenders";
   if (normalized.startsWith("/dashboard")) {

@@ -14,6 +14,7 @@ const canReadCareers = computed(
 const canReadProcurement = computed(
   () => hasRole("procurement_manager") || isSuperAdmin.value,
 );
+const canReadAnalytics = computed(() => isSuperAdmin.value);
 const canEditContent = computed(
   () => hasRole("content_editor") || isSuperAdmin.value,
 );
@@ -89,6 +90,29 @@ const { data: openTendersCount } = await useAsyncData(
   { default: () => null },
 );
 
+const { data: pagePulsesCount } = await useAsyncData(
+  "dashboard-page-pulses-count",
+  async () => {
+    if (!canReadAnalytics.value) return null;
+    try {
+      const { count, error } = await supabase
+        .from("page_pulses")
+        .select("id", { count: "exact", head: true });
+
+      if (error) {
+        console.warn("Unable to load page pulse count:", error.message);
+        return null;
+      }
+
+      return count ?? 0;
+    } catch (error) {
+      console.warn("Unable to load page pulse count:", error);
+      return null;
+    }
+  },
+  { default: () => null },
+);
+
 const quickLinks = computed(() => {
   const sections = useDashboardSections();
   return sections.filter((section) =>
@@ -118,7 +142,7 @@ const dashboardImages = useHospitalMedia();
       </div>
     </section>
 
-    <section class="grid gap-4 md:grid-cols-3">
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div
         v-if="contactCount !== null"
         class="rounded-card border border-border bg-white p-5"
@@ -156,6 +180,19 @@ const dashboardImages = useHospitalMedia();
         </p>
         <p class="mt-2 tabular-nums text-h2 text-primary">
           {{ openTendersCount }}
+        </p>
+      </div>
+      <div
+        v-if="pagePulsesCount !== null"
+        class="rounded-card border border-border bg-white p-5"
+      >
+        <p
+          class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+        >
+          Page pulses
+        </p>
+        <p class="mt-2 tabular-nums text-h2 text-primary">
+          {{ pagePulsesCount }}
         </p>
       </div>
     </section>

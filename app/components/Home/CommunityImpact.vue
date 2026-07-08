@@ -1,9 +1,4 @@
 <script setup lang="ts">
-// TODO(step 6): once `media_albums` has real blood-drive photo albums,
-// pull the cover image + link through to /events/[slug] instead of the
-// static entries below. Facts are from content.md §11 — real events,
-// not invented; photos/exact quotes still need manual pull from Facebook
-// per the build note in that section.
 const stories = [
   {
     title: "Arsenal Kenya Supporters' Club blood drive",
@@ -66,14 +61,6 @@ const stories = [
           <p class="mt-2 text-small text-white/75">{{ story.detail }}</p>
         </li>
       </ul>
-
-      <NuxtLink
-        to="/events"
-        class="mt-8 inline-flex items-center gap-1 text-small font-semibold text-accent hover:underline"
-      >
-        See events & media
-        <Icon name="lucide:arrow-right" class="size-4" />
-      </NuxtLink>
     </div>
   </section>
 </template>

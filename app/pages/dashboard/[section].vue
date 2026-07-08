@@ -53,7 +53,10 @@ const activeResourceId = ref<string>(
 const activeRecord = ref<Record<string, unknown> | null>(null);
 const formValues = ref<Record<string, unknown>>({});
 const isSaving = ref(false);
+const isResettingPassword = ref(false);
 const notice = ref<string | null>(null);
+const tempPassword = ref<string | null>(null);
+const tempPasswordFor = ref<string | null>(null);
 const searchTerm = ref("");
 
 watch(
@@ -191,6 +194,8 @@ function openCreate() {
   formValues.value = buildFormValues(resource);
   drawerOpen.value = true;
   notice.value = null;
+  tempPassword.value = null;
+  tempPasswordFor.value = null;
 }
 
 function openRecord(row: Record<string, unknown>) {
@@ -204,6 +209,8 @@ function openRecord(row: Record<string, unknown>) {
   formValues.value = buildFormValues(resource, rawRow);
   drawerOpen.value = true;
   notice.value = null;
+  tempPassword.value = null;
+  tempPasswordFor.value = null;
 }
 
 function closeDrawer() {
@@ -222,11 +229,18 @@ async function submitRecord() {
     const payload = serializeFormValues(resource, formValues.value);
 
     if (drawerMode.value === "create") {
-      await $fetch(`/api/dashboard/${resource.id}`, {
+      const result = await $fetch<{ row: Record<string, unknown>; tempPassword?: string }>(
+        `/api/dashboard/${resource.id}`,
+        {
         method: "POST",
         body: { data: payload },
-      });
+        },
+      );
       notice.value = `${resource.label} created successfully.`;
+      if (resource.id === "profiles" && result.tempPassword) {
+        tempPassword.value = result.tempPassword;
+        tempPasswordFor.value = String(formValues.value.email ?? "");
+      }
     } else if (activeRecord.value) {
       await $fetch(`/api/dashboard/${resource.id}`, {
         method: "PATCH",
@@ -242,6 +256,29 @@ async function submitRecord() {
       error instanceof Error ? error.message : "Could not save the record.";
   } finally {
     isSaving.value = false;
+  }
+}
+
+async function resetPasswordForCurrentProfile() {
+  const resource = currentResource.value;
+  if (!resource || resource.id !== "profiles" || !activeRecord.value) return;
+
+  isResettingPassword.value = true;
+  notice.value = null;
+
+  try {
+    const result = await $fetch<{ tempPassword: string }>(
+      `/api/dashboard/profiles/${String(activeRecord.value.id)}/reset-password`,
+      { method: "POST" },
+    );
+    tempPassword.value = result.tempPassword;
+    tempPasswordFor.value = String(activeRecord.value.email ?? "");
+    notice.value = "Password reset successfully.";
+  } catch (error) {
+    notice.value =
+      error instanceof Error ? error.message : "Could not reset the password.";
+  } finally {
+    isResettingPassword.value = false;
   }
 }
 
@@ -284,7 +321,9 @@ const displayRows = computed(() => {
   if (!resource) return [];
 
   const rows = resourceRows[resource.id] ?? [];
-  const selectFields = resource.fields.filter((field) => field.kind === "select");
+  const selectFields = resource.fields.filter(
+    (field) => field.kind === "select" || field.kind === "multiselect",
+  );
 
   return rows.map((row) => {
     const copy: Record<string, unknown> = { ...row, __rawRow: row };
@@ -292,6 +331,19 @@ const displayRows = computed(() => {
     for (const field of selectFields) {
       const options = getFieldOptions(field, resourceRows);
       const value = row[field.key];
+      if (field.kind === "multiselect") {
+        const selected = Array.isArray(value)
+          ? value.map((entry) => String(entry))
+          : value == null || value === ""
+            ? []
+            : [String(value)];
+
+        copy[field.key] = selected
+          .map((entry) => options.find((option) => option.value === entry)?.label ?? entry)
+          .join(", ");
+        continue;
+      }
+
       const match = options.find((option) => option.value === String(value ?? ""));
       if (match) {
         copy[field.key] = match.label;
@@ -413,6 +465,21 @@ watch(
         {{ notice }}
       </div>
 
+      <div
+        v-if="tempPassword"
+        class="mt-4 rounded-card border border-warning/30 bg-warning/5 px-4 py-3 text-small text-ink"
+      >
+        <p class="font-semibold text-warning">
+          Temporary password for {{ tempPasswordFor || "this staff account" }}
+        </p>
+        <p class="mt-1 break-all font-mono text-body text-ink">
+          {{ tempPassword }}
+        </p>
+        <p class="mt-2 text-caption text-ink-muted">
+          Share this once. The user can change it after signing in.
+        </p>
+      </div>
+
       <div v-if="resourceErrors[currentResource?.id ?? '']" class="mt-4 rounded-card border border-danger/30 bg-danger/5 px-4 py-3 text-small text-danger">
         {{ resourceErrors[currentResource?.id ?? ''] }}
       </div>
@@ -472,6 +539,18 @@ watch(
       @update:modelValue="formValues = $event"
       @submit="submitRecord"
       @cancel="closeDrawer"
-    />
+    >
+      <template #footer-actions>
+        <button
+          v-if="currentResource.id === 'profiles' && drawerMode === 'edit' && activeRecord"
+          type="button"
+          class="rounded-control border border-warning/30 px-4 py-2.5 text-small font-semibold text-warning hover:bg-warning/5 disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="isResettingPassword"
+          @click="resetPasswordForCurrentProfile"
+        >
+          {{ isResettingPassword ? "Resetting..." : "Reset password" }}
+        </button>
+      </template>
+    </BaseCrudDrawer>
   </div>
 </template>

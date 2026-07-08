@@ -23,7 +23,7 @@ async function handleSignOut() {
     </h1>
     <p class="text-small text-ink-muted mt-2">
       Your account is signed in but doesn't have a dashboard role assigned. Ask
-      a super admin to grant you access from Users &amp; Roles.
+      a super admin to grant access from the staff profile.
     </p>
     <button
       type="button"

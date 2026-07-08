@@ -5,7 +5,6 @@ import type {
   DayOfWeek,
   EmploymentType,
   JobStatus,
-  MediaType,
   PublishStatus,
   TenderCategory,
   TenderStatus,
@@ -16,6 +15,7 @@ export type CrudFieldKind =
   | "textarea"
   | "richtext"
   | "select"
+  | "multiselect"
   | "number"
   | "checkbox"
   | "date"
@@ -192,11 +192,6 @@ const daysOfWeek: CrudOption[] = [
   { label: "Friday", value: "friday" },
   { label: "Saturday", value: "saturday" },
   { label: "Sunday", value: "sunday" },
-];
-
-const mediaTypes: CrudOption[] = [
-  { label: "Image", value: "image" },
-  { label: "Video", value: "video" },
 ];
 
 const appRoles: CrudOption[] = [
@@ -674,90 +669,10 @@ export const dashboardSections: CrudSectionConfig[] = [
     ],
   },
   {
-    id: "media",
-    label: "Media",
-    to: "/dashboard/media",
-    description: "Publish albums and media items.",
-    roles: ["content_editor"],
-    icon: "lucide:image",
-    resources: [
-      {
-        id: "media_albums",
-        label: "Albums",
-        description: "Manage event and story albums.",
-        table: "media_albums",
-        readRoles: ["content_editor"],
-        writeRoles: ["content_editor"],
-        rowLabelKey: "title",
-        defaultSort: { key: "created_at", ascending: false },
-        columns: baseColumns([
-          { key: "title", label: "Title" },
-          { key: "slug", label: "Slug" },
-          { key: "status", label: "Status", kind: "status" },
-          { key: "event_date", label: "Event date", kind: "date" },
-        ]),
-        fields: fields([
-          { key: "title", label: "Title", kind: "text", required: true },
-          { key: "slug", label: "Slug", kind: "text", required: true },
-          { key: "description", label: "Description", kind: "textarea", rows: 5 },
-          { key: "event_date", label: "Event date", kind: "date" },
-          {
-            key: "cover_image_url",
-            label: "Cover image",
-            kind: "upload",
-            accept: "image/*",
-            uploadBucket: "media",
-            uploadFolder: "media/albums/covers",
-            uploadPreview: "image",
-          },
-          { key: "status", label: "Status", kind: "select", options: publishStatuses },
-        ]),
-        stampFields: { create: ["created_by"] },
-      },
-      {
-        id: "media_items",
-        label: "Media items",
-        description: "Attach images or videos to published albums.",
-        table: "media_items",
-        readRoles: ["content_editor"],
-        writeRoles: ["content_editor"],
-        rowLabelKey: "file_url",
-        defaultSort: { key: "display_order", ascending: true },
-        columns: baseColumns([
-          { key: "type", label: "Type" },
-          { key: "file_url", label: "Media file" },
-          { key: "display_order", label: "Order", kind: "number" },
-        ]),
-        fields: fields([
-          {
-            key: "album_id",
-            label: "Album",
-            kind: "select",
-            optionsFromResourceId: "media_albums",
-            optionLabelKey: "title",
-            required: true,
-          },
-          { key: "type", label: "Type", kind: "select", options: mediaTypes, required: true },
-          {
-            key: "file_url",
-            label: "Media file",
-            kind: "upload",
-            required: true,
-            accept: "image/*,video/*",
-            uploadBucket: "media",
-            uploadFolder: "media/items",
-          },
-          { key: "caption", label: "Caption", kind: "textarea", rows: 3 },
-          { key: "display_order", label: "Display order", kind: "number" },
-        ]),
-      },
-    ],
-  },
-  {
     id: "team",
     label: "Team",
     to: "/dashboard/team",
-    description: "Maintain leadership and board profiles.",
+    description: "Maintain leadership cards and staff auth accounts.",
     roles: ["content_editor"],
     icon: "lucide:users",
     resources: [
@@ -794,6 +709,47 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "display_order", label: "Display order", kind: "number" },
           { key: "is_active", label: "Active", kind: "checkbox" },
         ]),
+      },
+      {
+        id: "profiles",
+        label: "Staff accounts",
+        description: "Create auth users, manage dashboard access, and reset passwords.",
+        table: "profiles",
+        readRoles: ["super_admin"],
+        writeRoles: ["super_admin"],
+        rowLabelKey: "full_name",
+        defaultSort: { key: "created_at", ascending: false },
+        columns: baseColumns([
+          { key: "full_name", label: "Full name" },
+          { key: "email", label: "Email" },
+          { key: "job_title", label: "Job title" },
+          { key: "roles", label: "Roles" },
+          { key: "is_active", label: "Active", kind: "boolean" },
+        ]),
+        fields: fields([
+          { key: "full_name", label: "Full name", kind: "text", required: true },
+          { key: "email", label: "Email", kind: "text", required: true },
+          {
+            key: "avatar_url",
+            label: "Avatar",
+            kind: "upload",
+            accept: "image/*",
+            uploadBucket: "media",
+            uploadFolder: "profiles/avatars",
+            uploadPreview: "image",
+          },
+          { key: "phone", label: "Phone", kind: "text" },
+          { key: "job_title", label: "Job title", kind: "text" },
+          {
+            key: "roles",
+            label: "Roles",
+            kind: "multiselect",
+            options: appRoles,
+            helpText: "Leave empty for a staff record without dashboard access yet.",
+          },
+          { key: "is_active", label: "Active", kind: "checkbox", defaultValue: true },
+        ]),
+        submitLabel: "Save staff account",
       },
     ],
   },
@@ -833,71 +789,45 @@ export const dashboardSections: CrudSectionConfig[] = [
     ],
   },
   {
-    id: "users",
-    label: "Users",
-    to: "/dashboard/users",
-    description: "Invite staff and manage roles.",
+    id: "analytics",
+    label: "Analytics",
+    to: "/dashboard/analytics",
+    description: "Review visitor activity and page pulse records.",
     roles: ["super_admin"],
-    icon: "lucide:shield-user",
+    icon: "lucide:activity",
     resources: [
       {
-        id: "profiles",
-        label: "Profiles",
-        description: "Edit staff profile details.",
-        table: "profiles",
+        id: "page_pulses",
+        label: "Page pulses",
+        description: "Inspect lightweight page activity captured from the public site.",
+        table: "page_pulses",
         readRoles: ["super_admin"],
-        writeRoles: ["super_admin"],
-        rowLabelKey: "full_name",
+        writeRoles: [],
+        rowLabelKey: "path",
+        allowCreate: false,
+        allowUpdate: false,
+        allowDelete: false,
         defaultSort: { key: "created_at", ascending: false },
         columns: baseColumns([
-          { key: "full_name", label: "Full name" },
-          { key: "job_title", label: "Job title" },
-          { key: "phone", label: "Phone" },
-          { key: "is_active", label: "Active", kind: "boolean" },
+          { key: "created_at", label: "Captured", kind: "date" },
+          { key: "path", label: "Path" },
+          { key: "page_title", label: "Page title" },
+          { key: "referrer", label: "Referrer" },
         ]),
         fields: fields([
-          { key: "id", label: "User ID", kind: "text", required: true },
-          { key: "full_name", label: "Full name", kind: "text", required: true },
-          {
-            key: "avatar_url",
-            label: "Avatar",
-            kind: "upload",
-            accept: "image/*",
-            uploadBucket: "media",
-            uploadFolder: "profiles/avatars",
-            uploadPreview: "image",
-          },
-          { key: "phone", label: "Phone", kind: "text" },
-          { key: "job_title", label: "Job title", kind: "text" },
-          { key: "is_active", label: "Active", kind: "checkbox" },
+          { key: "session_id", label: "Session ID", kind: "text", disabled: true },
+          { key: "path", label: "Path", kind: "text", disabled: true },
+          { key: "page_title", label: "Page title", kind: "text", disabled: true },
+          { key: "referrer", label: "Referrer", kind: "text", disabled: true },
+          { key: "language", label: "Language", kind: "text", disabled: true },
+          { key: "user_agent", label: "User agent", kind: "textarea", rows: 4, disabled: true },
+          { key: "ip_address", label: "IP address", kind: "text", disabled: true },
+          { key: "screen_width", label: "Screen width", kind: "number", disabled: true },
+          { key: "screen_height", label: "Screen height", kind: "number", disabled: true },
+          { key: "viewport_width", label: "Viewport width", kind: "number", disabled: true },
+          { key: "viewport_height", label: "Viewport height", kind: "number", disabled: true },
+          { key: "created_at", label: "Captured at", kind: "text", disabled: true },
         ]),
-      },
-      {
-        id: "user_roles",
-        label: "Roles",
-        description: "Assign staff permissions.",
-        table: "user_roles",
-        readRoles: ["super_admin"],
-        writeRoles: ["super_admin"],
-        rowLabelKey: "role",
-        defaultSort: { key: "created_at", ascending: false },
-        columns: baseColumns([
-          { key: "user_id", label: "User ID" },
-          { key: "role", label: "Role", kind: "status" },
-          { key: "granted_by", label: "Granted by" },
-        ]),
-        fields: fields([
-          {
-            key: "user_id",
-            label: "User",
-            kind: "select",
-            optionsFromResourceId: "profiles",
-            optionLabelKey: "full_name",
-            required: true,
-          },
-          { key: "role", label: "Role", kind: "select", options: appRoles, required: true },
-        ]),
-        stampFields: { create: ["granted_by"] },
       },
     ],
   },
@@ -1018,6 +948,10 @@ export function buildFormValues(
     if (current == null) {
       if (field.kind === "checkbox") {
         values[field.key] = Boolean(field.defaultValue ?? false);
+      } else if (field.kind === "multiselect") {
+        values[field.key] = Array.isArray(field.defaultValue)
+          ? [...field.defaultValue]
+          : [];
       } else if (field.kind === "json") {
         values[field.key] = "";
       } else if (field.kind === "number") {
@@ -1030,6 +964,15 @@ export function buildFormValues(
 
     if (field.kind === "checkbox") {
       values[field.key] = Boolean(current);
+      continue;
+    }
+
+    if (field.kind === "multiselect") {
+      values[field.key] = Array.isArray(current)
+        ? current.map((entry) => String(entry))
+        : current == null || current === ""
+          ? []
+          : [String(current)];
       continue;
     }
 
@@ -1064,6 +1007,17 @@ export function serializeFormValues(
     const raw = formValues[field.key];
     if (field.kind === "checkbox") {
       payload[field.key] = Boolean(raw);
+      continue;
+    }
+
+    if (field.kind === "multiselect") {
+      payload[field.key] = Array.isArray(raw)
+        ? raw
+            .filter((entry) => entry != null && String(entry).trim() !== "")
+            .map((entry) => String(entry))
+        : raw == null || raw === ""
+          ? []
+          : [String(raw)];
       continue;
     }
 
@@ -1132,7 +1086,6 @@ export type {
   DayOfWeek,
   EmploymentType,
   JobStatus,
-  MediaType,
   PublishStatus,
   TenderCategory,
   TenderStatus,

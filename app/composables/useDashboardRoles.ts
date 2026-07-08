@@ -1,13 +1,7 @@
-import type { AppRole } from "~~/types/database.types";
+import type { AppRole, Database } from "~~/types/database.types";
 
 interface DashboardMe {
-  profile: {
-    id: string;
-    full_name: string;
-    avatar_url: string | null;
-    job_title: string | null;
-    is_active: boolean;
-  } | null;
+  profile: Database["public"]["Tables"]["profiles"]["Row"] | null;
   roles: AppRole[];
 }
 

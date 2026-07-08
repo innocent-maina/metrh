@@ -36,6 +36,23 @@ function updateField(key: string, value: unknown) {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
 }
 
+function getMultiSelectValues(fieldKey: string) {
+  const raw = props.modelValue[fieldKey];
+  return Array.isArray(raw) ? raw.map((entry) => String(entry)) : [];
+}
+
+function isMultiSelectChecked(fieldKey: string, optionValue: string) {
+  return getMultiSelectValues(fieldKey).includes(optionValue);
+}
+
+function toggleMultiSelect(fieldKey: string, optionValue: string, checked: boolean) {
+  const current = getMultiSelectValues(fieldKey);
+  const next = checked
+    ? Array.from(new Set([...current, optionValue]))
+    : current.filter((value) => value !== optionValue);
+  updateField(fieldKey, next);
+}
+
 const isUploading = computed(() =>
   Object.values(uploadingFields).some((value) => value),
 );
@@ -194,7 +211,7 @@ function handleSubmit() {
                   v-show="!field.serverOnly"
                   :key="field.key"
                   class="space-y-2"
-                  :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' || field.kind === 'richtext' ? 'md:col-span-2' : ''"
+                  :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' || field.kind === 'richtext' || field.kind === 'multiselect' ? 'md:col-span-2' : ''"
                 >
                   <span class="block text-small font-semibold text-ink">
                     {{ field.label }}
@@ -257,6 +274,31 @@ function handleSubmit() {
                     </p>
                   </div>
 
+                  <div v-else-if="field.kind === 'multiselect'" class="space-y-3">
+                    <div class="grid gap-2 rounded-card border border-border bg-white p-3">
+                      <div
+                        v-for="option in field.options ?? []"
+                        :key="option.value"
+                        class="flex items-center gap-3 rounded-control px-2 py-1.5 hover:bg-surface-alt"
+                      >
+                        <input
+                          type="checkbox"
+                          class="size-4 rounded border-border text-primary focus:ring-primary"
+                          :disabled="readOnly || disabled || field.disabled"
+                          :checked="Array.isArray(modelValue[field.key]) ? (modelValue[field.key] as unknown[]).map(String).includes(option.value) : false"
+                          @change="toggleMultiSelect(field.key, option.value, ($event.target as HTMLInputElement).checked)"
+                        />
+                        <span class="text-small font-medium text-ink">
+                          {{ option.label }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p class="text-caption text-ink-muted">
+                      {{ field.helpText ?? "Choose one or more options." }}
+                    </p>
+                  </div>
+
                   <select
                     v-else-if="field.kind === 'select'"
                     class="w-full rounded-card border border-border bg-white px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
@@ -295,7 +337,7 @@ function handleSubmit() {
                     @input="updateField(field.key, ($event.target as HTMLInputElement).value)"
                   />
 
-                  <p v-if="field.helpText && field.kind !== 'upload'" class="text-caption text-ink-muted">
+                  <p v-if="field.helpText && field.kind !== 'upload' && field.kind !== 'multiselect'" class="text-caption text-ink-muted">
                     {{ field.helpText }}
                   </p>
                   <p v-if="uploadErrors[field.key]" class="text-caption text-danger">
@@ -304,21 +346,26 @@ function handleSubmit() {
                 </label>
               </div>
 
-              <div v-if="!readOnly" class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4">
-                <button
-                  type="button"
-                  class="rounded-control border border-border px-4 py-2.5 text-small font-semibold text-ink hover:bg-surface-alt"
-                  @click="close"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="loading || isUploading"
-                >
-                  {{ loading ? "Saving..." : isUploading ? "Uploading..." : submitLabel }}
-                </button>
+              <div v-if="!readOnly" class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <div class="flex flex-wrap items-center gap-3">
+                  <slot name="footer-actions" />
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    class="rounded-control border border-border px-4 py-2.5 text-small font-semibold text-ink hover:bg-surface-alt"
+                    @click="close"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="loading || isUploading"
+                  >
+                    {{ loading ? "Saving..." : isUploading ? "Uploading..." : submitLabel }}
+                  </button>
+                </div>
               </div>
               <div v-else class="mt-6 border-t border-border pt-4">
                 <button

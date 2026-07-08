@@ -1,10 +1,15 @@
-import { getMethod, readBody } from "h3";
+import { createError, getMethod, readBody } from "h3";
 import { z } from "zod";
 import {
   getDashboardResource,
   getResourceStampFields,
 } from "~~/shared/dashboard-crud";
 import { requireAnyRole } from "~~/server/utils/require-role";
+import {
+  createStaffAccount,
+  deleteStaffAccount,
+  updateStaffAccount,
+} from "~~/server/utils/staff-accounts";
 
 const mutationBodySchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
@@ -109,6 +114,11 @@ export default defineEventHandler(async (event) => {
     const body = mutationBodySchema.parse(await readBody(event));
     const payload = stripNilValues(body.data);
 
+    if (resource.id === "profiles") {
+      const result = await createStaffAccount(payload);
+      return { row: result.row, tempPassword: result.tempPassword };
+    }
+
     for (const field of getResourceStampFields(resource.id, "create")) {
       payload[field] = userId;
     }
@@ -140,11 +150,24 @@ export default defineEventHandler(async (event) => {
     const body = mutationBodySchema.parse(await readBody(event));
 
     const payload = stripNilValues(body.data);
+    const identifier = buildIdentifier(resource, body);
+
+    if (resource.id === "profiles") {
+      const targetId = String(identifier.id ?? "");
+      if (!targetId) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: "A record id is required.",
+        });
+      }
+
+      const { row } = await updateStaffAccount(targetId, payload);
+      return { row };
+    }
+
     for (const field of getResourceStampFields(resource.id, "update")) {
       payload[field] = userId;
     }
-
-    const identifier = buildIdentifier(resource, body);
 
     const { data, error } = await (client.from(resource.table as any) as any)
       .update(payload)
@@ -174,6 +197,19 @@ export default defineEventHandler(async (event) => {
     const body = mutationBodySchema.parse(await readBody(event));
 
     const identifier = buildIdentifier(resource, body);
+
+    if (resource.id === "profiles") {
+      const targetId = String(identifier.id ?? "");
+      if (!targetId) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: "A record id is required.",
+        });
+      }
+
+      await deleteStaffAccount(targetId);
+      return { ok: true };
+    }
 
     const { error } = await (client.from(resource.table as any) as any)
       .delete()

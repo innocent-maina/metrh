@@ -50,9 +50,11 @@ export interface Database {
         Row: {
           id: string;
           full_name: string;
+          email: string;
           avatar_url: string | null;
           phone: string | null;
           job_title: string | null;
+          roles: AppRole[];
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -60,22 +62,9 @@ export interface Database {
         Insert: Partial<Database["public"]["Tables"]["profiles"]["Row"]> & {
           id: string;
           full_name: string;
+          email: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
-      };
-      user_roles: {
-        Row: {
-          id: string;
-          user_id: string;
-          role: AppRole;
-          granted_by: string | null;
-          created_at: string;
-        };
-        Insert: Partial<Database["public"]["Tables"]["user_roles"]["Row"]> & {
-          user_id: string;
-          role: AppRole;
-        };
-        Update: Partial<Database["public"]["Tables"]["user_roles"]["Row"]>;
       };
       blog_categories: {
         Row: {

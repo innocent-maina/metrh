@@ -1,3 +1,4 @@
+import { createError, getRequestHeader, getRequestIP, readBody } from "h3";
 import { z } from "zod";
 
 const pagePulseSchema = z.object({

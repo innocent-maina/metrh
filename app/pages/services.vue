@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: "default" });
 
-const { serviceGroups, clinicSchedule } = useMetrhContent();
+const { data: servicesData } = await usePublicServices();
 
 useSeoMeta({
   title: "Services — MeTRH",
@@ -12,9 +12,9 @@ useSeoMeta({
 const search = ref("");
 const activeCategory = ref<string>("all");
 
-const totalServices = computed(() =>
-  serviceGroups.reduce((count, group) => count + group.services.length, 0),
-);
+const serviceGroups = computed(() => servicesData.value?.serviceGroups ?? []);
+const clinicSchedule = computed(() => servicesData.value?.clinicSchedule ?? []);
+const totalServices = computed(() => servicesData.value?.totalServices ?? 0);
 
 const categoryOptions = computed(() => [
   {
@@ -22,7 +22,7 @@ const categoryOptions = computed(() => [
     name: "All services",
     count: totalServices.value,
   },
-  ...serviceGroups.map((group) => ({
+  ...serviceGroups.value.map((group) => ({
     slug: group.slug,
     name: group.name,
     count: group.services.length,
@@ -32,14 +32,18 @@ const categoryOptions = computed(() => [
 const filteredGroups = computed(() => {
   const term = search.value.trim().toLowerCase();
 
-  return serviceGroups
-    .filter((group) => activeCategory.value === "all" || group.slug === activeCategory.value)
+  return serviceGroups.value
+    .filter(
+      (group) =>
+        activeCategory.value === "all" || group.slug === activeCategory.value,
+    )
     .map((group) => ({
       ...group,
       services: group.services.filter((service) => {
         if (!term) return true;
         return (
           service.name.toLowerCase().includes(term) ||
+          (service.summary?.toLowerCase().includes(term) ?? false) ||
           group.name.toLowerCase().includes(term)
         );
       }),

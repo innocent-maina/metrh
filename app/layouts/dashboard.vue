@@ -95,11 +95,17 @@ async function handleSignOut() {
     <aside
       id="dashboard-sidebar"
       class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] transform flex-col border-r border-border bg-primary-dark text-white shadow-2xl transition-transform duration-200 lg:static lg:z-auto lg:w-full lg:max-w-none lg:translate-x-0 lg:shadow-none"
-      :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+      :class="
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      "
       aria-label="Dashboard navigation"
     >
       <div class="flex items-start justify-between gap-3 px-4 py-5 sm:px-6">
-        <NuxtLink to="/dashboard" class="flex items-center gap-3" @click="closeSidebar">
+        <NuxtLink
+          to="/dashboard"
+          class="flex items-center gap-3"
+          @click="closeSidebar"
+        >
           <img
             src="/logo.jpg"
             alt="MeTRH logo"
@@ -159,7 +165,9 @@ async function handleSignOut() {
     </aside>
 
     <div class="flex min-w-0 min-h-0 flex-1 flex-col lg:col-start-2">
-      <header class="shrink-0 border-b border-border bg-surface/95 backdrop-blur">
+      <header
+        class="shrink-0 border-b border-border bg-surface/95 backdrop-blur"
+      >
         <div
           class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
         >
@@ -274,7 +282,10 @@ async function handleSignOut() {
                       role="menuitem"
                       @click="handleSignOut"
                     >
-                      <Icon name="lucide:log-out" class="size-4 text-ink-muted" />
+                      <Icon
+                        name="lucide:log-out"
+                        class="size-4 text-ink-muted"
+                      />
                       Sign out
                     </button>
                   </div>
@@ -289,12 +300,6 @@ async function handleSignOut() {
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <slot />
         </div>
-        <PageMediaStrip
-          :items="dashboardImages"
-          title="Operational context"
-          subtitle="Internal pages get their own image context lower down in the layout."
-          compact
-        />
       </main>
     </div>
   </div>

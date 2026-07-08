@@ -1,3 +1,4 @@
+import { createError } from "h3";
 import type { H3Event } from "h3";
 import { serverSupabaseClient, serverSupabaseUser } from "#supabase/server";
 import type { Database, AppRole } from "~~/types/database.types";
@@ -43,11 +44,12 @@ export async function requireRole(event: H3Event, role: AppRole) {
 export async function requireAnyRole(event: H3Event, roles: AppRole[]) {
   const { client, user, userId } = await requireAuth(event);
 
-  type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
-  const { data: userRoles, error } = await client
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+  const { data: profile, error } = await client
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
 
   if (error) {
     throw createError({
@@ -56,12 +58,10 @@ export async function requireAnyRole(event: H3Event, roles: AppRole[]) {
     });
   }
 
-  const roleRows: Pick<UserRoleRow, "role">[] = userRoles ?? [];
+  const roleRows: AppRole[] = (profile as ProfileRow | null)?.roles ?? [];
   const allowedRoles = new Set(roles);
   const hasRole = roleRows.some(
-    (entry) =>
-      entry.role === "super_admin" ||
-      allowedRoles.has(entry.role),
+    (entry) => entry === "super_admin" || allowedRoles.has(entry),
   );
 
   if (!hasRole) {

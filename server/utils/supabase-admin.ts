@@ -1,3 +1,4 @@
+import { createError } from "h3";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "~~/types/database.types";
 
@@ -6,7 +7,7 @@ import type { Database } from "~~/types/database.types";
 // or plugin — that would ship the service role key to the browser.
 //
 // Use this only for actions that must bypass RLS on purpose:
-//   - provisioning a new staff auth user from /dashboard/users (invite flow)
+//   - provisioning or resetting staff auth users from the Team dashboard
 //   - generating signed URLs for the private "documents" bucket
 //   - server-side jobs (e.g. a cron marking expired tenders as closed)
 //

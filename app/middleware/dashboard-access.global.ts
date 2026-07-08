@@ -4,8 +4,8 @@
 //
 // This middleware handles the next question: "does this signed-in person
 // hold any dashboard role at all?" A staff account can exist (auth.users +
-// profiles row) without a user_roles row yet — e.g. freshly invited, not
-// yet assigned a role by a super_admin. Those users should land on a clear
+// profiles row) without any roles yet — e.g. freshly invited, not yet
+// assigned access by a super_admin. Those users should land on a clear
 // "no access yet" page, not a broken/empty dashboard.
 //
 // This is a UX guard, not the security boundary — RLS + requireRole() on

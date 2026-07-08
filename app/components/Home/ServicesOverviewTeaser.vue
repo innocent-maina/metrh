@@ -1,40 +1,9 @@
 <script setup lang="ts">
-// TODO(step 4): replace with a fetch of `service_categories` (ordered by
-// display_order). Category names below match content.md §5 exactly.
-const categories = [
-  {
-    name: "Emergency & Critical Care",
-    icon: "lucide:siren",
-    slug: "emergency-critical-care",
-  },
-  {
-    name: "Outpatient & Specialized Clinics",
-    icon: "lucide:clipboard-list",
-    slug: "outpatient-clinics",
-  },
-  {
-    name: "Surgery & Theatre",
-    icon: "lucide:scissors",
-    slug: "surgery-theatre",
-  },
-  {
-    name: "Maternity, Newborn & Reproductive Health",
-    icon: "lucide:baby",
-    slug: "maternity-newborn",
-  },
-  { name: "Oncology / Cancer Care", icon: "lucide:ribbon", slug: "oncology" },
-  {
-    name: "Imaging & Diagnostics",
-    icon: "lucide:scan-line",
-    slug: "imaging-diagnostics",
-  },
-  { name: "Laboratory", icon: "lucide:flask-conical", slug: "laboratory" },
-  {
-    name: "Rehabilitation & Therapy",
-    icon: "lucide:activity",
-    slug: "rehabilitation-therapy",
-  },
-];
+const { data: servicesData } = await usePublicServices();
+
+const featuredCategories = computed(
+  () => servicesData.value?.serviceGroups?.slice(0, 8) ?? [],
+);
 </script>
 
 <template>
@@ -62,7 +31,7 @@ const categories = [
       </div>
 
       <ul class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <li v-for="category in categories" :key="category.slug">
+        <li v-for="category in featuredCategories" :key="category.slug">
           <NuxtLink
             :to="`/services#${category.slug}`"
             class="flex h-full flex-col gap-3 rounded-card border border-border bg-white p-5 hover:border-primary/40 hover:shadow-card transition-all"

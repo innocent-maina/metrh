@@ -6,51 +6,30 @@ export default defineEventHandler(async (event) => {
   const { client, userId } = await requireAuth(event);
   const adminClient = supabaseAdmin();
 
-  type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
-  let roleRows: Pick<UserRoleRow, "role">[] = [];
+  type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+  let profile: ProfileRow | null = null;
 
-  const roleQueries = [adminClient, client] as const;
-  for (const supabase of roleQueries) {
+  const profileQueries = [adminClient, client] as const;
+  for (const supabase of profileQueries) {
     const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
     if (!error) {
-      roleRows = data ?? [];
+      profile = data as ProfileRow | null;
       break;
     }
 
-    console.error("[dashboard/me] Could not load access roles.", {
+    console.error("[dashboard/me] Could not load profile.", {
       userId,
       error,
     });
   }
 
-  let profile: Database["public"]["Tables"]["profiles"]["Row"] | null = null;
-  if (roleRows.length > 0) {
-    const profileQueries = [adminClient, client] as const;
-    for (const supabase of profileQueries) {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (!error) {
-        profile = data;
-        break;
-      }
-
-      console.error("[dashboard/me] Could not load profile.", {
-        userId,
-        error,
-      });
-    }
-  }
-
   return {
     profile,
-    roles: roleRows.map((r) => r.role),
+    roles: profile?.roles ?? [],
   };
 });

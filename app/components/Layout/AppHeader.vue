@@ -9,7 +9,6 @@ const primaryNav = [
   { label: "About", to: "/about" },
   { label: "Services", to: "/services" },
   { label: "Blog", to: "/blog" },
-  { label: "Events & Media", to: "/events" },
   { label: "Careers", to: "/careers" },
   { label: "Tenders", to: "/tenders" },
   { label: "Contact", to: "/contact" },

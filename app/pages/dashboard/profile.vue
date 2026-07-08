@@ -53,13 +53,22 @@ function resolveMediaUrl(value: string | null) {
       </div>
     </section>
 
-    <section class="grid gap-4 md:grid-cols-3">
+    <section class="grid gap-4 md:grid-cols-4">
       <div class="rounded-card border border-border bg-white p-5">
         <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
           Full name
         </p>
         <p class="mt-2 text-body font-medium text-ink">
           {{ me?.profile?.full_name || "Not set" }}
+        </p>
+      </div>
+
+      <div class="rounded-card border border-border bg-white p-5">
+        <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+          Email
+        </p>
+        <p class="mt-2 text-body font-medium text-ink break-words">
+          {{ me?.profile?.email || "Not set" }}
         </p>
       </div>
 

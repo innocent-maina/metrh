@@ -1,3 +1,4 @@
+import { createError } from "h3";
 import { supabaseAdmin } from "~~/server/utils/supabase-admin";
 
 export type StorageBucketName = "media" | "documents";
@@ -44,9 +45,18 @@ export async function createSignedStorageUpload(params: {
     .createSignedUploadUrl(path);
 
   if (error || !data) {
+    console.error("[storage-upload] Failed to create signed upload URL", {
+      bucket: params.bucket,
+      folder: params.folder,
+      fileName: params.fileName,
+      path,
+      error,
+    });
+
     throw createError({
       statusCode: 500,
-      statusMessage: "Could not create an upload link.",
+      statusMessage:
+        error?.message ?? "Could not create an upload link for this file.",
     });
   }
 

@@ -4,15 +4,16 @@
 -- ============================================================================
 -- Design notes:
 -- 1. auth.users stays untouched. Every human user gets a row in profiles
---    (1:1) and zero or more rows in user_roles (roles are additive, not
---    a single enum on profiles — an editor could also be hr, etc).
+--    (1:1). Roles live on the same row so staff records are managed from a
+--    single table, with additive app_role[] values.
 -- 2. Every content table follows the same shape where it makes sense:
 --    id (uuid), slug, status enum, timestamps, created_by/updated_by.
 --    This keeps CRUD + RLS predictable across the dashboard instead of
 --    bespoke rules per table.
 -- 3. RLS pattern: public (anon) can SELECT published/open rows only.
 --    Authenticated staff with the right role can do everything, gated
---    through a has_role() helper — not per-table hardcoded checks.
+--    through a has_role() helper that reads the profile row — not
+--    per-table hardcoded checks.
 -- 4. Two storage buckets: "media" (public — images/video for blog, events,
 --    team photos) and "documents" (private-by-default — tender PDFs, job
 --    attachments, applicant resumes — served via signed URLs).
@@ -67,14 +68,16 @@ end;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 3. PROFILES + ROLES
+-- 3. PROFILES
 -- ----------------------------------------------------------------------------
 create table public.profiles (
   id           uuid primary key references auth.users(id) on delete cascade,
   full_name    text not null,
+  email        text not null unique,
   avatar_url   text,
   phone        text,
   job_title    text,               -- e.g. "Communications Officer" (dashboard display only)
+  roles        app_role[] not null default '{}'::app_role[],
   is_active    boolean not null default true,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
@@ -84,17 +87,10 @@ create trigger trg_profiles_updated_at
   before update on public.profiles
   for each row execute function public.set_updated_at();
 
-create table public.user_roles (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid not null references public.profiles(id) on delete cascade,
-  role         app_role not null,
-  granted_by   uuid references public.profiles(id),
-  created_at   timestamptz not null default now(),
-  unique (user_id, role)
-);
+create index idx_profiles_roles on public.profiles using gin (roles);
 
 -- Helper: does the current auth'd user hold this role (or super_admin)?
--- security definer so it can read user_roles regardless of caller's RLS.
+-- security definer so it can read profiles regardless of caller's RLS.
 create or replace function public.has_role(_role app_role)
 returns boolean
 language sql
@@ -103,9 +99,12 @@ security definer
 set search_path = public
 as $$
   select exists (
-    select 1 from public.user_roles
-    where user_id = auth.uid()
-      and (role = _role or role = 'super_admin')
+    select 1 from public.profiles
+    where id = auth.uid()
+      and (
+        _role = any(coalesce(roles, '{}'::app_role[]))
+        or 'super_admin' = any(coalesce(roles, '{}'::app_role[]))
+      )
   );
 $$;
 
@@ -116,7 +115,12 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists (select 1 from public.user_roles where user_id = auth.uid());
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and coalesce(array_length(roles, 1), 0) > 0
+  );
 $$;
 
 -- ----------------------------------------------------------------------------
@@ -457,7 +461,6 @@ insert into public.site_settings (id) values (true);
 -- 13. ROW LEVEL SECURITY
 -- ============================================================================
 alter table public.profiles            enable row level security;
-alter table public.user_roles          enable row level security;
 alter table public.blog_categories     enable row level security;
 alter table public.blog_tags           enable row level security;
 alter table public.blog_posts          enable row level security;
@@ -478,24 +481,14 @@ alter table public.page_pulses         enable row level security;
 alter table public.pages               enable row level security;
 alter table public.site_settings       enable row level security;
 
--- ---- profiles: staff can see each other; user can update own row; only
---      super_admin can insert/delete (user provisioning happens server-side).
+-- ---- profiles: users can read/update their own row; staff can read each
+--      other; super_admin can manage every row.
 create policy "profiles_select_staff" on public.profiles
-  for select using (public.is_staff());
+  for select using (id = auth.uid() or public.is_staff());
 create policy "profiles_update_self" on public.profiles
   for update using (id = auth.uid());
 create policy "profiles_all_super_admin" on public.profiles
   for all using (public.has_role('super_admin'));
-
--- ---- user_roles: only super_admin manages roles; users can read own roles
-create policy "user_roles_select_self_or_admin" on public.user_roles
-  for select using (user_id = auth.uid() or public.has_role('super_admin'));
-create policy "user_roles_write_super_admin" on public.user_roles
-  for insert with check (public.has_role('super_admin'));
-create policy "user_roles_update_super_admin" on public.user_roles
-  for update using (public.has_role('super_admin'));
-create policy "user_roles_delete_super_admin" on public.user_roles
-  for delete using (public.has_role('super_admin'));
 
 -- ---- blog: public reads published only; content_editor full CRUD
 create policy "blog_categories_public_read" on public.blog_categories

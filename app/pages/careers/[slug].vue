@@ -132,21 +132,89 @@ const application = reactive({
 });
 
 const resumeFile = ref<File | null>(null);
+const resumeInput = ref<HTMLInputElement | null>(null);
 const isSubmitting = ref(false);
 const formError = ref("");
 const formSuccess = ref("");
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function describeResumeType(file: File) {
+  if (file.type === "application/pdf") return "PDF";
+  if (
+    file.type === "application/msword" ||
+    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return "Word document";
+  }
+
+  return "Resume file";
+}
+
+const resumeSummary = computed(() => {
+  if (!resumeFile.value) return "";
+
+  return `${describeResumeType(resumeFile.value)} · ${formatFileSize(resumeFile.value.size)}`;
+});
+
+function clearResumeSelection() {
+  resumeFile.value = null;
+  if (resumeInput.value) {
+    resumeInput.value.value = "";
+  }
+}
+
+function setResumeFile(file: File | null) {
+  resumeFile.value = file;
+  if (resumeInput.value) {
+    resumeInput.value.value = "";
+  }
+}
 
 function resetApplication() {
   application.name = "";
   application.email = "";
   application.phone = "";
   application.coverLetter = "";
-  resumeFile.value = null;
+  clearResumeSelection();
 }
 
 function handleResumeChange(event: Event) {
   const input = event.target as HTMLInputElement;
-  resumeFile.value = input.files?.[0] ?? null;
+  setResumeFile(input.files?.[0] ?? null);
+}
+
+function handleResumeDrop(event: DragEvent) {
+  setResumeFile(event.dataTransfer?.files?.[0] ?? null);
+}
+
+function getFormErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object") {
+    const fetchError = error as {
+      data?: { statusMessage?: string; message?: string };
+      statusMessage?: string;
+      message?: string;
+    };
+    const serverMessage =
+      fetchError.data?.statusMessage ??
+      fetchError.data?.message ??
+      fetchError.statusMessage ??
+      fetchError.message;
+
+    if (typeof serverMessage === "string" && serverMessage.trim()) {
+      return serverMessage;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
 }
 
 async function submitApplication() {
@@ -179,9 +247,7 @@ async function submitApplication() {
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ];
-  const hasAllowedExtension = /\.(pdf|docx?|DOCX?|DOC?)$/i.test(
-    resumeFile.value.name,
-  );
+  const hasAllowedExtension = /\.(pdf|docx?)$/i.test(resumeFile.value.name);
   if (!allowedTypes.includes(resumeFile.value.type) && !hasAllowedExtension) {
     formError.value = "Upload a PDF or Word document.";
     return;
@@ -227,10 +293,10 @@ async function submitApplication() {
     formSuccess.value = "Application submitted.";
     resetApplication();
   } catch (error) {
-    formError.value =
-      error instanceof Error
-        ? error.message
-        : "Could not submit your application. Please try again.";
+    formError.value = getFormErrorMessage(
+      error,
+      "Could not submit your application. Please try again.",
+    );
   } finally {
     isSubmitting.value = false;
   }
@@ -387,14 +453,86 @@ async function submitApplication() {
               </label>
               <input
                 id="resume"
+                ref="resumeInput"
                 type="file"
                 accept=".pdf,.doc,.docx"
+                class="sr-only"
                 @change="handleResumeChange"
-                class="w-full text-small text-ink-muted"
               />
-              <p class="mt-2 text-caption text-ink-muted">
-                PDF or Word document, up to 5 MB.
-              </p>
+              <div
+                class="rounded-card border border-border bg-white p-4 shadow-card"
+                @drop.prevent="handleResumeDrop"
+                @dragover.prevent
+              >
+                <button
+                  v-if="!resumeFile"
+                  type="button"
+                  class="flex w-full flex-col items-start gap-4 rounded-card border border-dashed border-border bg-surface-alt/70 p-5 text-left transition hover:border-primary/50 hover:bg-surface-alt"
+                  @click="resumeInput?.click()"
+                >
+                  <div class="flex w-full items-start gap-4">
+                    <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Icon name="lucide:file-up" class="size-5" />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="font-semibold text-ink">Upload your resume</p>
+                      <p class="mt-1 text-small text-ink-muted">
+                        Drag and drop a file here, or browse to select one.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="rounded-full bg-white px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      PDF preferred
+                    </span>
+                    <span class="rounded-full bg-white px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      Word accepted
+                    </span>
+                    <span class="rounded-full bg-white px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      Max 5 MB
+                    </span>
+                  </div>
+                </button>
+
+                <div v-else class="space-y-4">
+                  <div class="flex items-start justify-between gap-4 rounded-card bg-surface-alt p-4">
+                    <div class="min-w-0">
+                      <p class="text-caption font-semibold uppercase tracking-wide text-info">
+                        Selected file
+                      </p>
+                      <p class="mt-1 truncate font-medium text-ink">
+                        {{ resumeFile.name }}
+                      </p>
+                      <p class="mt-1 text-small text-ink-muted">
+                        {{ resumeSummary }}
+                      </p>
+                    </div>
+                    <span class="rounded-full bg-success/10 px-3 py-1 text-caption font-semibold uppercase tracking-wide text-success">
+                      Ready
+                    </span>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      class="rounded-control border border-border px-4 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
+                      @click="resumeInput?.click()"
+                    >
+                      Replace file
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-control border border-border px-4 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
+                      @click="clearResumeSelection"
+                    >
+                      Remove
+                    </button>
+                    <p class="text-caption text-ink-muted">
+                      PDF or Word document, up to 5 MB.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div>
               <label class="block text-small font-medium text-ink mb-1.5" for="cover-letter">
