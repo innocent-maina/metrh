@@ -16,6 +16,23 @@ const signDownloadSchema = z.object({
 
 type SignDownloadItem = z.infer<typeof signDownloadSchema>["items"][number];
 
+type DownloadRow = {
+  id: string;
+  file_url: string;
+  is_published: boolean;
+};
+
+type TenderDocumentRow = {
+  id: string;
+  file_url: string;
+  tender_id: string;
+};
+
+type TenderRow = {
+  id: string;
+  status: "draft" | "open" | "closed" | "awarded" | "cancelled";
+};
+
 function isExternalUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
@@ -44,7 +61,7 @@ async function resolveDownloadUrl(item: SignDownloadItem) {
       .from("downloads")
       .select("id,file_url,is_published")
       .eq("id", item.id)
-      .maybeSingle();
+      .maybeSingle<DownloadRow>();
 
     if (error || !data || !data.is_published) {
       return { id: item.id, downloadUrl: null };
@@ -69,7 +86,7 @@ async function resolveDownloadUrl(item: SignDownloadItem) {
     .from("tender_documents")
     .select("id,file_url,tender_id")
     .eq("id", item.id)
-    .maybeSingle();
+    .maybeSingle<TenderDocumentRow>();
 
   if (documentError || !documentRow) {
     return { id: item.id, downloadUrl: null };
@@ -79,7 +96,7 @@ async function resolveDownloadUrl(item: SignDownloadItem) {
     .from("tenders")
     .select("id,status")
     .eq("id", documentRow.tender_id)
-    .maybeSingle();
+    .maybeSingle<TenderRow>();
 
   if (tenderError || !tenderRow || tenderRow.status === "draft") {
     return { id: item.id, downloadUrl: null };

@@ -153,7 +153,9 @@ export function resolveContentMediaUrl(value: string | null) {
 export function useSiteSettings() {
   const supabase = useSupabaseClient<Database>();
 
-  return useAsyncData("cms-site-settings", async () => {
+  return useAsyncData<SiteSettingsContent>(
+    "cms-site-settings",
+    async () => {
     try {
       const { data, error } = await supabase
         .from("site_settings")
@@ -168,13 +170,17 @@ export function useSiteSettings() {
       console.warn("[cms] Failed to load site settings.", error);
       return defaultSiteSettings();
     }
-  }, { default: defaultSiteSettings });
+    },
+    { default: defaultSiteSettings },
+  );
 }
 
 export function useCmsPage(slug: string, fallback?: CmsPageContent) {
   const supabase = useSupabaseClient<Database>();
 
-  return useAsyncData(`cms-page-${slug}`, async () => {
+  return useAsyncData<CmsPageContent | null>(
+    `cms-page-${slug}`,
+    async () => {
     try {
       const { data, error } = await supabase
         .from("pages")
@@ -189,13 +195,22 @@ export function useCmsPage(slug: string, fallback?: CmsPageContent) {
       console.warn(`[cms] Failed to load page "${slug}".`, error);
       return fallback ?? null;
     }
-  }, { default: () => fallback ?? null });
+    },
+    { default: () => fallback ?? null },
+  );
 }
 
 export function usePageContent(pageSlug: string) {
   const supabase = useSupabaseClient<Database>();
 
-  return useAsyncData(`cms-page-content-${pageSlug}`, async () => {
+  const emptyBundle: CmsPageBundle = {
+    sectionsByKey: {},
+    itemsBySectionId: {},
+  };
+
+  return useAsyncData<CmsPageBundle>(
+    `cms-page-content-${pageSlug}`,
+    async () => {
     try {
       const [sectionsResult, itemsResult] = await Promise.all([
         supabase
@@ -221,10 +236,7 @@ export function usePageContent(pageSlug: string) {
 
       const itemsBySectionId = items.reduce<Record<string, CmsSectionItemContent[]>>(
         (acc, item) => {
-          if (!acc[item.section_id]) {
-            acc[item.section_id] = [];
-          }
-          acc[item.section_id].push(item);
+          acc[item.section_id] = [...(acc[item.section_id] ?? []), item];
           return acc;
         },
         {},
@@ -239,26 +251,22 @@ export function usePageContent(pageSlug: string) {
           {},
         ),
         itemsBySectionId,
-      } satisfies CmsPageBundle;
+      };
     } catch (error) {
       console.warn(`[cms] Failed to load page content for "${pageSlug}".`, error);
-      return {
-        sectionsByKey: {},
-        itemsBySectionId: {},
-      } satisfies CmsPageBundle;
+      return emptyBundle;
     }
-  }, {
-    default: () => ({
-      sectionsByKey: {},
-      itemsBySectionId: {},
-    }),
-  });
+    },
+    { default: () => emptyBundle },
+  );
 }
 
 export function usePageSlides(pageSlug = "home", sectionKey = "hero") {
   const supabase = useSupabaseClient<Database>();
 
-  return useAsyncData(`cms-page-slides-${pageSlug}-${sectionKey}`, async () => {
+  return useAsyncData<CmsSlideContent[]>(
+    `cms-page-slides-${pageSlug}-${sectionKey}`,
+    async () => {
     try {
       const { data, error } = await supabase
         .from("page_slides")
@@ -274,5 +282,7 @@ export function usePageSlides(pageSlug = "home", sectionKey = "hero") {
       console.warn(`[cms] Failed to load slides for "${pageSlug}/${sectionKey}".`, error);
       return [];
     }
-  }, { default: () => [] as CmsSlideContent[] });
+    },
+    { default: () => [] as CmsSlideContent[] },
+  );
 }
