@@ -2,6 +2,7 @@
 definePageMeta({ layout: "default" });
 
 const { data: servicesData } = await usePublicServices();
+const { data: servicesContent } = await usePageContent("services");
 
 useSeoMeta({
   title: "Services — MeTRH",
@@ -62,6 +63,10 @@ const activeLabel = computed(() =>
 );
 
 const serviceImages = useHospitalMedia();
+
+const servicesIntro = computed(
+  () => servicesContent.value?.sectionsByKey["services-intro"] ?? null,
+);
 </script>
 
 <template>
@@ -70,15 +75,16 @@ const serviceImages = useHospitalMedia();
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div class="max-w-3xl">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
-            Services
+            {{ servicesIntro?.eyebrow || "Services" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
-            Clinical services organized for fast access
+            {{ servicesIntro?.title || "Clinical services organized for fast access" }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
-            MeTRH's services are grouped by department so patients, families,
-            and referrers can find what they need without scanning a wall of
-            text. Search by service name or filter by category.
+            {{
+              servicesIntro?.summary ||
+              "MeTRH's services are grouped by department so patients, families, and referrers can find what they need without scanning a wall of text. Search by service name or filter by category."
+            }}
           </p>
         </div>
 

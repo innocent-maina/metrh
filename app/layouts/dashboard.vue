@@ -9,7 +9,6 @@ const visibleSections = computed(() =>
   sections.filter((section) => section.roles.some((role) => hasRole(role))),
 );
 
-const primarySection = computed(() => visibleSections.value[0]);
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient();
@@ -34,6 +33,37 @@ const userInitials = computed(() => {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 });
+
+const currentSection = computed(() => {
+  const path = route.path;
+  return (
+    visibleSections.value.find(
+      (section) => path === section.to || path.startsWith(`${section.to}/`),
+    ) ?? null
+  );
+});
+
+const currentChildSection = computed(() => {
+  const section = currentSection.value;
+  if (!section?.children?.length) return null;
+
+  const path = route.path;
+  return (
+    section.children.find(
+      (child) => path === child.to || path.startsWith(`${child.to}/`),
+    ) ?? null
+  );
+});
+
+function isSectionActive(section: { to: string }) {
+  const path = route.path;
+  return path === section.to || path.startsWith(`${section.to}/`);
+}
+
+function isChildActive(child: { to: string }) {
+  const path = route.path;
+  return path === child.to || path.startsWith(`${child.to}/`);
+}
 
 function closeSidebar() {
   isSidebarOpen.value = false;
@@ -152,13 +182,37 @@ async function handleSignOut() {
           <li v-for="section in visibleSections" :key="section.id">
             <NuxtLink
               :to="section.to"
-              class="flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium text-white/90 hover:bg-surface/10"
-              active-class="bg-surface/10 text-white"
+              class="flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium"
+              :class="
+                isSectionActive(section)
+                  ? 'bg-surface/10 text-white'
+                  : 'text-white/90 hover:bg-surface/10'
+              "
               @click="closeSidebar"
             >
               <Icon :name="section.icon" class="size-4" />
               {{ section.label }}
             </NuxtLink>
+
+            <ul
+              v-if="section.children?.length && isSectionActive(section)"
+              class="mt-2 space-y-1 pl-5"
+            >
+              <li v-for="child in section.children" :key="child.id">
+                <NuxtLink
+                  :to="child.to"
+                  class="block rounded-control px-3 py-2 text-caption font-medium"
+                  :class="
+                    isChildActive(child)
+                      ? 'bg-surface/10 text-white'
+                      : 'text-white/70 hover:bg-surface/10 hover:text-white'
+                  "
+                  @click="closeSidebar"
+                >
+                  {{ child.label }}
+                </NuxtLink>
+              </li>
+            </ul>
           </li>
         </ul>
       </nav>
@@ -188,7 +242,11 @@ async function handleSignOut() {
                 Staff area
               </p>
               <h1 class="truncate font-display font-semibold text-h3 text-ink">
-                {{ primarySection ? primarySection.label : "Overview" }}
+                {{
+                  currentChildSection?.label ||
+                  currentSection?.label ||
+                  "Overview"
+                }}
               </h1>
             </div>
           </div>

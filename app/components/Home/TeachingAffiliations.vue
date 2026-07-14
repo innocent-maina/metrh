@@ -1,6 +1,16 @@
 <script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    pageSlug?: "home" | "about";
+  }>(),
+  {
+    pageSlug: "about",
+  },
+);
+
 const homeImages = useHospitalMedia();
 const teachingImages = computed(() => homeImages.value.slice(5, 10));
+const { data: homeContent } = await usePageContent("home");
 const { data: aboutContent } = await usePageContent("about");
 
 const defaultAffiliations = [
@@ -10,13 +20,29 @@ const defaultAffiliations = [
 ];
 
 const teachingSection = computed(
-  () => aboutContent.value?.sectionsByKey["teaching-affiliations"] ?? null,
+  () => {
+    if (props.pageSlug === "home") {
+      return (
+        homeContent.value?.sectionsByKey["teaching-context-links"] ??
+        homeContent.value?.sectionsByKey["teaching-affiliations"] ??
+        null
+      );
+    }
+
+    return (
+      aboutContent.value?.sectionsByKey["teaching-affiliations"] ??
+      homeContent.value?.sectionsByKey["teaching-context-links"] ??
+      null
+    );
+  },
 );
 
 const affiliations = computed(
   () => {
     const rows =
-      aboutContent.value?.itemsBySectionId[teachingSection.value?.id ?? ""] ??
+      (props.pageSlug === "home"
+        ? homeContent.value?.itemsBySectionId[teachingSection.value?.id ?? ""]
+        : aboutContent.value?.itemsBySectionId[teachingSection.value?.id ?? ""]) ??
       [];
     return rows.length > 0
       ? rows

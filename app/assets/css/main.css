@@ -111,7 +111,7 @@
   h4 {
     font-family: var(--font-display);
     font-weight: 600;
-    color: var(--color-ink);
+    color: inherit;
   }
 
   /* Tabular figures for credibility-carrying stats (catchment, beds, staff counts) */

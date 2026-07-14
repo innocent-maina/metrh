@@ -90,6 +90,12 @@ export interface CrudSectionConfig {
   roles: AppRole[];
   icon: string;
   resources: CrudResourceConfig[];
+  children?: Array<{
+    id: string;
+    label: string;
+    to: string;
+    description: string;
+  }>;
 }
 
 type ResourceLookup = {
@@ -777,52 +783,87 @@ export const dashboardSections: CrudSectionConfig[] = [
     ],
   },
   {
-    id: "pages",
-    label: "Pages",
-    to: "/dashboard/pages",
-    description: "Edit legal pages and other static content.",
-    roles: ["content_editor"],
-    icon: "lucide:file-pen-line",
-    resources: [
-      {
-        id: "pages",
-        label: "Pages",
-        description: "Maintain legal and informational static pages.",
-        table: "pages",
-        readRoles: ["content_editor"],
-        writeRoles: ["content_editor"],
-        rowLabelKey: "title",
-        defaultSort: { key: "updated_at", ascending: false },
-        columns: baseColumns([
-          { key: "slug", label: "Slug" },
-          { key: "title", label: "Title" },
-          { key: "status", label: "Status", kind: "status" },
-          { key: "updated_at", label: "Updated", kind: "date" },
-        ]),
-        fields: fields([
-          { key: "slug", label: "Slug", kind: "text", required: true },
-          { key: "title", label: "Title", kind: "text", required: true },
-          { key: "content", label: "Content", kind: "textarea", rows: 14, required: true },
-          { key: "seo_title", label: "SEO title", kind: "text" },
-          { key: "seo_description", label: "SEO description", kind: "textarea", rows: 3 },
-          { key: "status", label: "Status", kind: "select", options: publishStatuses },
-        ]),
-        stampFields: { update: ["updated_by"] },
-      },
-    ],
-  },
-  {
-    id: "content",
-    label: "Content",
-    to: "/dashboard/content",
-    description: "Edit homepage slides, editable sections, and global site settings.",
+    id: "pages-and-content",
+    label: "Pages & Content",
+    to: "/dashboard/pages-and-content",
+    description:
+      "Edit homepage slides, page sections, legal pages, and global site settings.",
     roles: ["content_editor"],
     icon: "lucide:layout-template",
+    children: [
+      {
+        id: "pages-and-content-home",
+        label: "Home",
+        to: "/dashboard/pages-and-content/home",
+        description: "Edit hero slides, at-a-glance stats, and homepage blocks.",
+      },
+      {
+        id: "pages-and-content-about",
+        label: "About",
+        to: "/dashboard/pages-and-content/about",
+        description: "Edit vision, mission, values, and growth sections.",
+      },
+      {
+        id: "pages-and-content-services",
+        label: "Services",
+        to: "/dashboard/pages-and-content/services",
+        description: "Edit the services intro and supporting callouts.",
+      },
+      {
+        id: "pages-and-content-careers",
+        label: "Careers",
+        to: "/dashboard/pages-and-content/careers",
+        description: "Edit the careers intro and recruitment highlights.",
+      },
+      {
+        id: "pages-and-content-blog",
+        label: "Blog",
+        to: "/dashboard/pages-and-content/blog",
+        description: "Edit the blog intro and editorial framing.",
+      },
+      {
+        id: "pages-and-content-contact",
+        label: "Contact",
+        to: "/dashboard/pages-and-content/contact",
+        description: "Edit the contact intro and enquiry framing.",
+      },
+      {
+        id: "pages-and-content-tenders",
+        label: "Tenders",
+        to: "/dashboard/pages-and-content/tenders",
+        description: "Edit tender page copy and procurement notes.",
+      },
+      {
+        id: "pages-and-content-privacy-policy",
+        label: "Privacy Policy",
+        to: "/dashboard/pages-and-content/privacy-policy",
+        description: "Edit the privacy policy content.",
+      },
+      {
+        id: "pages-and-content-terms-of-use",
+        label: "Terms of Use",
+        to: "/dashboard/pages-and-content/terms-of-use",
+        description: "Edit the terms of use content.",
+      },
+      {
+        id: "pages-and-content-terms-of-service",
+        label: "Terms of Service",
+        to: "/dashboard/pages-and-content/terms-of-service",
+        description: "Edit the terms of service content.",
+      },
+      {
+        id: "pages-and-content-cookie-policy",
+        label: "Cookie Policy",
+        to: "/dashboard/pages-and-content/cookie-policy",
+        description: "Edit the cookie policy content.",
+      },
+    ],
     resources: [
       {
         id: "site_settings_editor",
         label: "Site settings",
-        description: "Update emergency details, visiting hours, buttons, and homepage hero copy.",
+        description:
+          "Update emergency details, visiting hours, buttons, and homepage hero copy.",
         table: "site_settings",
         readRoles: ["content_editor"],
         writeRoles: ["content_editor"],
@@ -869,6 +910,31 @@ export const dashboardSections: CrudSectionConfig[] = [
         stampFields: { update: ["updated_by"] },
       },
       {
+        id: "pages",
+        label: "Pages",
+        description: "Maintain legal and informational static pages.",
+        table: "pages",
+        readRoles: ["content_editor"],
+        writeRoles: ["content_editor"],
+        rowLabelKey: "title",
+        defaultSort: { key: "updated_at", ascending: false },
+        columns: baseColumns([
+          { key: "slug", label: "Slug" },
+          { key: "title", label: "Title" },
+          { key: "status", label: "Status", kind: "status" },
+          { key: "updated_at", label: "Updated", kind: "date" },
+        ]),
+        fields: fields([
+          { key: "slug", label: "Slug", kind: "text", required: true },
+          { key: "title", label: "Title", kind: "text", required: true },
+          { key: "content", label: "Content", kind: "textarea", rows: 14, required: true },
+          { key: "seo_title", label: "SEO title", kind: "text" },
+          { key: "seo_description", label: "SEO description", kind: "textarea", rows: 3 },
+          { key: "status", label: "Status", kind: "select", options: publishStatuses },
+        ]),
+        stampFields: { update: ["updated_by"] },
+      },
+      {
         id: "page_sections",
         label: "Page sections",
         description: "Manage the editable section blocks shown across the public site.",
@@ -884,13 +950,37 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "is_active", label: "Active", kind: "boolean" },
         ]),
         fields: fields([
-          { key: "page_slug", label: "Page", kind: "select", options: contentPageOptions, required: true },
-          { key: "section_key", label: "Section key", kind: "text", required: true, helpText: "Use a stable key like hero, mission-values, community-impact." },
-          { key: "section_type", label: "Section type", kind: "select", options: contentSectionTypes, required: true },
+          {
+            key: "page_slug",
+            label: "Page",
+            kind: "select",
+            options: contentPageOptions,
+            required: true,
+          },
+          {
+            key: "section_key",
+            label: "Section key",
+            kind: "text",
+            required: true,
+            helpText:
+              "Use a stable key like hero, mission-values, community-impact.",
+          },
+          {
+            key: "section_type",
+            label: "Section type",
+            kind: "select",
+            options: contentSectionTypes,
+            required: true,
+          },
           { key: "eyebrow", label: "Eyebrow", kind: "text" },
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "summary", label: "Summary", kind: "textarea", rows: 3 },
-          { key: "body", label: "Body", kind: "richtext", placeholder: "Write the section body here." },
+          {
+            key: "body",
+            label: "Body",
+            kind: "richtext",
+            placeholder: "Write the section body here.",
+          },
           {
             key: "image_url",
             label: "Image",
@@ -904,13 +994,19 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "cta_label", label: "Button label", kind: "text" },
           { key: "cta_href", label: "Button link", kind: "text" },
           { key: "display_order", label: "Display order", kind: "number" },
-          { key: "is_active", label: "Active", kind: "checkbox", defaultValue: true },
+          {
+            key: "is_active",
+            label: "Active",
+            kind: "checkbox",
+            defaultValue: true,
+          },
         ]),
       },
       {
         id: "page_section_items",
         label: "Section items",
-        description: "Manage repeatable cards, bullets, and affiliation items for page sections.",
+        description:
+          "Manage repeatable cards, bullets, and affiliation items for page sections.",
         table: "page_section_items",
         readRoles: ["content_editor"],
         writeRoles: ["content_editor"],
@@ -933,7 +1029,12 @@ export const dashboardSections: CrudSectionConfig[] = [
           },
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "description", label: "Description", kind: "textarea", rows: 4 },
-          { key: "icon", label: "Icon", kind: "text", helpText: "Use a Lucide icon name such as lucide:users." },
+          {
+            key: "icon",
+            label: "Icon",
+            kind: "text",
+            helpText: "Use a Lucide icon name such as lucide:users.",
+          },
           {
             key: "image_url",
             label: "Image",
@@ -947,7 +1048,12 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "cta_label", label: "Button label", kind: "text" },
           { key: "cta_href", label: "Button link", kind: "text" },
           { key: "display_order", label: "Display order", kind: "number" },
-          { key: "is_active", label: "Active", kind: "checkbox", defaultValue: true },
+          {
+            key: "is_active",
+            label: "Active",
+            kind: "checkbox",
+            defaultValue: true,
+          },
         ]),
       },
       {
@@ -966,8 +1072,20 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "is_active", label: "Active", kind: "boolean" },
         ]),
         fields: fields([
-          { key: "page_slug", label: "Page", kind: "select", options: contentPageOptions, required: true },
-          { key: "section_key", label: "Section key", kind: "text", required: true, defaultValue: "hero" },
+          {
+            key: "page_slug",
+            label: "Page",
+            kind: "select",
+            options: contentPageOptions,
+            required: true,
+          },
+          {
+            key: "section_key",
+            label: "Section key",
+            kind: "text",
+            required: true,
+            defaultValue: "hero",
+          },
           { key: "eyebrow", label: "Eyebrow", kind: "text" },
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "body", label: "Body", kind: "textarea", rows: 4, required: true },
@@ -986,7 +1104,12 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "image_alt", label: "Image alt text", kind: "text" },
           { key: "caption", label: "Caption", kind: "textarea", rows: 3 },
           { key: "display_order", label: "Display order", kind: "number" },
-          { key: "is_active", label: "Active", kind: "checkbox", defaultValue: true },
+          {
+            key: "is_active",
+            label: "Active",
+            kind: "checkbox",
+            defaultValue: true,
+          },
         ]),
       },
     ],

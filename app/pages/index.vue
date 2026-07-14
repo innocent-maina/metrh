@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { data: homeContent } = await usePageContent("home");
+
 useSeoMeta({
   title: "MeTRH — Meru Teaching and Referral Hospital",
   description:
@@ -8,13 +10,28 @@ useSeoMeta({
     "Exemplary Health Care for You. Public referral hospital and teaching institution serving Meru, Tharaka-Nithi, Marsabit, and Isiolo counties.",
 });
 
-// Real, confirmed figures from content.md §4 (KMHFR-sourced where noted).
-const stats = [
-  { value: "1.4M+", label: "Catchment population" },
-  { value: "500+", label: "Full-time staff" },
-  { value: "~1,000", label: "Outpatients per day" },
-  { value: "7.6", label: "Hectares of land" },
-];
+const atAGlanceSection = computed(
+  () => homeContent.value?.sectionsByKey["home-at-a-glance"] ?? null,
+);
+
+const stats = computed(() => {
+  const fallback = [
+    { value: "1.4M+", label: "Catchment population" },
+    { value: "500+", label: "Full-time staff" },
+    { value: "~1,000", label: "Outpatients per day" },
+    { value: "7.6", label: "Hectares of land" },
+  ];
+
+  const items =
+    homeContent.value?.itemsBySectionId[atAGlanceSection.value?.id ?? ""] ?? [];
+
+  if (!items.length) return fallback;
+
+  return items.map((item) => ({
+    value: item.title,
+    label: item.description || "",
+  }));
+});
 </script>
 
 <template>
@@ -22,9 +39,13 @@ const stats = [
     <NoticeBoardHero />
     <!-- <QuickAccessTiles /> -->
     <ServicesOverviewTeaser />
-    <StatsStrip title="MeTRH at a glance" :stats="stats" />
+    <StatsStrip
+      :title="atAGlanceSection?.title || 'MeTRH at a glance'"
+      :note="atAGlanceSection?.summary || undefined"
+      :stats="stats"
+    />
     <CommunityImpact />
-    <TeachingAffiliations />
+    <TeachingAffiliations page-slug="home" />
     <CareersTendersCta />
   </div>
 </template>

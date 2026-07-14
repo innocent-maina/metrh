@@ -4,6 +4,7 @@ import type { Database } from "~~/types/database.types";
 definePageMeta({ layout: "default" });
 
 const supabase = useSupabaseClient<Database>();
+const { data: tendersContent } = await usePageContent("tenders");
 
 useSeoMeta({
   title: "Tenders & Downloads — MeTRH",
@@ -159,6 +160,10 @@ const openTenderCount = computed(
 const downloadCount = computed(() => downloads.value.length);
 
 const tenderImages = useHospitalMedia();
+
+const tendersIntro = computed(
+  () => tendersContent.value?.sectionsByKey["tenders-intro"] ?? null,
+);
 </script>
 
 <template>
@@ -167,15 +172,19 @@ const tenderImages = useHospitalMedia();
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div class="max-w-3xl">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
-            Tenders &amp; downloads
+            {{ tendersIntro?.eyebrow || "Tenders &amp; downloads" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
-            Procurement notices and downloadable documents
+            {{
+              tendersIntro?.title ||
+              "Procurement notices and downloadable documents"
+            }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
-            This section is designed for open tender notices, registered
-            supplier lists, and procurement PDFs. When nothing is live, the
-            page says so plainly.
+            {{
+              tendersIntro?.summary ||
+              "This section is designed for open tender notices, registered supplier lists, and procurement PDFs. When nothing is live, the page says so plainly."
+            }}
           </p>
         </div>
       </div>

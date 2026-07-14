@@ -5,6 +5,7 @@ definePageMeta({ layout: "default" });
 
 const supabase = useSupabaseClient<Database>();
 const { recruitmentRounds } = useMetrhContent();
+const { data: careersContent } = await usePageContent("careers");
 
 type JobPostingRow = {
   id: string;
@@ -135,6 +136,10 @@ const openCount = computed(
 );
 
 const careerImages = useHospitalMedia();
+
+const careersIntro = computed(
+  () => careersContent.value?.sectionsByKey["careers-intro"] ?? null,
+);
 </script>
 
 <template>
@@ -143,14 +148,19 @@ const careerImages = useHospitalMedia();
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div class="max-w-3xl">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
-            Careers &amp; opportunities
+            {{ careersIntro?.eyebrow || "Careers &amp; opportunities" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
-            Current openings and recruitment rounds
+            {{
+              careersIntro?.title ||
+              "Current openings and recruitment rounds"
+            }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
-            MeTRH recruits on a rolling basis. When there are live openings,
-            they appear here with application instructions and upload support.
+            {{
+              careersIntro?.summary ||
+              "MeTRH recruits on a rolling basis. When there are live openings, they appear here with application instructions and upload support."
+            }}
           </p>
         </div>
       </div>

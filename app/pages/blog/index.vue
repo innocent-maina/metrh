@@ -6,6 +6,7 @@ definePageMeta({ layout: "default" });
 
 const supabase = useSupabaseClient<Database>();
 const { milestoneStories } = useMetrhContent();
+const { data: blogContent } = await usePageContent("blog");
 
 type BlogCategoryRow = {
   id: string;
@@ -169,6 +170,10 @@ const filteredStories = computed(() => {
 });
 
 const blogImages = useHospitalMedia();
+
+const blogIntro = computed(
+  () => blogContent.value?.sectionsByKey["blog-intro"] ?? null,
+);
 </script>
 
 <template>
@@ -177,14 +182,19 @@ const blogImages = useHospitalMedia();
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div class="max-w-3xl">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
-            Blog &amp; news
+            {{ blogIntro?.eyebrow || "Blog &amp; news" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
-            Milestones, community impact, and service updates
+            {{
+              blogIntro?.title ||
+              "Milestones, community impact, and service updates"
+            }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
-            MeTRH uses this space for stories that matter to patients,
-            families, referrers, and the wider Meru community.
+            {{
+              blogIntro?.summary ||
+              "MeTRH uses this space for stories that matter to patients, families, referrers, and the wider Meru community."
+            }}
           </p>
         </div>
       </div>
