@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Database } from "~~/types/database.types";
+import { fetchSignedDocumentUrls } from "~~/app/composables/fetchSignedDocumentUrls";
 
 definePageMeta({ layout: "default" });
 
@@ -20,6 +21,7 @@ type JobPostingRow = {
   requirements: string | null;
   responsibilities: string | null;
   how_to_apply: string | null;
+  attachment_url: string | null;
   status: "draft" | "open" | "closed";
   application_deadline: string | null;
   created_at: string;
@@ -46,7 +48,7 @@ const { data: postingData } = await useAsyncData(`public-career-${slug}`, async 
   try {
     const { data: row, error } = await supabase
       .from("job_postings")
-      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,status,application_deadline,created_at,updated_at")
+      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,attachment_url,status,application_deadline,created_at,updated_at")
       .eq("slug", slug)
       .eq("status", "open")
       .maybeSingle();
@@ -56,6 +58,19 @@ const { data: postingData } = await useAsyncData(`public-career-${slug}`, async 
     const data = row as JobPostingRow | null;
 
     if (data) {
+      let attachmentUrl: string | null = null;
+
+      if (data.attachment_url) {
+        try {
+          const attachmentUrls = await fetchSignedDocumentUrls([
+            { resource: "job_postings", id: data.id },
+          ]);
+          attachmentUrl = attachmentUrls.get(data.id) ?? null;
+        } catch (error) {
+          console.warn("[careers] Could not sign job posting attachment.", error);
+        }
+      }
+
       return {
         posting: {
           id: data.id,
@@ -69,6 +84,7 @@ const { data: postingData } = await useAsyncData(`public-career-${slug}`, async 
           requirements: data.requirements,
           responsibilities: data.responsibilities,
           howToApply: data.how_to_apply,
+          attachmentUrl,
           status: data.status,
           deadlineLabel: formatDateLabel(data.application_deadline),
         },
@@ -95,6 +111,7 @@ const { data: postingData } = await useAsyncData(`public-career-${slug}`, async 
       requirements: null,
       responsibilities: null,
       howToApply: null,
+      attachmentUrl: null,
       status: fallback.status,
       deadlineLabel: fallback.deadlineLabel,
     },
@@ -133,6 +150,8 @@ const application = reactive({
 
 const resumeFile = ref<File | null>(null);
 const resumeInput = ref<HTMLInputElement | null>(null);
+const supportingFile = ref<File | null>(null);
+const supportingInput = ref<HTMLInputElement | null>(null);
 const isSubmitting = ref(false);
 const formError = ref("");
 const formSuccess = ref("");
@@ -143,7 +162,7 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function describeResumeType(file: File) {
+function describeDocumentType(file: File) {
   if (file.type === "application/pdf") return "PDF";
   if (
     file.type === "application/msword" ||
@@ -152,13 +171,19 @@ function describeResumeType(file: File) {
     return "Word document";
   }
 
-  return "Resume file";
+  return "Document";
 }
 
 const resumeSummary = computed(() => {
   if (!resumeFile.value) return "";
 
-  return `${describeResumeType(resumeFile.value)} · ${formatFileSize(resumeFile.value.size)}`;
+  return `${describeDocumentType(resumeFile.value)} · ${formatFileSize(resumeFile.value.size)}`;
+});
+
+const supportingSummary = computed(() => {
+  if (!supportingFile.value) return "";
+
+  return `${describeDocumentType(supportingFile.value)} · ${formatFileSize(supportingFile.value.size)}`;
 });
 
 function clearResumeSelection() {
@@ -175,12 +200,27 @@ function setResumeFile(file: File | null) {
   }
 }
 
+function clearSupportingSelection() {
+  supportingFile.value = null;
+  if (supportingInput.value) {
+    supportingInput.value.value = "";
+  }
+}
+
+function setSupportingFile(file: File | null) {
+  supportingFile.value = file;
+  if (supportingInput.value) {
+    supportingInput.value.value = "";
+  }
+}
+
 function resetApplication() {
   application.name = "";
   application.email = "";
   application.phone = "";
   application.coverLetter = "";
   clearResumeSelection();
+  clearSupportingSelection();
 }
 
 function handleResumeChange(event: Event) {
@@ -190,6 +230,33 @@ function handleResumeChange(event: Event) {
 
 function handleResumeDrop(event: DragEvent) {
   setResumeFile(event.dataTransfer?.files?.[0] ?? null);
+}
+
+function handleSupportingChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  setSupportingFile(input.files?.[0] ?? null);
+}
+
+function handleSupportingDrop(event: DragEvent) {
+  setSupportingFile(event.dataTransfer?.files?.[0] ?? null);
+}
+
+function validateDocumentFile(file: File, label: string) {
+  if (file.size > 5 * 1024 * 1024) {
+    return `${label} files must be 5 MB or smaller.`;
+  }
+
+  const allowedTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ];
+  const hasAllowedExtension = /\.(pdf|docx?)$/i.test(file.name);
+  if (!allowedTypes.includes(file.type) && !hasAllowedExtension) {
+    return `Upload a PDF or Word document for ${label.toLowerCase()}.`;
+  }
+
+  return "";
 }
 
 function getFormErrorMessage(error: unknown, fallback: string) {
@@ -238,25 +305,33 @@ async function submitApplication() {
     formError.value = "Attach your resume before submitting.";
     return;
   }
-  if (resumeFile.value.size > 5 * 1024 * 1024) {
-    formError.value = "Resume files must be 5 MB or smaller.";
+
+  const resumeValidationError = validateDocumentFile(resumeFile.value, "Resume");
+  if (resumeValidationError) {
+    formError.value = resumeValidationError;
     return;
   }
-  const allowedTypes = [
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ];
-  const hasAllowedExtension = /\.(pdf|docx?)$/i.test(resumeFile.value.name);
-  if (!allowedTypes.includes(resumeFile.value.type) && !hasAllowedExtension) {
-    formError.value = "Upload a PDF or Word document.";
+
+  if (supportingFile.value) {
+    const supportingValidationError = validateDocumentFile(
+      supportingFile.value,
+      "Supporting document",
+    );
+    if (supportingValidationError) {
+      formError.value = supportingValidationError;
+      return;
+    }
+  }
+
+  if (!posting.value) {
+    formError.value = "This posting is no longer open.";
     return;
   }
 
   isSubmitting.value = true;
 
   try {
-    const upload = await $fetch<{
+    const resumeUpload = await $fetch<{
       path: string;
       token: string;
       signedUrl: string;
@@ -270,12 +345,45 @@ async function submitApplication() {
 
     const { error: uploadError } = await supabase.storage
       .from("documents")
-      .uploadToSignedUrl(upload.path, upload.token, resumeFile.value, {
+      .uploadToSignedUrl(resumeUpload.path, resumeUpload.token, resumeFile.value, {
         contentType: resumeFile.value.type || "application/octet-stream",
       });
 
     if (uploadError) {
       throw new Error(uploadError.message);
+    }
+
+    let supportingUploadPath: string | null = null;
+
+    if (supportingFile.value) {
+      const supportingUpload = await $fetch<{
+        path: string;
+        token: string;
+        signedUrl: string;
+      }>("/api/storage/documents/sign-upload", {
+        method: "POST",
+        body: {
+          jobSlug: posting.value.slug,
+          fileName: supportingFile.value.name,
+        },
+      });
+
+      const { error: supportingUploadError } = await supabase.storage
+        .from("documents")
+        .uploadToSignedUrl(
+          supportingUpload.path,
+          supportingUpload.token,
+          supportingFile.value,
+          {
+            contentType: supportingFile.value.type || "application/octet-stream",
+          },
+        );
+
+      if (supportingUploadError) {
+        throw new Error(supportingUploadError.message);
+      }
+
+      supportingUploadPath = supportingUpload.path;
     }
 
     await $fetch("/api/job-applications", {
@@ -286,7 +394,8 @@ async function submitApplication() {
         email: application.email.trim(),
         phone: application.phone.trim() || null,
         coverLetter: application.coverLetter.trim() || null,
-        resumeUrl: upload.path,
+        resumeUrl: resumeUpload.path,
+        supportingDocumentUrl: supportingUploadPath,
       },
     });
 
@@ -366,6 +475,24 @@ async function submitApplication() {
           </div>
         </div>
 
+        <section v-if="posting.attachmentUrl" class="mt-6 rounded-card border border-border bg-surface-alt p-5">
+          <p class="text-caption font-semibold uppercase tracking-wide text-info">
+            Posting attachment
+          </p>
+          <p class="mt-2 text-small text-ink-muted">
+            Download the document attached to this vacancy.
+          </p>
+          <a
+            :href="posting.attachmentUrl"
+            target="_blank"
+            rel="noopener"
+            class="mt-4 inline-flex items-center gap-2 rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark transition-colors"
+          >
+            <Icon name="lucide:file-down" class="size-4" />
+            Download attachment
+          </a>
+        </section>
+
         <p class="mt-6 text-body text-ink-muted whitespace-pre-line">
           {{ posting.description }}
         </p>
@@ -406,7 +533,7 @@ async function submitApplication() {
           </h2>
           <p class="mt-2 text-small text-ink-muted">
             The application form will request your name, contact details,
-            cover note, and resume upload through a signed documents bucket URL.
+            cover note, resume upload, and an optional supporting document through signed documents bucket URLs.
           </p>
           <form class="mt-5 space-y-4" @submit.prevent="submitApplication">
             <div class="grid gap-4 sm:grid-cols-2">
@@ -529,6 +656,93 @@ async function submitApplication() {
                     </button>
                     <p class="text-caption text-ink-muted">
                       PDF or Word document, up to 5 MB.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-small font-medium text-ink mb-1.5" for="supporting-document">
+                Supporting document
+              </label>
+              <input
+                id="supporting-document"
+                ref="supportingInput"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                class="sr-only"
+                @change="handleSupportingChange"
+              />
+              <div
+                class="rounded-card border border-border bg-surface p-4 shadow-card"
+                @drop.prevent="handleSupportingDrop"
+                @dragover.prevent
+              >
+                <button
+                  v-if="!supportingFile"
+                  type="button"
+                  class="flex w-full flex-col items-start gap-4 rounded-card border border-dashed border-border bg-surface-alt/70 p-5 text-left transition hover:border-primary/50 hover:bg-surface-alt"
+                  @click="supportingInput?.click()"
+                >
+                  <div class="flex w-full items-start gap-4">
+                    <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Icon name="lucide:paperclip" class="size-5" />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="font-semibold text-ink">Upload a supporting document</p>
+                      <p class="mt-1 text-small text-ink-muted">
+                        Optional certificates, portfolio items, or additional documents.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="rounded-full bg-surface px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      Optional
+                    </span>
+                    <span class="rounded-full bg-surface px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      PDF preferred
+                    </span>
+                    <span class="rounded-full bg-surface px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      Word accepted
+                    </span>
+                  </div>
+                </button>
+
+                <div v-else class="space-y-4">
+                  <div class="flex items-start justify-between gap-4 rounded-card bg-surface-alt p-4">
+                    <div class="min-w-0">
+                      <p class="text-caption font-semibold uppercase tracking-wide text-info">
+                        Selected file
+                      </p>
+                      <p class="mt-1 truncate font-medium text-ink">
+                        {{ supportingFile.name }}
+                      </p>
+                      <p class="mt-1 text-small text-ink-muted">
+                        {{ supportingSummary }}
+                      </p>
+                    </div>
+                    <span class="rounded-full bg-success/10 px-3 py-1 text-caption font-semibold uppercase tracking-wide text-success">
+                      Ready
+                    </span>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      class="rounded-control border border-border px-4 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
+                      @click="supportingInput?.click()"
+                    >
+                      Replace file
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-control border border-border px-4 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
+                      @click="clearSupportingSelection"
+                    >
+                      Remove
+                    </button>
+                    <p class="text-caption text-ink-muted">
+                      Optional document, up to 5 MB.
                     </p>
                   </div>
                 </div>

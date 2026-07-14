@@ -211,7 +211,7 @@ function handleSubmit() {
                   v-show="!field.serverOnly"
                   :key="field.key"
                   class="space-y-2"
-                  :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' || field.kind === 'richtext' || field.kind === 'multiselect' ? 'md:col-span-2' : ''"
+                  :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' || field.kind === 'richtext' || field.kind === 'multiselect' || field.kind === 'icon' ? 'md:col-span-2' : ''"
                 >
                   <span class="block text-small font-semibold text-ink">
                     {{ field.label }}
@@ -298,6 +298,14 @@ function handleSubmit() {
                       {{ field.helpText ?? "Choose one or more options." }}
                     </p>
                   </div>
+
+                  <IconPickerField
+                    v-else-if="field.kind === 'icon'"
+                    :model-value="String(modelValue[field.key] ?? '')"
+                    :placeholder="field.placeholder ?? 'Choose an icon'"
+                    :disabled="readOnly || disabled || field.disabled"
+                    @update:model-value="updateField(field.key, $event)"
+                  />
 
                   <select
                     v-else-if="field.kind === 'select'"

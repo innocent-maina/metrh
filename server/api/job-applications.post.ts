@@ -13,6 +13,7 @@ const jobApplicationSchema = z.object({
   phone: z.string().trim().max(50).nullable().optional(),
   coverLetter: z.string().trim().max(5000).nullable().optional(),
   resumeUrl: z.string().trim().min(1),
+  supportingDocumentUrl: z.string().trim().min(1).nullable().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -59,6 +60,13 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  if (body.supportingDocumentUrl && !body.supportingDocumentUrl.startsWith(`applications/${body.jobSlug}/`)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Supporting document path is invalid.",
+    });
+  }
+
   const response = await fetch(
     `${supabaseUrl}/rest/v1/job_applications`,
     {
@@ -76,6 +84,7 @@ export default defineEventHandler(async (event) => {
         phone: body.phone ?? null,
         cover_letter: body.coverLetter ?? null,
         resume_url: body.resumeUrl,
+        supporting_document_url: body.supportingDocumentUrl ?? null,
       }),
     },
   );

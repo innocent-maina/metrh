@@ -17,20 +17,24 @@ export default defineEventHandler(async () => {
     const admin = supabaseAdmin();
     const [
       blogPostsResult,
+      servicesResult,
       jobPostingsResult,
       tendersResult,
     ] = await Promise.all([
       admin.from("blog_posts").select("slug").eq("status", "published"),
+      admin.from("services").select("slug").eq("is_active", true),
       admin.from("job_postings").select("slug").eq("status", "open"),
       admin.from("tenders").select("slug").neq("status", "draft"),
     ]);
 
     const blogRows = (blogPostsResult.data ?? []) as RouteSlugRow[];
+    const serviceRows = (servicesResult.data ?? []) as RouteSlugRow[];
     const jobRows = (jobPostingsResult.data ?? []) as RouteSlugRow[];
     const tenderRows = (tendersResult.data ?? []) as RouteSlugRow[];
 
     dynamicRoutes = [
       ...blogRows.map((row) => `/blog/${row.slug}`),
+      ...serviceRows.map((row) => `/services/${row.slug}`),
       ...jobRows.map((row) => `/careers/${row.slug}`),
       ...tenderRows.map((row) => `/tenders/${row.slug}`),
     ];

@@ -144,6 +144,10 @@ export interface Database {
           slug: string;
           summary: string | null;
           description: string | null;
+          cover_image_url: string | null;
+          cover_image_alt: string | null;
+          cta_label: string | null;
+          cta_href: string | null;
           is_specialized: boolean;
           display_order: number;
           is_active: boolean;
@@ -205,6 +209,7 @@ export interface Database {
           requirements: string | null;
           responsibilities: string | null;
           how_to_apply: string | null;
+          attachment_url: string | null;
           status: JobStatus;
           application_deadline: string | null;
           created_by: string | null;
@@ -228,6 +233,7 @@ export interface Database {
           phone: string | null;
           cover_letter: string | null;
           resume_url: string;
+          supporting_document_url: string | null;
           status: ApplicationStatus;
           reviewed_by: string | null;
           reviewer_notes: string | null;

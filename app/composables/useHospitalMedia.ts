@@ -277,7 +277,7 @@ const mediaSets: Record<MediaKey, HospitalMediaItem[]> = {
     image(
       "facility.jpg",
       "Hospital facility overview",
-      "Downloads",
+      "Supporting files",
       "Document workflows fit into the wider operational picture.",
     ),
   ],

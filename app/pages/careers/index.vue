@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Database } from "~~/types/database.types";
+import { fetchSignedDocumentUrls } from "~~/app/composables/fetchSignedDocumentUrls";
 
 definePageMeta({ layout: "default" });
 
@@ -19,6 +20,7 @@ type JobPostingRow = {
   requirements: string | null;
   responsibilities: string | null;
   how_to_apply: string | null;
+  attachment_url: string | null;
   status: "draft" | "open" | "closed";
   application_deadline: string | null;
   created_at: string;
@@ -59,13 +61,22 @@ const { data: careerIndex } = await useAsyncData("public-careers-index", async (
   try {
     const { data: rows, error } = await supabase
       .from("job_postings")
-      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,status,application_deadline,created_at,updated_at")
+      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,attachment_url,status,application_deadline,created_at,updated_at")
       .eq("status", "open")
       .order("application_deadline", { ascending: true });
 
     if (error) throw error;
 
     const data = rows as JobPostingRow[];
+    const attachmentRows = data.filter((posting) => posting.attachment_url);
+    const attachmentUrlMap = attachmentRows.length
+      ? await fetchSignedDocumentUrls(
+          attachmentRows.map((posting) => ({
+            resource: "job_postings",
+            id: posting.id,
+          })),
+        )
+      : new Map<string, string | null>();
 
     return {
       source: "database",
@@ -84,6 +95,9 @@ const { data: careerIndex } = await useAsyncData("public-careers-index", async (
         requirements: posting.requirements,
         responsibilities: posting.responsibilities,
         howToApply: posting.how_to_apply,
+        attachmentUrl: posting.attachment_url
+          ? attachmentUrlMap.get(posting.id) ?? null
+          : null,
       })),
     };
   } catch (error) {
@@ -105,6 +119,7 @@ const { data: careerIndex } = await useAsyncData("public-careers-index", async (
         requirements: null,
         responsibilities: null,
         howToApply: null,
+        attachmentUrl: null,
       })),
     };
   }
@@ -140,6 +155,17 @@ const careerImages = useHospitalMedia();
 const careersIntro = computed(
   () => careersContent.value?.sectionsByKey["careers-intro"] ?? null,
 );
+
+const documents = computed(() =>
+  rounds.value
+    .filter((round) => round.attachmentUrl)
+    .map((round) => ({
+      slug: round.slug,
+      title: round.title,
+      referenceNo: round.referenceNo,
+      attachmentUrl: round.attachmentUrl as string,
+    })),
+);
 </script>
 
 <template>
@@ -172,6 +198,65 @@ const careersIntro = computed(
       subtitle="Recruitment and capacity-building images placed between the intro and listings."
       compact
     />
+
+    <section v-if="documents.length" class="border-b border-border bg-surface">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div class="rounded-card border border-border bg-surface-alt p-5 md:p-6">
+          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div class="max-w-2xl">
+              <p class="text-small font-semibold uppercase tracking-wide text-info">
+                Documents
+              </p>
+              <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
+                Vacancy attachments and supporting files
+              </h2>
+              <p class="mt-2 text-small text-ink-muted">
+                When a recruitment round includes a brief, notice, or attachment,
+                you can open it here before visiting the full posting page.
+              </p>
+            </div>
+            <p class="text-small font-medium text-ink-muted">
+              {{ documents.length }} attachment{{ documents.length === 1 ? "" : "s" }} available
+            </p>
+          </div>
+
+          <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <article
+              v-for="document in documents"
+              :key="document.slug"
+              class="rounded-card border border-border bg-surface p-4 shadow-card"
+            >
+              <p class="text-caption font-semibold uppercase tracking-wide text-accent">
+                {{ document.referenceNo }}
+              </p>
+              <h3 class="mt-2 font-display font-semibold text-h4 text-ink">
+                {{ document.title }}
+              </h3>
+              <p class="mt-2 text-small text-ink-muted">
+                Vacancy attachment linked to this recruitment round.
+              </p>
+              <div class="mt-4 flex flex-wrap gap-3">
+                <NuxtLink
+                  :to="`/careers/${document.slug}`"
+                  class="inline-flex items-center gap-1 rounded-control border border-border px-4 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
+                >
+                  View posting
+                </NuxtLink>
+                <a
+                  :href="document.attachmentUrl"
+                  target="_blank"
+                  rel="noopener"
+                  class="inline-flex items-center gap-1 rounded-control bg-primary px-4 py-2 text-small font-semibold text-white hover:bg-primary-dark transition-colors"
+                >
+                  <Icon name="lucide:file-down" class="size-4" />
+                  Open document
+                </a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

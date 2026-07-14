@@ -7,7 +7,7 @@ const { data: servicesContent } = await usePageContent("services");
 useSeoMeta({
   title: "Services — MeTRH",
   description:
-    "Browse Meru Teaching and Referral Hospital services, grouped by department with the weekly clinic schedule for specialist outpatient care.",
+    "Browse Meru Teaching and Referral Hospital services, grouped by department, with detailed service pages and the weekly clinic schedule for specialist outpatient care.",
 });
 
 const search = ref("");
@@ -83,7 +83,7 @@ const servicesIntro = computed(
           <p class="mt-4 text-body text-ink-muted">
             {{
               servicesIntro?.summary ||
-              "MeTRH's services are grouped by department so patients, families, and referrers can find what they need without scanning a wall of text. Search by service name or filter by category."
+              "MeTRH's services are grouped by department so patients, families, and referrers can find what they need without scanning a wall of text. Search by service name, filter by category, and open each service page for more detail, images, and links."
             }}
           </p>
         </div>
@@ -231,20 +231,46 @@ const servicesIntro = computed(
                 <li
                   v-for="service in group.services"
                   :key="service.slug"
-                  class="rounded-card border border-border bg-surface p-4 shadow-card"
+                  class="flex h-full flex-col rounded-card border border-border bg-surface p-4 shadow-card transition-all hover:border-primary/40 hover:shadow-elevated"
                 >
                   <div class="flex items-start gap-3">
                     <span class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-control bg-surface-alt text-primary">
                       <Icon name="lucide:stethoscope" class="size-4" aria-hidden="true" />
                     </span>
-                    <div>
+                    <div class="min-w-0">
                       <h2 class="font-display font-semibold text-h4 text-ink">
                         {{ service.name }}
                       </h2>
-                      <p class="mt-1 text-caption text-ink-muted">
-                        Available through MeTRH's {{ group.name.toLowerCase() }} team.
-                      </p>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <span
+                          v-if="service.isSpecialized"
+                          class="rounded-full bg-accent/10 px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-accent"
+                        >
+                          Specialized
+                        </span>
+                        <span class="rounded-full bg-surface-alt px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                          {{ group.name }}
+                        </span>
+                      </div>
                     </div>
+                  </div>
+                  <p class="mt-4 text-small text-ink-muted">
+                    {{
+                      service.summary ||
+                      "Open the service page for more detail, guidance, and related links."
+                    }}
+                  </p>
+                  <div class="mt-5 flex items-center justify-between gap-3">
+                    <NuxtLink
+                      :to="`/services/${service.slug}`"
+                      class="inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
+                    >
+                      Read more
+                      <Icon name="lucide:arrow-right" class="size-4" />
+                    </NuxtLink>
+                    <span class="text-caption text-ink-muted">
+                      Service page
+                    </span>
                   </div>
                 </li>
               </ul>

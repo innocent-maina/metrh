@@ -4,6 +4,7 @@ export interface PublicServiceItem {
   name: string;
   slug: string;
   summary: string | null;
+  isSpecialized: boolean;
 }
 
 export interface PublicServiceGroup {
@@ -64,6 +65,7 @@ function buildServiceGroups(
       name: service.name,
       slug: service.slug,
       summary: service.summary,
+      isSpecialized: service.is_specialized,
     });
   }
 
@@ -128,8 +130,8 @@ export function usePublicServices() {
             .order("display_order", { ascending: true })
             .order("name", { ascending: true }),
           supabase
-            .from("services")
-            .select("id,category_id,name,slug,summary,display_order")
+          .from("services")
+            .select("id,category_id,name,slug,summary,is_specialized,display_order")
             .eq("is_active", true)
             .order("display_order", { ascending: true })
             .order("name", { ascending: true }),

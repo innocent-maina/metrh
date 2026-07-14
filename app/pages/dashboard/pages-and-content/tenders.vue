@@ -5,10 +5,10 @@ const tendersDefaults = {
   page_slug: "tenders",
   section_key: "tenders-intro",
   section_type: "content",
-  eyebrow: "Tenders & downloads",
-  title: "Procurement notices and downloadable documents",
+  eyebrow: "Tenders",
+  title: "Tender notices and supporting files",
   summary:
-    "This section is designed for open tender notices, registered supplier lists, and procurement PDFs.",
+    "This section is designed for open tender notices, supplier lists, and procurement PDFs.",
 };
 
 useSeoMeta({
@@ -28,7 +28,7 @@ useSeoMeta({
           Tenders page content
         </h2>
         <p class="mt-4 text-body text-ink-muted">
-          Edit the public procurement introduction and supporting copy.
+          Edit the public tender introduction and supporting copy.
         </p>
       </div>
     </section>

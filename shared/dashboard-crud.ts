@@ -18,6 +18,7 @@ export type CrudFieldKind =
   | "multiselect"
   | "number"
   | "checkbox"
+  | "icon"
   | "date"
   | "time"
   | "json"
@@ -400,7 +401,12 @@ export const dashboardSections: CrudSectionConfig[] = [
         fields: fields([
           { key: "name", label: "Name", kind: "text", required: true },
           { key: "slug", label: "Slug", kind: "text", required: true },
-          { key: "icon", label: "Icon", kind: "text" },
+          {
+            key: "icon",
+            label: "Icon",
+            kind: "icon",
+            helpText: "Pick an icon for the service category card.",
+          },
           { key: "description", label: "Description", kind: "textarea", rows: 4 },
           { key: "display_order", label: "Display order", kind: "number" },
         ]),
@@ -408,7 +414,7 @@ export const dashboardSections: CrudSectionConfig[] = [
       {
         id: "services",
         label: "Services",
-        description: "Maintain the public service catalog.",
+        description: "Maintain the public service catalog and service detail pages.",
         table: "services",
         readRoles: ["content_editor"],
         writeRoles: ["content_editor"],
@@ -432,8 +438,49 @@ export const dashboardSections: CrudSectionConfig[] = [
           },
           { key: "name", label: "Name", kind: "text", required: true },
           { key: "slug", label: "Slug", kind: "text", required: true },
-          { key: "summary", label: "Summary", kind: "textarea", rows: 3 },
-          { key: "description", label: "Description", kind: "textarea", rows: 10 },
+          {
+            key: "summary",
+            label: "Summary",
+            kind: "textarea",
+            rows: 3,
+            helpText: "Short preview text shown in the services list.",
+          },
+          {
+            key: "cover_image_url",
+            label: "Cover image",
+            kind: "upload",
+            helpText: "Use a wide image that works as the service hero.",
+            accept: "image/*",
+            uploadBucket: "media",
+            uploadFolder: "services/cover-images",
+            uploadPreview: "image",
+          },
+          {
+            key: "cover_image_alt",
+            label: "Cover image alt text",
+            kind: "text",
+            helpText: "Describe the image for screen readers and search engines.",
+          },
+          {
+            key: "description",
+            label: "Description",
+            kind: "richtext",
+            rows: 12,
+            helpText:
+              "Write the full service page here using headings, links, and lists.",
+          },
+          {
+            key: "cta_label",
+            label: "Call-to-action label",
+            kind: "text",
+            helpText: "Optional button text shown on the service page.",
+          },
+          {
+            key: "cta_href",
+            label: "Call-to-action link",
+            kind: "text",
+            helpText: "Use an internal path like /contact or a full URL.",
+          },
           { key: "is_specialized", label: "Specialized", kind: "checkbox" },
           { key: "display_order", label: "Display order", kind: "number" },
           { key: "is_active", label: "Active", kind: "checkbox" },
@@ -543,6 +590,15 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "requirements", label: "Requirements", kind: "textarea", rows: 6 },
           { key: "responsibilities", label: "Responsibilities", kind: "textarea", rows: 6 },
           { key: "how_to_apply", label: "How to apply", kind: "textarea", rows: 6 },
+          {
+            key: "attachment_url",
+            label: "Attachment document",
+            kind: "upload",
+            helpText: "Upload the job notice, PDF brief, or supporting document for this opening.",
+            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            uploadBucket: "documents",
+            uploadFolder: "jobs/postings/attachments",
+          },
           { key: "status", label: "Status", kind: "select", options: jobStatuses },
           { key: "application_deadline", label: "Application deadline", kind: "date" },
         ]),
@@ -585,6 +641,15 @@ export const dashboardSections: CrudSectionConfig[] = [
             uploadBucket: "documents",
             uploadFolder: "jobs/applications/resumes",
           },
+          {
+            key: "supporting_document_url",
+            label: "Supporting document",
+            kind: "upload",
+            helpText: "Optional certificates, portfolio files, or additional supporting documents.",
+            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            uploadBucket: "documents",
+            uploadFolder: "jobs/applications/supporting-documents",
+          },
           { key: "status", label: "Status", kind: "select", options: applicationStatuses },
           { key: "reviewer_notes", label: "Reviewer notes", kind: "textarea", rows: 5 },
         ]),
@@ -595,14 +660,14 @@ export const dashboardSections: CrudSectionConfig[] = [
     id: "tenders",
     label: "Tenders",
     to: "/dashboard/tenders",
-    description: "Manage tender notices and supporting documents.",
+    description: "Manage tender notices, attachments, and procurement files.",
     roles: ["procurement_manager"],
     icon: "lucide:file-text",
     resources: [
       {
         id: "tenders",
-        label: "Tenders",
-        description: "Publish notices and award decisions.",
+        label: "Tender notices",
+        description: "Publish tender notices and award decisions.",
         table: "tenders",
         readRoles: ["procurement_manager"],
         writeRoles: ["procurement_manager"],
@@ -630,8 +695,8 @@ export const dashboardSections: CrudSectionConfig[] = [
       },
       {
         id: "tender_documents",
-        label: "Tender documents",
-        description: "Attach files to live or awarded tenders.",
+        label: "Attachments",
+        description: "Attach files to a tender notice.",
         table: "tender_documents",
         readRoles: ["procurement_manager"],
         writeRoles: ["procurement_manager"],
@@ -666,7 +731,7 @@ export const dashboardSections: CrudSectionConfig[] = [
       },
       {
         id: "downloads",
-        label: "Downloads",
+        label: "Supporting files",
         description: "Manage public supplier lists and policy files.",
         table: "downloads",
         readRoles: ["procurement_manager"],
@@ -1032,8 +1097,8 @@ export const dashboardSections: CrudSectionConfig[] = [
           {
             key: "icon",
             label: "Icon",
-            kind: "text",
-            helpText: "Use a Lucide icon name such as lucide:users.",
+            kind: "icon",
+            helpText: "Choose a Lucide icon or enter a custom Iconify name.",
           },
           {
             key: "image_url",

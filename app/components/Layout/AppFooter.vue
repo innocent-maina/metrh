@@ -6,7 +6,7 @@ const quickLinks = [
   { label: "Services", to: "/services" },
   { label: "Clinic Schedule", to: "/services#clinic-schedule" },
   { label: "Careers", to: "/careers" },
-  { label: "Tenders & Downloads", to: "/tenders" },
+  { label: "Tenders", to: "/tenders" },
   { label: "Blog", to: "/blog" },
 ];
 

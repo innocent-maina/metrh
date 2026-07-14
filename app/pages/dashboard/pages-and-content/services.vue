@@ -8,12 +8,12 @@ const serviceDefaults = {
   eyebrow: "Services",
   title: "Clinical services organized for fast access",
   summary:
-    "MeTRH's services are grouped by department so patients, families, and referrers can find what they need without scanning a wall of text.",
+    "MeTRH's services are grouped by department so patients, families, and referrers can find what they need without scanning a wall of text. Each service can also carry its own detailed page with images, links, and full descriptions.",
 };
 
 useSeoMeta({
   title: "Services Content — MeTRH Dashboard",
-  description: "Edit the Services page intro and support copy.",
+  description: "Edit the Services page intro that frames the public service pages.",
 });
 </script>
 

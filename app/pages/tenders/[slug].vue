@@ -214,7 +214,7 @@ useSeoMeta({
 
         <section class="mt-8">
           <h2 class="font-display font-semibold text-h3 text-ink">
-            Tender documents
+            Attachments
           </h2>
           <div v-if="documents.length" class="mt-3 grid gap-4 md:grid-cols-2">
             <article
@@ -223,7 +223,7 @@ useSeoMeta({
               class="rounded-card border border-border bg-surface-alt p-4"
             >
               <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                {{ document.fileSizeKb ? `${document.fileSizeKb} KB` : "Document" }}
+                {{ document.fileSizeKb ? `${document.fileSizeKb} KB` : "File" }}
               </p>
               <p class="mt-1 font-medium text-ink">
                 {{ document.fileName }}
@@ -244,7 +244,7 @@ useSeoMeta({
             </article>
           </div>
           <div v-else class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink-muted">
-            No tender documents are attached to this notice yet.
+            No attachments have been published for this notice yet.
           </div>
         </section>
       </article>

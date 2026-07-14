@@ -6,7 +6,7 @@ const signDownloadSchema = z.object({
   items: z
     .array(
       z.object({
-        resource: z.enum(["downloads", "tender_documents"]),
+        resource: z.enum(["downloads", "tender_documents", "job_postings"]),
         id: z.string().uuid(),
       }),
     )
@@ -31,6 +31,12 @@ type TenderDocumentRow = {
 type TenderRow = {
   id: string;
   status: "draft" | "open" | "closed" | "awarded" | "cancelled";
+};
+
+type JobPostingRow = {
+  id: string;
+  attachment_url: string | null;
+  status: "draft" | "open" | "closed";
 };
 
 function isExternalUrl(value: string) {
@@ -74,6 +80,32 @@ async function resolveDownloadUrl(item: SignDownloadItem) {
       };
     } catch (error) {
       console.warn("[documents] Could not sign download file URL.", {
+        resource: item.resource,
+        id: item.id,
+        error,
+      });
+      return { id: item.id, downloadUrl: null };
+    }
+  }
+
+  if (item.resource === "job_postings") {
+    const { data: postingRow, error: postingError } = await admin
+      .from("job_postings")
+      .select("id,attachment_url,status")
+      .eq("id", item.id)
+      .maybeSingle<JobPostingRow>();
+
+    if (postingError || !postingRow || postingRow.status === "draft" || !postingRow.attachment_url) {
+      return { id: item.id, downloadUrl: null };
+    }
+
+    try {
+      return {
+        id: item.id,
+        downloadUrl: await signDocumentsFileUrl(postingRow.attachment_url),
+      };
+    } catch (error) {
+      console.warn("[documents] Could not sign job posting attachment URL.", {
         resource: item.resource,
         id: item.id,
         error,

@@ -41,11 +41,11 @@ const ctaSection = computed(
             <Icon name="lucide:file-text" class="size-5" aria-hidden="true" />
           </span>
           <h2 class="mt-4 font-display font-semibold text-h3 text-ink">
-            Tenders &amp; downloads
+            Tenders
           </h2>
           <p class="mt-2 text-small text-ink-muted">
-            Open tenders, registered supplier lists, and policy documents for
-            procurement partners.
+            Open tender notices, registered supplier lists, and procurement
+            files for partners.
           </p>
           <NuxtLink
             to="/tenders"

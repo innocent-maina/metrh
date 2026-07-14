@@ -7,9 +7,9 @@ const supabase = useSupabaseClient<Database>();
 const { data: tendersContent } = await usePageContent("tenders");
 
 useSeoMeta({
-  title: "Tenders & Downloads — MeTRH",
+  title: "Tenders — MeTRH",
   description:
-    "Open tenders, procurement guidance, and downloadable documents for Meru Teaching and Referral Hospital.",
+    "Open tenders, supporting files, and procurement guidance for Meru Teaching and Referral Hospital.",
 });
 
 const search = ref("");
@@ -135,7 +135,7 @@ const { data: tenderIndex } = await useAsyncData("public-tenders-index", async (
 });
 
 const tenders = computed(() => tenderIndex.value?.tenders ?? []);
-const downloads = computed<DownloadCard[]>(() => tenderIndex.value?.downloads ?? []);
+const supportingFiles = computed<DownloadCard[]>(() => tenderIndex.value?.downloads ?? []);
 
 const filteredTenders = computed(() => {
   const term = search.value.trim().toLowerCase();
@@ -157,7 +157,7 @@ const filteredTenders = computed(() => {
 const openTenderCount = computed(
   () => tenders.value.filter((tender) => tender.status === "open").length,
 );
-const downloadCount = computed(() => downloads.value.length);
+const supportingFileCount = computed(() => supportingFiles.value.length);
 
 const tenderImages = useHospitalMedia();
 
@@ -172,18 +172,18 @@ const tendersIntro = computed(
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div class="max-w-3xl">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
-            {{ tendersIntro?.eyebrow || "Tenders &amp; downloads" }}
+            {{ tendersIntro?.eyebrow || "Tenders" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
             {{
               tendersIntro?.title ||
-              "Procurement notices and downloadable documents"
+              "Tender notices and supporting files"
             }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
             {{
               tendersIntro?.summary ||
-              "This section is designed for open tender notices, registered supplier lists, and procurement PDFs. When nothing is live, the page says so plainly."
+              "This page covers open tender notices, supplier lists, and procurement PDFs. When nothing is live, the page says so plainly."
             }}
           </p>
         </div>
@@ -202,7 +202,7 @@ const tendersIntro = computed(
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
             <label for="tender-search" class="block text-small font-medium text-ink">
-              Search tenders
+              Search notices
             </label>
             <div class="mt-2 flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2.5">
               <Icon name="lucide:search" class="size-4 text-ink-muted" aria-hidden="true" />
@@ -238,7 +238,7 @@ const tendersIntro = computed(
             <div class="mt-6 rounded-card bg-surface-alt p-4">
               <p class="text-small font-semibold text-ink">Procurement note</p>
               <p class="mt-2 text-small text-ink-muted">
-                Tender documents and supplier lists are published by the
+                Supporting files and supplier lists are published by the
                 procurement team and downloaded through signed URLs.
               </p>
             </div>
@@ -256,10 +256,10 @@ const tendersIntro = computed(
               </div>
               <div class="rounded-card border border-border bg-surface p-5">
                 <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                  Downloads
+                  Supporting files
                 </p>
                 <p class="mt-2 tabular-nums text-h2 text-primary">
-                  {{ downloadCount }}
+                  {{ supportingFileCount }}
                 </p>
               </div>
             </div>
@@ -274,7 +274,7 @@ const tendersIntro = computed(
                 </h2>
                 <p class="mt-3 text-small text-ink-muted">
                   This build has the route structure and security model in place,
-                  but no public tender documents are available for the selected filter.
+                  but no public tender notices are available for the selected filter.
                 </p>
                 <NuxtLink
                   to="/contact"
@@ -334,11 +334,11 @@ const tendersIntro = computed(
 
             <section class="rounded-card border border-border bg-surface p-5 md:p-6">
               <p class="text-small font-semibold uppercase tracking-wide text-info">
-                Downloads
+                Supporting files
               </p>
-              <div v-if="downloads.length" class="mt-4 grid gap-4 md:grid-cols-2">
+              <div v-if="supportingFiles.length" class="mt-4 grid gap-4 md:grid-cols-2">
                 <component
-                  v-for="download in downloads"
+                  v-for="download in supportingFiles"
                   :key="download.id"
                   :is="download.downloadUrl ? 'a' : 'div'"
                   v-bind="
@@ -376,9 +376,9 @@ const tendersIntro = computed(
                 </component>
               </div>
               <div v-else class="mt-4 rounded-card bg-surface-alt p-6 text-small text-ink-muted">
-                Supplier lists, policies, and tender attachments will be added
-                here from the dashboard. When available, each document is served
-                via a signed download URL.
+                Supplier lists, policies, and procurement attachments will be
+                added here from the dashboard. When available, each file is
+                served via a signed download URL.
               </div>
             </section>
           </div>

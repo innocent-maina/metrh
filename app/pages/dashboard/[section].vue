@@ -59,6 +59,16 @@ const tempPassword = ref<string | null>(null);
 const tempPasswordFor = ref<string | null>(null);
 const searchTerm = ref("");
 
+const resourceAreaTitle = computed(() =>
+  section.value?.id === "tenders" ? "Tender records" : "Resources",
+);
+
+const resourceAreaDescription = computed(() =>
+  section.value?.id === "tenders"
+    ? "Keep notices, attachments, and supporting files in one place."
+    : "",
+);
+
 watch(
   visibleResources,
   (resources) => {
@@ -399,7 +409,10 @@ watch(
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
-            Resources
+            {{ resourceAreaTitle }}
+          </p>
+          <p v-if="resourceAreaDescription" class="mt-1 max-w-3xl text-small text-ink-muted">
+            {{ resourceAreaDescription }}
           </p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button
@@ -444,13 +457,13 @@ watch(
             v-model="searchTerm"
             type="search"
             class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
-            placeholder="Search the current table"
+            placeholder="Search records"
           />
         </label>
 
         <div class="rounded-card border border-dashed border-border bg-surface-alt p-4">
           <p class="text-caption font-semibold uppercase tracking-wide text-info">
-            Current table
+            Current record
           </p>
           <p class="mt-1 font-display text-h4 text-ink">
             {{ currentResource?.label }}

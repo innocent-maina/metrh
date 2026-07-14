@@ -1,4 +1,4 @@
-export type SignedDocumentResource = "downloads" | "tender_documents";
+export type SignedDocumentResource = "downloads" | "tender_documents" | "job_postings";
 
 export type SignedDocumentReference = {
   resource: SignedDocumentResource;
