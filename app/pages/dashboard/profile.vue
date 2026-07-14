@@ -31,7 +31,7 @@ function resolveMediaUrl(value: string | null) {
 
 <template>
   <div class="space-y-8">
-    <section class="rounded-card border border-border bg-white p-6 shadow-card">
+    <section class="rounded-card border border-border bg-surface p-6 shadow-card">
       <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
         <div
           class="flex size-16 items-center justify-center rounded-full bg-primary/10 text-h3 font-bold uppercase text-primary"
@@ -54,7 +54,7 @@ function resolveMediaUrl(value: string | null) {
     </section>
 
     <section class="grid gap-4 md:grid-cols-4">
-      <div class="rounded-card border border-border bg-white p-5">
+      <div class="rounded-card border border-border bg-surface p-5">
         <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
           Full name
         </p>
@@ -63,7 +63,7 @@ function resolveMediaUrl(value: string | null) {
         </p>
       </div>
 
-      <div class="rounded-card border border-border bg-white p-5">
+      <div class="rounded-card border border-border bg-surface p-5">
         <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
           Email
         </p>
@@ -72,7 +72,7 @@ function resolveMediaUrl(value: string | null) {
         </p>
       </div>
 
-      <div class="rounded-card border border-border bg-white p-5">
+      <div class="rounded-card border border-border bg-surface p-5">
         <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
           Job title
         </p>
@@ -81,7 +81,7 @@ function resolveMediaUrl(value: string | null) {
         </p>
       </div>
 
-      <div class="rounded-card border border-border bg-white p-5">
+      <div class="rounded-card border border-border bg-surface p-5">
         <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
           Account status
         </p>
@@ -91,7 +91,7 @@ function resolveMediaUrl(value: string | null) {
       </div>
     </section>
 
-    <section class="rounded-card border border-border bg-white p-6 shadow-card">
+    <section class="rounded-card border border-border bg-surface p-6 shadow-card">
       <h3 class="font-display font-semibold text-h3 text-ink">Access</h3>
       <div class="mt-5 flex flex-wrap gap-2">
         <span
@@ -107,7 +107,7 @@ function resolveMediaUrl(value: string | null) {
       </p>
     </section>
 
-    <section class="rounded-card border border-border bg-white p-6 shadow-card">
+    <section class="rounded-card border border-border bg-surface p-6 shadow-card">
       <h3 class="font-display font-semibold text-h3 text-ink">Profile details</h3>
       <dl class="mt-5 grid gap-4 md:grid-cols-2">
         <div class="rounded-card border border-border bg-surface-alt p-4">

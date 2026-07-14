@@ -43,11 +43,11 @@ MeTRH's own words are "Exemplary Health Care for You" — client-centered, affor
 
 **Color:**
 
-- `--color-primary`: `#0B4F5C` — deep clinical teal. Primary brand color, headers, primary buttons, links.
-- `--color-primary-dark`: `#08373F` — hover/active states, footer background.
-- `--color-accent`: `#D98E2B` — warm amber. Used sparingly: emergency CTA, "Donate Blood," key stats, careers/urgent callouts. This is the one warm note against a cool, clinical palette — spend it deliberately, not everywhere.
-- `--color-surface`: `#FAFAF8` — page background. Neutral, not cream — avoid reading as the AI-cliché warm-cream.
-- `--color-surface-alt`: `#F0F3F2` — section alternation, card backgrounds.
+- `--color-primary`: `#0F64A1` — MeTRH logo blue. Primary brand color, headers, primary buttons, links.
+- `--color-primary-dark`: `#0A4D7D` — deeper blue for hover/active states and the footer.
+- `--color-accent`: `#92B74A` — MeTRH logo green. Use for supporting highlights, badges, and selective emphasis.
+- `--color-surface`: `#F6FBFE` — page background. A very light blue-white that stays close to the logo palette.
+- `--color-surface-alt`: `#EEF6EF` — section alternation and card backgrounds, with a faint green tint.
 - `--color-ink`: `#16211F` — body text, near-black with a slight green-black undertone (ties to the teal without being literal).
 - `--color-ink-muted`: `#5A6663` — secondary text, captions, metadata.
 - `--color-border`: `#DDE3E1` — hairlines, dividers, card borders.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { contactSummary } = useMetrhContent();
+const { data: siteSettings } = await useSiteSettings();
 
 function normalizeKenyanNumber(input: string) {
   const digits = input.replace(/\D/g, "");
@@ -10,7 +10,13 @@ function normalizeKenyanNumber(input: string) {
 }
 
 const whatsappHref = computed(() => {
-  const number = normalizeKenyanNumber(contactSummary.emergencyLine);
+  if (siteSettings.value?.whatsapp_href) {
+    return siteSettings.value.whatsapp_href;
+  }
+
+  const number = normalizeKenyanNumber(
+    siteSettings.value?.emergency_line ?? "",
+  );
   const message = encodeURIComponent(
     "Hello MeTRH, I would like to ask about the hospital services.",
   );
@@ -26,9 +32,11 @@ const whatsappHref = computed(() => {
     aria-label="Chat with MeTRH on WhatsApp"
     class="fixed bottom-24 right-4 z-[60] inline-flex items-center gap-3 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-elevated transition-transform hover:-translate-y-0.5 hover:shadow-lg md:bottom-6 md:right-6"
   >
-    <span class="flex size-10 items-center justify-center rounded-full bg-white/15">
+    <span class="flex size-10 items-center justify-center rounded-full bg-surface/15">
       <Icon name="mdi:whatsapp" class="size-6" aria-hidden="true" />
     </span>
-    <span class="hidden text-small font-semibold sm:inline">WhatsApp us</span>
+    <span class="hidden text-small font-semibold sm:inline">
+      {{ siteSettings?.whatsapp_label || "WhatsApp us" }}
+    </span>
   </a>
 </template>

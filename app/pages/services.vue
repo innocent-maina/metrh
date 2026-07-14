@@ -83,7 +83,7 @@ const serviceImages = useHospitalMedia();
         </div>
 
         <div class="mt-8 grid gap-4 sm:grid-cols-3">
-          <div class="rounded-card border border-border bg-white p-5">
+          <div class="rounded-card border border-border bg-surface p-5">
             <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
               Service lines
             </p>
@@ -91,7 +91,7 @@ const serviceImages = useHospitalMedia();
               {{ totalServices }}
             </p>
           </div>
-          <div class="rounded-card border border-border bg-white p-5">
+          <div class="rounded-card border border-border bg-surface p-5">
             <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
               Categories
             </p>
@@ -99,7 +99,7 @@ const serviceImages = useHospitalMedia();
               {{ serviceGroups.length }}
             </p>
           </div>
-          <div class="rounded-card border border-border bg-white p-5">
+          <div class="rounded-card border border-border bg-surface p-5">
             <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
               Clinic days
             </p>
@@ -121,7 +121,7 @@ const serviceImages = useHospitalMedia();
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside class="rounded-card border border-border bg-white p-5 lg:sticky lg:top-24 lg:self-start">
+          <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
             <label class="block text-small font-medium text-ink" for="service-search">
               Search services
             </label>
@@ -147,7 +147,7 @@ const serviceImages = useHospitalMedia();
                   :class="
                     activeCategory === option.slug
                       ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border bg-white text-ink hover:border-primary/30 hover:bg-surface-alt'
+                      : 'border-border bg-surface text-ink hover:border-primary/30 hover:bg-surface-alt'
                   "
                   @click="activeCategory = option.slug"
                 >
@@ -176,7 +176,7 @@ const serviceImages = useHospitalMedia();
           </aside>
 
           <div class="space-y-8">
-            <div class="rounded-card border border-border bg-white p-5 md:p-6">
+            <div class="rounded-card border border-border bg-surface p-5 md:p-6">
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p class="text-small font-semibold uppercase tracking-wide text-info">
@@ -196,7 +196,7 @@ const serviceImages = useHospitalMedia();
               </div>
             </div>
 
-            <div v-if="filteredGroups.length === 0" class="rounded-card border border-dashed border-border bg-white p-10 text-center">
+            <div v-if="filteredGroups.length === 0" class="rounded-card border border-dashed border-border bg-surface p-10 text-center">
               <Icon name="lucide:search-x" class="mx-auto size-6 text-ink-muted" aria-hidden="true" />
               <p class="mt-3 text-small text-ink-muted">
                 No services match that search. Try another term or clear the
@@ -225,7 +225,7 @@ const serviceImages = useHospitalMedia();
                 <li
                   v-for="service in group.services"
                   :key="service.slug"
-                  class="rounded-card border border-border bg-white p-4 shadow-card"
+                  class="rounded-card border border-border bg-surface p-4 shadow-card"
                 >
                   <div class="flex items-start gap-3">
                     <span class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-control bg-surface-alt text-primary">
@@ -244,7 +244,7 @@ const serviceImages = useHospitalMedia();
               </ul>
             </section>
 
-            <section id="clinic-schedule" class="scroll-mt-28 rounded-card border border-border bg-white p-5 md:p-6">
+            <section id="clinic-schedule" class="scroll-mt-28 rounded-card border border-border bg-surface p-5 md:p-6">
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p class="text-small font-semibold uppercase tracking-wide text-info">

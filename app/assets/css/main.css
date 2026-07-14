@@ -13,20 +13,23 @@
   to come back to this file, not to inline a hex.
 */
 @theme {
-  /* ---- Color: deep clinical teal + one warm amber note ---- */
-  --color-primary: #0b4f5c;
-  --color-primary-dark: #08373f;
-  --color-accent: #d98e2b;
-  --color-surface: #fafaf8;
-  --color-surface-alt: #f0f3f2;
+  /* ---- Color: MeTRH logo blue + green palette ---- */
+  --color-primary: #0f64a1;
+  --color-primary-dark: #0a4d7d;
+  --color-accent: #92b74a;
+  --color-surface: #f6fbfe;
+  --color-surface-alt: #eef6ef;
   --color-ink: #16211f;
   --color-ink-muted: #5a6663;
-  --color-border: #dde3e1;
+  --color-border: #d7e3e8;
 
-  --color-success: #3e7d5a;
+  --color-success: #5a8f3a;
   --color-warning: #c77b1e;
   --color-danger: #b3413c;
-  --color-info: #2f6e8c;
+  --color-info: #3c85b6;
+
+  --brand-primary-rgb: 15 100 161;
+  --brand-accent-rgb: 146 183 74;
 
   /* ---- Typography ---- */
   --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
@@ -88,6 +91,18 @@
   body {
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
+    background-image:
+      radial-gradient(
+        circle at top left,
+        rgb(var(--brand-primary-rgb) / 0.08),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgb(var(--brand-accent-rgb) / 0.09),
+        transparent 30%
+      );
+    background-attachment: fixed;
   }
 
   h1,

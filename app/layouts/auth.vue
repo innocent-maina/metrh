@@ -8,16 +8,16 @@ const authImages = useHospitalMedia();
       <div class="w-full max-w-sm">
         <div class="flex items-center justify-center gap-2 mb-8">
           <img
-            src="/logo.jpg"
+            src="/logo2.png"
             alt="MeTRH logo"
-            class="size-9 rounded-control border border-border bg-white object-cover"
+            class="size-9 rounded-control border border-border bg-transparent object-contain"
           />
           <span class="font-display font-semibold text-h4 text-ink"
             >MeTRH Staff</span
           >
         </div>
         <div
-          class="bg-white rounded-card shadow-card border border-border p-6 sm:p-8"
+          class="bg-surface rounded-card shadow-card border border-border p-6 sm:p-8"
         >
           <slot />
         </div>

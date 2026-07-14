@@ -230,7 +230,7 @@ function handleSubmit() {
                   <textarea
                     v-else-if="field.kind === 'textarea' || field.kind === 'json'"
                     :rows="field.rows ?? 5"
-                    class="w-full rounded-card border border-border bg-white px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
+                    class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
                     :placeholder="field.placeholder"
                     :required="field.required"
                     :disabled="readOnly || disabled || field.disabled"
@@ -262,7 +262,7 @@ function handleSubmit() {
 
                     <input
                       type="file"
-                      class="w-full rounded-card border border-border bg-white px-3 py-2.5 text-body text-ink outline-none transition-colors file:mr-4 file:rounded-control file:border-0 file:bg-surface-alt file:px-3 file:py-1.5 file:text-small file:font-semibold file:text-ink hover:file:bg-surface-alt focus:border-primary"
+                      class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors file:mr-4 file:rounded-control file:border-0 file:bg-surface-alt file:px-3 file:py-1.5 file:text-small file:font-semibold file:text-ink hover:file:bg-surface-alt focus:border-primary"
                       :accept="field.accept"
                       :required="field.required && !String(modelValue[field.key] ?? '').trim()"
                       :disabled="readOnly || disabled || field.disabled || uploadingFields[field.key]"
@@ -275,7 +275,7 @@ function handleSubmit() {
                   </div>
 
                   <div v-else-if="field.kind === 'multiselect'" class="space-y-3">
-                    <div class="grid gap-2 rounded-card border border-border bg-white p-3">
+                    <div class="grid gap-2 rounded-card border border-border bg-surface p-3">
                       <div
                         v-for="option in field.options ?? []"
                         :key="option.value"
@@ -301,7 +301,7 @@ function handleSubmit() {
 
                   <select
                     v-else-if="field.kind === 'select'"
-                    class="w-full rounded-card border border-border bg-white px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
+                    class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
                     :required="field.required"
                     :disabled="readOnly || disabled || field.disabled"
                     :value="String(modelValue[field.key] ?? '')"
@@ -329,7 +329,7 @@ function handleSubmit() {
                   <input
                     v-else
                     :type="field.kind === 'number' ? 'number' : field.kind === 'date' ? 'date' : field.kind === 'time' ? 'time' : 'text'"
-                    class="w-full rounded-card border border-border bg-white px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
+                    class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
                     :placeholder="field.placeholder"
                     :required="field.required"
                     :disabled="readOnly || disabled || field.disabled"

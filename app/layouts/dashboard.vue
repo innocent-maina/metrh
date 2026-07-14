@@ -107,9 +107,9 @@ async function handleSignOut() {
           @click="closeSidebar"
         >
           <img
-            src="/logo.jpg"
+            src="/logo2.png"
             alt="MeTRH logo"
-            class="size-10 rounded-control bg-white object-cover"
+            class="size-10 rounded-control bg-transparent object-contain"
           />
           <div>
             <p class="font-display font-semibold text-h4 leading-none">
@@ -123,7 +123,7 @@ async function handleSignOut() {
 
         <button
           type="button"
-          class="rounded-control border border-white/15 p-2 text-white hover:bg-white/10 lg:hidden"
+          class="rounded-control border border-surface/15 p-2 text-white hover:bg-surface/10 lg:hidden"
           aria-label="Close navigation"
           @click="closeSidebar"
         >
@@ -134,9 +134,9 @@ async function handleSignOut() {
       <nav class="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
         <NuxtLink
           to="/dashboard"
-          class="mb-2 flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium text-white/90 hover:bg-white/10"
-          active-class="bg-white/10 text-white"
-          exact-active-class="bg-white/10 text-white"
+          class="mb-2 flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium text-white/90 hover:bg-surface/10"
+          active-class="bg-surface/10 text-white"
+          exact-active-class="bg-surface/10 text-white"
           @click="closeSidebar"
         >
           <Icon name="lucide:layout-dashboard" class="size-4" />
@@ -152,8 +152,8 @@ async function handleSignOut() {
           <li v-for="section in visibleSections" :key="section.id">
             <NuxtLink
               :to="section.to"
-              class="flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium text-white/90 hover:bg-white/10"
-              active-class="bg-white/10 text-white"
+              class="flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium text-white/90 hover:bg-surface/10"
+              active-class="bg-surface/10 text-white"
               @click="closeSidebar"
             >
               <Icon :name="section.icon" class="size-4" />
@@ -174,7 +174,7 @@ async function handleSignOut() {
           <div class="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-control border border-border bg-white p-2 text-ink hover:bg-surface-alt lg:hidden"
+              class="inline-flex items-center justify-center rounded-control border border-border bg-surface p-2 text-ink hover:bg-surface-alt lg:hidden"
               :aria-expanded="isSidebarOpen"
               aria-controls="dashboard-sidebar"
               aria-label="Open navigation menu"
@@ -197,7 +197,7 @@ async function handleSignOut() {
             <div ref="userMenuRef" class="relative">
               <button
                 type="button"
-                class="inline-flex items-center gap-3 rounded-control border border-border bg-white px-3 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
+                class="inline-flex items-center gap-3 rounded-control border border-border bg-surface px-3 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
                 :aria-expanded="isUserMenuOpen"
                 aria-haspopup="menu"
                 @click="toggleUserMenu"
@@ -227,7 +227,7 @@ async function handleSignOut() {
               >
                 <div
                   v-if="isUserMenuOpen"
-                  class="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-card border border-border bg-white shadow-elevated"
+                  class="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-card border border-border bg-surface shadow-elevated"
                   role="menu"
                 >
                   <div class="border-b border-border px-4 py-3">

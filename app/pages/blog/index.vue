@@ -200,7 +200,7 @@ const blogImages = useHospitalMedia();
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside class="rounded-card border border-border bg-white p-5 lg:sticky lg:top-24 lg:self-start">
+          <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
             <label for="blog-search" class="block text-small font-medium text-ink">
               Search stories
             </label>
@@ -226,7 +226,7 @@ const blogImages = useHospitalMedia();
                   :class="
                     activeCategory === category.slug
                       ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border bg-white text-ink hover:border-primary/30 hover:bg-surface-alt'
+                      : 'border-border bg-surface text-ink hover:border-primary/30 hover:bg-surface-alt'
                   "
                   @click="activeCategory = category.slug"
                 >
@@ -237,7 +237,7 @@ const blogImages = useHospitalMedia();
           </aside>
 
           <div>
-            <div class="mb-6 rounded-card border border-border bg-white p-5">
+            <div class="mb-6 rounded-card border border-border bg-surface p-5">
               <p class="text-small font-semibold uppercase tracking-wide text-info">
                 {{ filteredStories.length }} published stories
               </p>
@@ -247,7 +247,7 @@ const blogImages = useHospitalMedia();
               </p>
             </div>
 
-            <div v-if="filteredStories.length === 0" class="rounded-card border border-dashed border-border bg-white p-10 text-center">
+            <div v-if="filteredStories.length === 0" class="rounded-card border border-dashed border-border bg-surface p-10 text-center">
               <Icon name="lucide:file-search" class="mx-auto size-6 text-ink-muted" aria-hidden="true" />
               <p class="mt-3 text-small text-ink-muted">
                 No stories match that filter.
@@ -258,7 +258,7 @@ const blogImages = useHospitalMedia();
               <li
                 v-for="story in filteredStories"
                 :key="story.slug"
-                class="rounded-card border border-border bg-white p-5 shadow-card"
+                class="rounded-card border border-border bg-surface p-5 shadow-card"
               >
                 <p class="text-caption font-semibold uppercase tracking-wide text-accent">
                   {{ story.category }}

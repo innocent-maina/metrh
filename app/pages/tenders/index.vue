@@ -46,6 +46,15 @@ type DownloadRow = {
   created_at: string;
 };
 
+type DownloadCard = {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  fileSizeKb: number | null;
+  downloadUrl: string | null;
+};
+
 function formatDateLabel(value: string | null | undefined) {
   if (!value) return "No closing date";
   return new Intl.DateTimeFormat("en-GB", {
@@ -82,6 +91,12 @@ const { data: tenderIndex } = await useAsyncData("public-tenders-index", async (
 
     const tenderRows = (tendersResult.data ?? []) as TenderRow[];
     const downloadRows = (downloadsResult.data ?? []) as DownloadRow[];
+    const downloadUrlMap = await fetchSignedDocumentUrls(
+      downloadRows.map((download) => ({
+        resource: "downloads",
+        id: download.id,
+      })),
+    );
 
     const tenders = tenderRows.map((tender) => ({
       id: tender.id,
@@ -101,9 +116,8 @@ const { data: tenderIndex } = await useAsyncData("public-tenders-index", async (
       title: download.title,
       description: download.description,
       category: download.category,
-      fileUrl: download.file_url,
       fileSizeKb: download.file_size_kb,
-      createdAt: download.created_at,
+      downloadUrl: downloadUrlMap.get(download.id) ?? null,
     }));
 
     return {
@@ -120,7 +134,7 @@ const { data: tenderIndex } = await useAsyncData("public-tenders-index", async (
 });
 
 const tenders = computed(() => tenderIndex.value?.tenders ?? []);
-const downloads = computed(() => tenderIndex.value?.downloads ?? []);
+const downloads = computed<DownloadCard[]>(() => tenderIndex.value?.downloads ?? []);
 
 const filteredTenders = computed(() => {
   const term = search.value.trim().toLowerCase();
@@ -177,7 +191,7 @@ const tenderImages = useHospitalMedia();
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside class="rounded-card border border-border bg-white p-5 lg:sticky lg:top-24 lg:self-start">
+          <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
             <label for="tender-search" class="block text-small font-medium text-ink">
               Search tenders
             </label>
@@ -203,7 +217,7 @@ const tenderImages = useHospitalMedia();
                   :class="
                     activeFilter === option.value
                       ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border bg-white text-ink hover:border-primary/30 hover:bg-surface-alt'
+                      : 'border-border bg-surface text-ink hover:border-primary/30 hover:bg-surface-alt'
                   "
                   @click="activeFilter = option.value"
                 >
@@ -223,7 +237,7 @@ const tenderImages = useHospitalMedia();
 
           <div class="space-y-6">
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="rounded-card border border-border bg-white p-5">
+              <div class="rounded-card border border-border bg-surface p-5">
                 <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
                   Open tenders
                 </p>
@@ -231,7 +245,7 @@ const tenderImages = useHospitalMedia();
                   {{ openTenderCount }}
                 </p>
               </div>
-              <div class="rounded-card border border-border bg-white p-5">
+              <div class="rounded-card border border-border bg-surface p-5">
                 <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
                   Downloads
                 </p>
@@ -241,7 +255,7 @@ const tenderImages = useHospitalMedia();
               </div>
             </div>
 
-            <div v-if="filteredTenders.length === 0" class="rounded-card border border-dashed border-border bg-white p-10">
+            <div v-if="filteredTenders.length === 0" class="rounded-card border border-dashed border-border bg-surface p-10">
               <div class="max-w-xl">
                 <p class="text-small font-semibold uppercase tracking-wide text-info">
                   No live items yet
@@ -267,7 +281,7 @@ const tenderImages = useHospitalMedia();
               <li
                 v-for="tender in filteredTenders"
                 :key="tender.slug"
-                class="rounded-card border border-border bg-white p-5 shadow-card"
+                class="rounded-card border border-border bg-surface p-5 shadow-card"
               >
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div class="max-w-3xl">
@@ -309,15 +323,30 @@ const tenderImages = useHospitalMedia();
               </li>
             </ul>
 
-            <section class="rounded-card border border-border bg-white p-5 md:p-6">
+            <section class="rounded-card border border-border bg-surface p-5 md:p-6">
               <p class="text-small font-semibold uppercase tracking-wide text-info">
                 Downloads
               </p>
               <div v-if="downloads.length" class="mt-4 grid gap-4 md:grid-cols-2">
-                <article
+                <component
                   v-for="download in downloads"
                   :key="download.id"
-                  class="rounded-card bg-surface-alt p-4"
+                  :is="download.downloadUrl ? 'a' : 'div'"
+                  v-bind="
+                    download.downloadUrl
+                      ? {
+                          href: download.downloadUrl,
+                          target: '_blank',
+                          rel: 'noreferrer noopener',
+                        }
+                      : {}
+                  "
+                  class="block rounded-card bg-surface-alt p-4 transition"
+                  :class="
+                    download.downloadUrl
+                      ? 'group hover:bg-surface hover:shadow-sm'
+                      : 'opacity-75'
+                  "
                 >
                   <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
                     {{ download.category || "General" }}
@@ -328,7 +357,14 @@ const tenderImages = useHospitalMedia();
                   <p v-if="download.description" class="mt-2 text-small text-ink-muted">
                     {{ download.description }}
                   </p>
-                </article>
+                  <p class="mt-4 inline-flex items-center gap-1 text-small font-semibold text-primary">
+                    {{ download.downloadUrl ? "Download file" : "File unavailable" }}
+                    <Icon
+                      :name="download.downloadUrl ? 'lucide:download' : 'lucide:alert-triangle'"
+                      class="size-4"
+                    />
+                  </p>
+                </component>
               </div>
               <div v-else class="mt-4 rounded-card bg-surface-alt p-6 text-small text-ink-muted">
                 Supplier lists, policies, and tender attachments will be added

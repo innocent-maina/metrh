@@ -12,7 +12,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: "en" },
-      meta: [{ name: "theme-color", content: "#0B4F5C" }],
+      meta: [{ name: "theme-color", content: "#0f64a1" }],
     },
   },
 

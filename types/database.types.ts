@@ -1,4 +1,4 @@
-// This file matches schema.sql exactly as of the current migration.
+// This file mirrors schema.sql plus the editable CMS extension migration.
 // Once the Supabase project is live, replace it with the real generated
 // output: `npm run db:types` (wraps `supabase gen types typescript`).
 // Keeping it hand-written for now so the app has strict types to build
@@ -402,6 +402,85 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["pages"]["Row"]>;
       };
+      page_sections: {
+        Row: {
+          id: string;
+          page_slug: string;
+          section_key: string;
+          section_type: string;
+          eyebrow: string | null;
+          title: string;
+          summary: string | null;
+          body: string | null;
+          image_url: string | null;
+          image_alt: string | null;
+          cta_label: string | null;
+          cta_href: string | null;
+          display_order: number;
+          is_active: boolean;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["page_sections"]["Row"]> & {
+          page_slug: string;
+          section_key: string;
+          title: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["page_sections"]["Row"]>;
+      };
+      page_section_items: {
+        Row: {
+          id: string;
+          section_id: string;
+          title: string;
+          description: string | null;
+          icon: string | null;
+          image_url: string | null;
+          image_alt: string | null;
+          cta_label: string | null;
+          cta_href: string | null;
+          display_order: number;
+          is_active: boolean;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Database["public"]["Tables"]["page_section_items"]["Row"]
+        > & { section_id: string; title: string };
+        Update: Partial<
+          Database["public"]["Tables"]["page_section_items"]["Row"]
+        >;
+      };
+      page_slides: {
+        Row: {
+          id: string;
+          page_slug: string;
+          section_key: string;
+          eyebrow: string | null;
+          title: string;
+          body: string;
+          cta_label: string | null;
+          cta_href: string | null;
+          image_url: string;
+          image_alt: string | null;
+          caption: string | null;
+          display_order: number;
+          is_active: boolean;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["page_slides"]["Row"]> & {
+          page_slug: string;
+          section_key: string;
+          title: string;
+          body: string;
+          image_url: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["page_slides"]["Row"]>;
+      };
       site_settings: {
         Row: {
           id: boolean;
@@ -421,6 +500,10 @@ export interface Database {
             cta_href: string;
             image_url: string;
           } | null;
+          whatsapp_label: string | null;
+          whatsapp_href: string | null;
+          emergency_label: string | null;
+          emergency_href: string | null;
           updated_by: string | null;
           updated_at: string;
         };

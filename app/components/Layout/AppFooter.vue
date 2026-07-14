@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { contactSummary } = useMetrhContent();
+const { data: siteSettings } = await useSiteSettings();
 
 const quickLinks = [
   { label: "About MeTRH", to: "/about" },
@@ -17,6 +17,22 @@ const legalLinks = [
 ];
 
 const currentYear = new Date().getFullYear();
+
+const emergencyLine = computed(
+  () => siteSettings.value?.emergency_line?.trim() || "0711-207623",
+);
+
+const visitingHours = computed(
+  () => siteSettings.value?.visiting_hours ?? [],
+);
+
+const socialLinks = computed(
+  () =>
+    siteSettings.value?.social_links ?? {
+      facebook: "https://facebook.com/MeTRH.Hospital",
+      x: "https://x.com/MeTRH_Hospital",
+    },
+);
 </script>
 
 <template>
@@ -27,9 +43,9 @@ const currentYear = new Date().getFullYear();
       <div class="md:col-span-1">
         <div class="flex items-center gap-3">
           <img
-            src="/logo.jpg"
+            src="/logo2.png"
             alt="MeTRH logo"
-            class="size-11 rounded-control bg-white object-cover"
+            class="size-11 rounded-control bg-transparent object-contain"
           />
           <p class="font-display font-semibold text-h4">MeTRH</p>
         </div>
@@ -38,11 +54,11 @@ const currentYear = new Date().getFullYear();
         </p>
 
         <a
-          :href="`tel:${contactSummary.emergencyLine.replace(/-/g, '')}`"
+          :href="siteSettings?.emergency_href || `tel:${emergencyLine.replace(/-/g, '')}`"
           class="mt-5 inline-flex items-center gap-2 rounded-control bg-accent px-4 py-2.5 text-small font-semibold text-primary-dark hover:opacity-90 transition-opacity"
         >
           <Icon name="lucide:phone-call" class="size-4" aria-hidden="true" />
-          Emergency: {{ contactSummary.emergencyLine }}
+          {{ siteSettings?.emergency_label || "Emergency" }}: {{ emergencyLine }}
         </a>
       </div>
 
@@ -72,7 +88,7 @@ const currentYear = new Date().getFullYear();
         </h2>
         <ul class="mt-4 space-y-2.5">
           <li
-            v-for="vh in contactSummary.visitingHours"
+            v-for="vh in visitingHours"
             :key="vh.label"
             class="text-small text-white/85 flex justify-between gap-4 max-w-[14rem]"
           >
@@ -94,19 +110,19 @@ const currentYear = new Date().getFullYear();
               name="lucide:map-pin"
               class="size-4 shrink-0 mt-0.5 text-white/50"
               aria-hidden="true"
-            />{{ contactSummary.physicalAddress }}
+            />{{ siteSettings?.physical_address || "" }}
           </p>
           <p class="flex gap-2">
             <Icon
               name="lucide:mail"
               class="size-4 shrink-0 mt-0.5 text-white/50"
               aria-hidden="true"
-            />{{ contactSummary.postalAddress }}
+            />{{ siteSettings?.postal_address || "" }}
           </p>
         </address>
         <div class="mt-4 flex gap-3">
           <a
-            :href="contactSummary.socialLinks.facebook"
+            :href="socialLinks.facebook"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="MeTRH on Facebook"
@@ -115,7 +131,7 @@ const currentYear = new Date().getFullYear();
             <Icon name="lucide:facebook" class="size-5" />
           </a>
           <a
-            :href="contactSummary.socialLinks.x"
+            :href="socialLinks.x"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="MeTRH on X"
@@ -127,7 +143,7 @@ const currentYear = new Date().getFullYear();
       </div>
     </div>
 
-    <div class="border-t border-white/10">
+    <div class="border-t border-surface/10">
       <div
         class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-caption text-white/60"
       >

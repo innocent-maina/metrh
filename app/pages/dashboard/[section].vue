@@ -381,7 +381,7 @@ watch(
 
 <template>
   <div class="space-y-6">
-    <section class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card">
+    <section class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
       <div class="max-w-3xl">
         <p class="text-small font-semibold uppercase tracking-wide text-info">
           Dashboard section
@@ -395,7 +395,7 @@ watch(
       </div>
     </section>
 
-    <section class="rounded-card border border-border bg-white p-5 shadow-card">
+    <section class="rounded-card border border-border bg-surface p-5 shadow-card">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">

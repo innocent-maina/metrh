@@ -12,8 +12,9 @@ interface HeroSlide {
 }
 
 const homeImages = useHospitalMedia();
+const { data: cmsSlides } = await usePageSlides("home", "hero");
 
-const slides: HeroSlide[] = [
+const defaultSlides: HeroSlide[] = [
   {
     id: "welcome-care",
     eyebrow: "Welcome to MeTRH",
@@ -52,13 +53,32 @@ const slides: HeroSlide[] = [
   },
 ];
 
+const slides = computed<HeroSlide[]>(() => {
+  const rows = cmsSlides.value ?? [];
+  if (rows.length === 0) return defaultSlides;
+
+  return rows.map((row) => ({
+    id: row.id,
+    eyebrow: row.eyebrow || "Welcome to MeTRH",
+    title: row.title,
+    body: row.body,
+    ctaLabel: row.cta_label || "Learn more",
+    ctaHref: row.cta_href || "/",
+    image: resolveContentMediaUrl(row.image_url),
+    alt: row.image_alt || row.title,
+    caption: row.caption || "",
+  }));
+});
+
 const currentIndex = ref(0);
 const isPaused = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 let prefersReducedMotion = false;
 
 function goTo(index: number) {
-  currentIndex.value = (index + slides.length) % slides.length;
+  const total = slides.value.length;
+  if (!total) return;
+  currentIndex.value = (index + total) % total;
 }
 
 function next() {
@@ -86,6 +106,12 @@ onMounted(() => {
   const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
   prefersReducedMotion = mq.matches;
   startAutoplay();
+});
+
+watch(slides, () => {
+  if (currentIndex.value >= slides.value.length) {
+    currentIndex.value = 0;
+  }
 });
 
 onUnmounted(stopAutoplay);
@@ -133,7 +159,7 @@ onUnmounted(stopAutoplay);
                   class="mx-auto flex h-full max-w-7xl items-end px-4 pb-3 sm:px-6 lg:px-8 lg:pb-6"
                 >
                   <div
-                    class="w-full max-w-xl rounded-card border border-white/12 bg-primary-dark/55 p-3 text-white shadow-elevated backdrop-blur-sm sm:p-4 lg:p-5"
+                    class="w-full max-w-xl rounded-card border border-surface/12 bg-primary-dark/55 p-3 text-white shadow-elevated backdrop-blur-sm sm:p-4 lg:p-5"
                   >
                     <p class="text-caption font-semibold uppercase tracking-wide text-accent">
                       {{ slide.eyebrow }}
@@ -146,7 +172,7 @@ onUnmounted(stopAutoplay);
                     </p>
 
                     <div
-                      class="mt-3 flex flex-col gap-2 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between"
+                      class="mt-3 flex flex-col gap-2 border-t border-surface/10 pt-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <p class="max-w-xs text-[0.68rem] uppercase tracking-[0.16em] text-white/70">
                         {{ slide.caption }}
@@ -155,7 +181,7 @@ onUnmounted(stopAutoplay);
                       <div class="flex flex-wrap items-center gap-1.5">
                         <NuxtLink
                           :to="slide.ctaHref"
-                          class="inline-flex items-center justify-center gap-1.5 rounded-control bg-white px-3 py-2 text-[0.68rem] font-semibold text-primary transition-colors hover:bg-white/90 sm:px-4 sm:py-2.5 sm:text-caption"
+                          class="inline-flex items-center justify-center gap-1.5 rounded-control bg-surface px-3 py-2 text-[0.68rem] font-semibold text-primary transition-colors hover:bg-surface/90 sm:px-4 sm:py-2.5 sm:text-caption"
                         >
                           {{ slide.ctaLabel }}
                           <Icon
@@ -169,7 +195,7 @@ onUnmounted(stopAutoplay);
                           <button
                             type="button"
                             aria-label="Previous slide"
-                            class="rounded-full border border-white/20 p-1 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+                            class="rounded-full border border-surface/20 p-1 text-white/90 transition-colors hover:bg-surface/10 hover:text-white"
                             @click="prev"
                           >
                             <Icon
@@ -190,8 +216,8 @@ onUnmounted(stopAutoplay);
                               class="h-1 rounded-full transition-all"
                               :class="
                                 dotIndex === currentIndex
-                                  ? 'w-5 bg-white'
-                                  : 'w-1 bg-white/40 hover:bg-white/60'
+                                  ? 'w-5 bg-surface'
+                                  : 'w-1 bg-surface/40 hover:bg-surface/60'
                               "
                               @click="goTo(dotIndex)"
                             />
@@ -200,7 +226,7 @@ onUnmounted(stopAutoplay);
                           <button
                             type="button"
                             aria-label="Next slide"
-                            class="rounded-full border border-white/20 p-1 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+                            class="rounded-full border border-surface/20 p-1 text-white/90 transition-colors hover:bg-surface/10 hover:text-white"
                             @click="next"
                           >
                             <Icon

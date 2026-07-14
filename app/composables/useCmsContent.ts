@@ -1,0 +1,278 @@
+import type { Database } from "~~/types/database.types";
+
+export interface SiteSettingsContent {
+  id: boolean;
+  emergency_line: string | null;
+  main_phone: string | null;
+  main_email: string | null;
+  physical_address: string | null;
+  postal_address: string | null;
+  visiting_hours: Array<{ label: string; start: string; end: string }> | null;
+  social_links: Record<string, string> | null;
+  homepage_hero:
+    | {
+        headline: string;
+        subhead: string;
+        cta_label: string;
+        cta_href: string;
+        image_url: string;
+      }
+    | null;
+  whatsapp_label: string | null;
+  whatsapp_href: string | null;
+  emergency_label: string | null;
+  emergency_href: string | null;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export interface CmsPageContent {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  seo_title: string | null;
+  seo_description: string | null;
+  status: Database["public"]["Enums"]["publish_status"];
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CmsSectionContent {
+  id: string;
+  page_slug: string;
+  section_key: string;
+  section_type: string;
+  eyebrow: string | null;
+  title: string;
+  summary: string | null;
+  body: string | null;
+  image_url: string | null;
+  image_alt: string | null;
+  cta_label: string | null;
+  cta_href: string | null;
+  display_order: number;
+  is_active: boolean;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CmsSectionItemContent {
+  id: string;
+  section_id: string;
+  title: string;
+  description: string | null;
+  icon: string | null;
+  image_url: string | null;
+  image_alt: string | null;
+  cta_label: string | null;
+  cta_href: string | null;
+  display_order: number;
+  is_active: boolean;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CmsSlideContent {
+  id: string;
+  page_slug: string;
+  section_key: string;
+  eyebrow: string | null;
+  title: string;
+  body: string;
+  cta_label: string | null;
+  cta_href: string | null;
+  image_url: string;
+  image_alt: string | null;
+  caption: string | null;
+  display_order: number;
+  is_active: boolean;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CmsPageBundle {
+  sectionsByKey: Record<string, CmsSectionContent>;
+  itemsBySectionId: Record<string, CmsSectionItemContent[]>;
+}
+
+function defaultSiteSettings(): SiteSettingsContent {
+  return {
+    id: true,
+    emergency_line: "0711-207623",
+    main_phone: null,
+    main_email: null,
+    physical_address: "Meru–Nanyuki Road, Telkom Ltd junction, Meru Town",
+    postal_address: "P.O. Box 8 – 60200, Meru",
+    visiting_hours: [
+      { label: "Morning", start: "6:00 AM", end: "7:00 AM" },
+      { label: "Lunch", start: "12:30 PM", end: "2:00 PM" },
+      { label: "Evening", start: "4:30 PM", end: "5:30 PM" },
+    ],
+    social_links: {
+      facebook: "https://facebook.com/MeTRH.Hospital",
+      x: "https://x.com/MeTRH_Hospital",
+    },
+    homepage_hero: {
+      headline: "Compassionate public care, every day.",
+      subhead:
+        "Meru Teaching and Referral Hospital serves Upper Eastern Kenya with emergency care, specialist clinics, surgery, diagnostics, and teaching-led service delivery.",
+      cta_label: "Explore services",
+      cta_href: "/services",
+      image_url: "/welcome.jpg",
+    },
+    whatsapp_label: "Chat on WhatsApp",
+    whatsapp_href:
+      "https://wa.me/254711207623?text=Hello%20MeTRH%2C%20I%20would%20like%20to%20ask%20about%20the%20hospital%20services.",
+    emergency_label: "Emergency line",
+    emergency_href: "tel:0711207623",
+    updated_by: null,
+    updated_at: "",
+  };
+}
+
+export function resolveContentMediaUrl(value: string | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (
+    raw.startsWith("/") ||
+    /^https?:\/\//i.test(raw) ||
+    raw.startsWith("data:")
+  ) {
+    return raw;
+  }
+
+  const supabase = useSupabaseClient();
+  return supabase.storage.from("media").getPublicUrl(raw).data.publicUrl;
+}
+
+export function useSiteSettings() {
+  const supabase = useSupabaseClient<Database>();
+
+  return useAsyncData("cms-site-settings", async () => {
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .eq("id", true)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return (data as SiteSettingsContent | null) ?? defaultSiteSettings();
+    } catch (error) {
+      console.warn("[cms] Failed to load site settings.", error);
+      return defaultSiteSettings();
+    }
+  }, { default: defaultSiteSettings });
+}
+
+export function useCmsPage(slug: string, fallback?: CmsPageContent) {
+  const supabase = useSupabaseClient<Database>();
+
+  return useAsyncData(`cms-page-${slug}`, async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pages")
+        .select("*")
+        .eq("slug", slug)
+        .eq("status", "published")
+        .maybeSingle();
+
+      if (error) throw error;
+      return (data as CmsPageContent | null) ?? fallback ?? null;
+    } catch (error) {
+      console.warn(`[cms] Failed to load page "${slug}".`, error);
+      return fallback ?? null;
+    }
+  }, { default: () => fallback ?? null });
+}
+
+export function usePageContent(pageSlug: string) {
+  const supabase = useSupabaseClient<Database>();
+
+  return useAsyncData(`cms-page-content-${pageSlug}`, async () => {
+    try {
+      const [sectionsResult, itemsResult] = await Promise.all([
+        supabase
+          .from("page_sections")
+          .select("*")
+          .eq("page_slug", pageSlug)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("page_section_items")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .order("created_at", { ascending: true }),
+      ]);
+
+      if (sectionsResult.error) throw sectionsResult.error;
+      if (itemsResult.error) throw itemsResult.error;
+
+      const sections = (sectionsResult.data ?? []) as CmsSectionContent[];
+      const items = (itemsResult.data ?? []) as CmsSectionItemContent[];
+
+      const itemsBySectionId = items.reduce<Record<string, CmsSectionItemContent[]>>(
+        (acc, item) => {
+          if (!acc[item.section_id]) {
+            acc[item.section_id] = [];
+          }
+          acc[item.section_id].push(item);
+          return acc;
+        },
+        {},
+      );
+
+      return {
+        sectionsByKey: sections.reduce<Record<string, CmsSectionContent>>(
+          (acc, section) => {
+            acc[section.section_key] = section;
+            return acc;
+          },
+          {},
+        ),
+        itemsBySectionId,
+      } satisfies CmsPageBundle;
+    } catch (error) {
+      console.warn(`[cms] Failed to load page content for "${pageSlug}".`, error);
+      return {
+        sectionsByKey: {},
+        itemsBySectionId: {},
+      } satisfies CmsPageBundle;
+    }
+  }, {
+    default: () => ({
+      sectionsByKey: {},
+      itemsBySectionId: {},
+    }),
+  });
+}
+
+export function usePageSlides(pageSlug = "home", sectionKey = "hero") {
+  const supabase = useSupabaseClient<Database>();
+
+  return useAsyncData(`cms-page-slides-${pageSlug}-${sectionKey}`, async () => {
+    try {
+      const { data, error } = await supabase
+        .from("page_slides")
+        .select("*")
+        .eq("page_slug", pageSlug)
+        .eq("section_key", sectionKey)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      return (data ?? []) as CmsSlideContent[];
+    } catch (error) {
+      console.warn(`[cms] Failed to load slides for "${pageSlug}/${sectionKey}".`, error);
+      return [];
+    }
+  }, { default: () => [] as CmsSlideContent[] });
+}

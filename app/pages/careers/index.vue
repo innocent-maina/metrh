@@ -166,7 +166,7 @@ const careerImages = useHospitalMedia();
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside class="rounded-card border border-border bg-white p-5 lg:sticky lg:top-24 lg:self-start">
+          <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
             <label for="career-search" class="block text-small font-medium text-ink">
               Search rounds
             </label>
@@ -192,7 +192,7 @@ const careerImages = useHospitalMedia();
                   :class="
                     activeFilter === option.value
                       ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border bg-white text-ink hover:border-primary/30 hover:bg-surface-alt'
+                      : 'border-border bg-surface text-ink hover:border-primary/30 hover:bg-surface-alt'
                   "
                   @click="activeFilter = option.value"
                 >
@@ -203,7 +203,7 @@ const careerImages = useHospitalMedia();
           </aside>
 
           <div class="space-y-6">
-            <div class="rounded-card border border-border bg-white p-5 md:p-6">
+            <div class="rounded-card border border-border bg-surface p-5 md:p-6">
               <p class="text-small font-semibold uppercase tracking-wide text-info">
                 {{ openCount }} open roles
               </p>
@@ -213,7 +213,7 @@ const careerImages = useHospitalMedia();
               </p>
             </div>
 
-            <div v-if="filteredRounds.length === 0" class="rounded-card border border-dashed border-border bg-white p-10 text-center">
+            <div v-if="filteredRounds.length === 0" class="rounded-card border border-dashed border-border bg-surface p-10 text-center">
               <Icon name="lucide:briefcase" class="mx-auto size-6 text-ink-muted" aria-hidden="true" />
               <p class="mt-3 text-small text-ink-muted">
                 No recruitment rounds match that filter.
@@ -224,7 +224,7 @@ const careerImages = useHospitalMedia();
               <li
                 v-for="round in filteredRounds"
                 :key="round.slug"
-                class="rounded-card border border-border bg-white p-5 shadow-card"
+                class="rounded-card border border-border bg-surface p-5 shadow-card"
               >
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>

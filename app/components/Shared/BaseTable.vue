@@ -55,7 +55,7 @@ function getRowKey(row: Record<string, unknown>) {
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-card border border-border bg-white">
+  <div class="overflow-hidden rounded-card border border-border bg-surface">
     <div v-if="loading" class="border-b border-border px-5 py-4 text-small text-ink-muted">
       Loading records...
     </div>

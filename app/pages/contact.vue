@@ -1,7 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ layout: "default" });
 
-const { contactSummary } = useMetrhContent();
+const { data: siteSettings } = await useSiteSettings();
+const { data: contactContent } = await usePageContent("contact");
+
+const contactSection = computed(
+  () => contactContent.value?.sectionsByKey["contact-intro"] ?? null,
+);
 
 useSeoMeta({
   title: "Contact MeTRH",
@@ -22,6 +27,29 @@ const errorMessage = ref("");
 const successMessage = ref("");
 
 const contactImages = useHospitalMedia();
+
+const emergencyLine = computed(
+  () => siteSettings.value?.emergency_line?.trim() || "0711-207623",
+);
+
+const physicalAddress = computed(
+  () =>
+    siteSettings.value?.physical_address ||
+    "Meru–Nanyuki Road, Telkom Ltd junction, Meru Town",
+);
+
+const postalAddress = computed(
+  () => siteSettings.value?.postal_address || "P.O. Box 8 – 60200, Meru",
+);
+
+const visitingHours = computed(
+  () => siteSettings.value?.visiting_hours ?? [],
+);
+
+const mapsHref = computed(
+  () =>
+    "https://www.google.com/maps/search/?api=1&query=Meru+Teaching+and+Referral+Hospital+Meru+Kenya",
+);
 
 function resetForm() {
   form.name = "";
@@ -82,14 +110,16 @@ async function submitForm() {
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div class="max-w-3xl">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
-            Contact
+            {{ contactSection?.eyebrow || "Contact" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
-            Reach MeTRH quickly and clearly
+            {{ contactSection?.title || "Reach MeTRH quickly and clearly" }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
-            Use the emergency line for urgent care. Use the form for general
-            enquiries, directions, appointments, and institutional requests.
+            {{
+              contactSection?.summary ||
+              "Use the emergency line for urgent care. Use the form for general enquiries, directions, appointments, and institutional requests."
+            }}
           </p>
         </div>
       </div>
@@ -106,29 +136,29 @@ async function submitForm() {
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
         <div class="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
           <div class="space-y-6">
-            <div class="rounded-card border border-border bg-white p-6 shadow-card">
+            <div class="rounded-card border border-border bg-surface p-6 shadow-card">
               <p class="text-small font-semibold uppercase tracking-wide text-danger">
                 Emergency line
               </p>
               <a
-                :href="`tel:${contactSummary.emergencyLine.replace(/-/g, '')}`"
+                :href="siteSettings?.emergency_href || `tel:${emergencyLine.replace(/-/g, '')}`"
                 class="mt-3 inline-flex items-center gap-2 font-display font-semibold text-h2 text-primary hover:underline"
               >
                 <Icon name="lucide:phone-call" class="size-5 text-accent" aria-hidden="true" />
-                {{ contactSummary.emergencyLine }}
+                {{ siteSettings?.emergency_label || "Emergency line" }}: {{ emergencyLine }}
               </a>
               <p class="mt-3 text-small text-ink-muted">
                 For urgent care, call directly instead of sending a form.
               </p>
             </div>
 
-            <div class="rounded-card border border-border bg-white p-6">
+            <div class="rounded-card border border-border bg-surface p-6">
               <p class="text-small font-semibold uppercase tracking-wide text-info">
                 Visiting hours
               </p>
               <ul class="mt-4 space-y-3">
                 <li
-                  v-for="hours in contactSummary.visitingHours"
+                  v-for="hours in visitingHours"
                   :key="hours.label"
                   class="flex items-center justify-between gap-4 border-b border-border pb-3 last:border-b-0 last:pb-0"
                 >
@@ -140,18 +170,18 @@ async function submitForm() {
               </ul>
             </div>
 
-            <div class="rounded-card border border-border bg-white p-6">
+            <div class="rounded-card border border-border bg-surface p-6">
               <p class="text-small font-semibold uppercase tracking-wide text-info">
                 Address
               </p>
               <p class="mt-3 text-body text-ink">
-                {{ contactSummary.physicalAddress }}
+                {{ physicalAddress }}
               </p>
               <p class="mt-2 text-small text-ink-muted">
-                {{ contactSummary.postalAddress }}
+                {{ postalAddress }}
               </p>
               <a
-                :href="contactSummary.googleMapsHref"
+                :href="mapsHref"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="mt-4 inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
@@ -172,7 +202,7 @@ async function submitForm() {
             </div>
           </div>
 
-          <div class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card">
+          <div class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <p class="text-small font-semibold uppercase tracking-wide text-info">
@@ -270,7 +300,7 @@ async function submitForm() {
                   {{ isSubmitting ? "Sending…" : "Send enquiry" }}
                 </button>
                 <a
-                  :href="`tel:${contactSummary.emergencyLine.replace(/-/g, '')}`"
+                  :href="siteSettings?.emergency_href || `tel:${emergencyLine.replace(/-/g, '')}`"
                   class="inline-flex items-center justify-center rounded-control border border-border px-5 py-2.5 text-small font-semibold text-ink transition-colors hover:bg-surface-alt"
                 >
                   Call emergency line

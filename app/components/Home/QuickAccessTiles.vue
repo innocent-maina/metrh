@@ -27,7 +27,7 @@ const tiles = [
         <li v-for="tile in tiles" :key="tile.to">
           <NuxtLink
             :to="tile.to"
-            class="flex flex-col items-center gap-2 rounded-card border border-border bg-white p-4 md:p-5 text-center shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all"
+            class="flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-4 md:p-5 text-center shadow-card hover:shadow-elevated hover:-translate-y-0.5 transition-all"
           >
             <span
               class="flex size-10 items-center justify-center rounded-full"

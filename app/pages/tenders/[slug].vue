@@ -47,6 +47,13 @@ type TenderDocumentRow = {
   created_at: string;
 };
 
+type TenderDocumentCard = {
+  id: string;
+  fileName: string;
+  fileSizeKb: number | null;
+  downloadUrl: string | null;
+};
+
 const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async () => {
   try {
     const { data: tenderRow, error } = await supabase
@@ -80,6 +87,12 @@ const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async (
 
     const documentRows = (documentsResult ?? []) as TenderDocumentRow[];
     const relatedRows = (relatedTendersResult ?? []) as TenderRow[];
+    const documentUrlMap = await fetchSignedDocumentUrls(
+      documentRows.map((document) => ({
+        resource: "tender_documents",
+        id: document.id,
+      })),
+    );
 
     return {
       tender: {
@@ -97,9 +110,8 @@ const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async (
       documents: documentRows.map((document) => ({
         id: document.id,
         fileName: document.file_name,
-        fileUrl: document.file_url,
         fileSizeKb: document.file_size_kb,
-        createdAt: document.created_at,
+        downloadUrl: documentUrlMap.get(document.id) ?? null,
       })),
       relatedTenders: relatedRows
         .filter((entry) => entry.slug !== slug)
@@ -118,7 +130,7 @@ const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async (
 });
 
 const tender = computed(() => tenderData.value?.tender ?? null);
-const documents = computed(() => tenderData.value?.documents ?? []);
+const documents = computed<TenderDocumentCard[]>(() => tenderData.value?.documents ?? []);
 const relatedTenders = computed(() => tenderData.value?.relatedTenders ?? []);
 
 if (!tender.value) {
@@ -144,7 +156,7 @@ useSeoMeta({
     </div>
 
     <div v-if="tender" class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <article class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card">
+      <article class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
         <div class="flex flex-wrap items-center gap-3">
           <span class="rounded-full bg-surface-alt px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink-muted">
             {{ tender.tenderNumber }}
@@ -217,14 +229,18 @@ useSeoMeta({
                 {{ document.fileName }}
               </p>
               <a
-                :href="document.fileUrl"
+                v-if="document.downloadUrl"
+                :href="document.downloadUrl"
                 target="_blank"
-                rel="noreferrer"
+                rel="noreferrer noopener"
                 class="mt-3 inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
               >
                 Download
-                <Icon name="lucide:arrow-right" class="size-4" />
+                <Icon name="lucide:download" class="size-4" />
               </a>
+              <p v-else class="mt-3 text-small font-medium text-ink-muted">
+                This file is temporarily unavailable.
+              </p>
             </article>
           </div>
           <div v-else class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink-muted">
@@ -234,7 +250,7 @@ useSeoMeta({
       </article>
 
       <aside class="space-y-4">
-        <div class="rounded-card border border-border bg-white p-5">
+        <div class="rounded-card border border-border bg-surface p-5">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
             Tender status
           </p>
@@ -243,7 +259,7 @@ useSeoMeta({
           </p>
         </div>
 
-        <div v-if="relatedTenders.length" class="rounded-card border border-border bg-white p-5">
+        <div v-if="relatedTenders.length" class="rounded-card border border-border bg-surface p-5">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
             Other tenders
           </p>

@@ -173,7 +173,7 @@ useSeoMeta({
     </div>
 
     <div v-if="story" class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <article class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card">
+      <article class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
         <p class="text-caption font-semibold uppercase tracking-wide text-accent">
           {{ story.category }}
         </p>
@@ -205,7 +205,7 @@ useSeoMeta({
       </article>
 
       <aside class="space-y-4">
-        <div class="rounded-card border border-border bg-white p-5">
+        <div class="rounded-card border border-border bg-surface p-5">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
             Related stories
           </p>

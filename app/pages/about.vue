@@ -1,4 +1,10 @@
 <script setup lang="ts">
+const { data: aboutContent } = await usePageContent("about");
+
+const introSection = computed(
+  () => aboutContent.value?.sectionsByKey["vision-mission"] ?? null,
+);
+
 useSeoMeta({
   title: "About MeTRH — Meru Teaching and Referral Hospital",
   description:
@@ -25,15 +31,19 @@ const aboutImages = useHospitalMedia();
     <section class="bg-primary text-white">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <p class="text-small font-semibold uppercase tracking-wide text-accent">
-          About MeTRH
+          {{ introSection?.eyebrow || "About MeTRH" }}
         </p>
         <h1 class="mt-2 font-display font-bold text-h1 max-w-3xl">
-          The principal referral hospital for Upper Eastern Kenya
+          {{
+            introSection?.title ||
+            "The principal referral hospital for Upper Eastern Kenya"
+          }}
         </h1>
         <p class="mt-4 text-body text-white/85 max-w-2xl">
-          A Level 6 specialized and tertiary referral hospital serving Meru,
-          Tharaka-Nithi, Marsabit, and Isiolo counties — public, affordable, and
-          specialized, with training and research built into how it operates.
+          {{
+            introSection?.summary ||
+            "A Level 6 specialized and tertiary referral hospital serving Meru, Tharaka-Nithi, Marsabit, and Isiolo counties — public, affordable, and specialized, with training and research built into how it operates."
+          }}
         </p>
       </div>
     </section>

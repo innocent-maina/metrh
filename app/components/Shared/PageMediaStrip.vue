@@ -33,7 +33,7 @@ withDefaults(
         <figure
           v-for="item in items"
           :key="item.src"
-          class="group relative overflow-hidden rounded-card border border-border bg-white shadow-card"
+          class="group relative overflow-hidden rounded-card border border-border bg-surface shadow-card"
           :class="compact ? 'aspect-[16/11]' : 'aspect-[4/3]'"
         >
           <img

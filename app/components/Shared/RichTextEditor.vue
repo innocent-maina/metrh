@@ -106,7 +106,7 @@ onMounted(() => {
     >
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="applyFormat('formatBlock', 'h2')"
@@ -115,7 +115,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="applyFormat('formatBlock', 'h3')"
@@ -124,7 +124,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="applyFormat('bold')"
@@ -133,7 +133,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="applyFormat('italic')"
@@ -142,7 +142,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="applyFormat('insertUnorderedList')"
@@ -151,7 +151,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="applyFormat('insertOrderedList')"
@@ -160,7 +160,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="applyFormat('formatBlock', 'blockquote')"
@@ -169,7 +169,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="promptForLink"
@@ -178,7 +178,7 @@ onMounted(() => {
       </button>
       <button
         type="button"
-        class="rounded-control border border-border bg-white px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
+        class="rounded-control border border-border bg-surface px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface"
         :disabled="disabled"
         @mousedown.prevent
         @click="clearFormatting"
@@ -190,7 +190,7 @@ onMounted(() => {
     <div class="relative">
       <div
         ref="editorRef"
-        class="min-h-72 rounded-card border border-border bg-white px-4 py-3 text-body text-ink outline-none transition-colors focus:border-primary"
+        class="min-h-72 rounded-card border border-border bg-surface px-4 py-3 text-body text-ink outline-none transition-colors focus:border-primary"
         :class="disabled ? 'cursor-not-allowed bg-surface-alt/60' : ''"
         :contenteditable="!disabled"
         role="textbox"

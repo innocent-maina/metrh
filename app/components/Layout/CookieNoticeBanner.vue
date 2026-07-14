@@ -23,7 +23,7 @@ function acknowledge() {
   >
     <section
       v-if="isVisible"
-      class="fixed bottom-4 left-4 right-4 z-[58] mx-auto max-w-xl rounded-card border border-border bg-white/98 p-4 shadow-elevated backdrop-blur md:bottom-6 md:left-6 md:right-auto md:max-w-md"
+      class="fixed bottom-4 left-4 right-4 z-[58] mx-auto max-w-xl rounded-card border border-border bg-surface/98 p-4 shadow-elevated backdrop-blur md:bottom-6 md:left-6 md:right-auto md:max-w-md"
       aria-label="Cookie notice"
     >
       <div class="flex items-start gap-3">

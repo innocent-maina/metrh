@@ -1,8 +1,17 @@
 <script setup lang="ts">
-const { contactSummary } = useMetrhContent();
+const { data: siteSettings } = await useSiteSettings();
 
-const emergencyLine = contactSummary.emergencyLine;
-const visitingHoursSummary = contactSummary.visitingHoursSummary;
+const emergencyLine = computed(
+  () => siteSettings.value?.emergency_line?.trim() || "0711-207623",
+);
+
+const visitingHoursSummary = computed(() => {
+  const hours = siteSettings.value?.visiting_hours ?? [];
+  if (!hours.length) return "";
+  return hours
+    .map((entry) => `${entry.label}: ${entry.start} – ${entry.end}`)
+    .join(" · ");
+});
 
 const primaryNav = [
   { label: "Home", to: "/" },
@@ -34,7 +43,7 @@ watch(
         class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 py-1.5 text-small"
       >
         <a
-          :href="`tel:${emergencyLine.replace(/-/g, '')}`"
+          :href="siteSettings?.emergency_href || `tel:${emergencyLine.replace(/-/g, '')}`"
           class="flex items-center gap-1.5 font-medium hover:text-accent transition-colors"
         >
           <Icon
@@ -42,25 +51,28 @@ watch(
             class="size-4 shrink-0 text-accent"
             aria-hidden="true"
           />
-          <span>Emergency: {{ emergencyLine }}</span>
+          <span>
+            {{ siteSettings?.emergency_label || "Emergency" }}:
+            {{ emergencyLine }}
+          </span>
         </a>
-        <span class="hidden md:inline text-white/80">{{
-          visitingHoursSummary
-        }}</span>
+        <span v-if="visitingHoursSummary" class="hidden md:inline text-white/80">
+          {{ visitingHoursSummary }}
+        </span>
       </div>
     </div>
 
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16 md:h-20">
+      <div class="flex items-center justify-between h-20 md:h-24">
         <NuxtLink
           to="/"
-          class="flex items-center gap-2 shrink-0"
+          class="flex items-center gap-3 shrink-0"
           aria-label="MeTRH home"
         >
           <img
-            src="/logo.jpg"
+            src="/logo2.png"
             alt="MeTRH logo"
-            class="size-10 rounded-control border border-border bg-white object-cover shadow-sm"
+            class="size-20 rounded-control bg-transparent object-contain"
           />
           <span
             class="font-display font-semibold text-h4 text-ink leading-none"

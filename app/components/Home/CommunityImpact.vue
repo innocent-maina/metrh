@@ -1,4 +1,15 @@
 <script setup lang="ts">
+const { data: homeContent } = await usePageContent("home");
+
+const impactSection = computed(
+  () => homeContent.value?.sectionsByKey["community-impact"] ?? null,
+);
+
+const items = computed(
+  () =>
+    homeContent.value?.itemsBySectionId[impactSection.value?.id ?? ""] ?? [],
+);
+
 const stories = [
   {
     title: "Arsenal Kenya Supporters' Club blood drive",
@@ -19,6 +30,16 @@ const stories = [
     icon: "lucide:users",
   },
 ];
+
+const impactStories = computed(() =>
+  items.value.length > 0
+    ? items.value.map((item, index) => ({
+        title: item.title,
+        detail: item.description || "",
+        icon: item.icon || ["lucide:heart-handshake", "lucide:droplets", "lucide:users"][index] || "lucide:heart-handshake",
+      }))
+    : stories,
+);
 </script>
 
 <template>
@@ -29,26 +50,27 @@ const stories = [
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
       <div class="max-w-2xl">
         <p class="text-small font-semibold uppercase tracking-wide text-accent">
-          Community impact
+          {{ impactSection?.eyebrow || "Community impact" }}
         </p>
         <h2
           id="community-impact-heading"
           class="mt-2 font-display font-semibold text-h2"
         >
-          Blood donated here saves lives here
+          {{ impactSection?.title || "Blood donated here saves lives here" }}
         </h2>
         <p class="mt-3 text-body text-white/80">
-          Donated blood is critical for cancer patients, children with severe
-          anaemia, and mothers during childbirth — demand rises during the rainy
-          season with more road accidents on the Meru–Nanyuki highway.
+          {{
+            impactSection?.summary ||
+            "Donated blood is critical for cancer patients, children with severe anaemia, and mothers during childbirth — demand rises during the rainy season with more road accidents on the Meru–Nanyuki highway."
+          }}
         </p>
       </div>
 
       <ul class="mt-10 grid md:grid-cols-3 gap-6">
         <li
-          v-for="story in stories"
+          v-for="story in impactStories"
           :key="story.title"
-          class="rounded-card bg-white/5 border border-white/10 p-6"
+          class="rounded-card bg-surface/5 border border-surface/10 p-6"
         >
           <span
             class="flex size-9 items-center justify-center rounded-full bg-accent/20 text-accent"

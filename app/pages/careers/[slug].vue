@@ -316,7 +316,7 @@ async function submitApplication() {
     </div>
 
     <div v-if="posting" class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <article class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card">
+      <article class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
         <div class="flex flex-wrap items-center gap-3">
           <span class="rounded-full bg-surface-alt px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink-muted">
             {{ posting.referenceNo }}
@@ -460,7 +460,7 @@ async function submitApplication() {
                 @change="handleResumeChange"
               />
               <div
-                class="rounded-card border border-border bg-white p-4 shadow-card"
+                class="rounded-card border border-border bg-surface p-4 shadow-card"
                 @drop.prevent="handleResumeDrop"
                 @dragover.prevent
               >
@@ -482,13 +482,13 @@ async function submitApplication() {
                     </div>
                   </div>
                   <div class="flex flex-wrap gap-2">
-                    <span class="rounded-full bg-white px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                    <span class="rounded-full bg-surface px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
                       PDF preferred
                     </span>
-                    <span class="rounded-full bg-white px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                    <span class="rounded-full bg-surface px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
                       Word accepted
                     </span>
-                    <span class="rounded-full bg-white px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                    <span class="rounded-full bg-surface px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
                       Max 5 MB
                     </span>
                   </div>
@@ -576,7 +576,7 @@ async function submitApplication() {
       </article>
 
       <aside class="space-y-4">
-        <div class="rounded-card border border-border bg-white p-5">
+        <div class="rounded-card border border-border bg-surface p-5">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
             Application status
           </p>
@@ -585,7 +585,7 @@ async function submitApplication() {
           </p>
         </div>
 
-        <div v-if="relatedPostings.length" class="rounded-card border border-border bg-white p-5">
+        <div v-if="relatedPostings.length" class="rounded-card border border-border bg-surface p-5">
           <p class="text-small font-semibold uppercase tracking-wide text-info">
             Related postings
           </p>

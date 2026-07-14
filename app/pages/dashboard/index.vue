@@ -126,7 +126,7 @@ const dashboardImages = useHospitalMedia();
 <template>
   <div class="space-y-8">
     <section
-      class="rounded-card border border-border bg-white p-6 md:p-8 shadow-card"
+      class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card"
     >
       <div class="max-w-3xl">
         <p class="text-small font-semibold uppercase tracking-wide text-info">
@@ -145,7 +145,7 @@ const dashboardImages = useHospitalMedia();
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div
         v-if="contactCount !== null"
-        class="rounded-card border border-border bg-white p-5"
+        class="rounded-card border border-border bg-surface p-5"
       >
         <p
           class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
@@ -158,7 +158,7 @@ const dashboardImages = useHospitalMedia();
       </div>
       <div
         v-if="openJobsCount !== null"
-        class="rounded-card border border-border bg-white p-5"
+        class="rounded-card border border-border bg-surface p-5"
       >
         <p
           class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
@@ -171,7 +171,7 @@ const dashboardImages = useHospitalMedia();
       </div>
       <div
         v-if="openTendersCount !== null"
-        class="rounded-card border border-border bg-white p-5"
+        class="rounded-card border border-border bg-surface p-5"
       >
         <p
           class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
@@ -184,7 +184,7 @@ const dashboardImages = useHospitalMedia();
       </div>
       <div
         v-if="pagePulsesCount !== null"
-        class="rounded-card border border-border bg-white p-5"
+        class="rounded-card border border-border bg-surface p-5"
       >
         <p
           class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
@@ -197,7 +197,7 @@ const dashboardImages = useHospitalMedia();
       </div>
     </section>
 
-    <section class="rounded-card border border-border bg-white p-6 shadow-card">
+    <section class="rounded-card border border-border bg-surface p-6 shadow-card">
       <h3 class="font-display font-semibold text-h3 text-ink">Quick links</h3>
       <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <NuxtLink
