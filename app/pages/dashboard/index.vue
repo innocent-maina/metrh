@@ -164,6 +164,15 @@ const dashboardImages = useHospitalMedia();
           Use the role-aware links below to edit the areas this account is
           allowed to manage. All writes remain server-side.
         </p>
+        <div class="mt-5">
+          <NuxtLink
+            to="/dashboard/analytics"
+            class="inline-flex items-center gap-2 rounded-control border border-border bg-surface-alt px-4 py-2.5 text-small font-semibold text-ink hover:bg-surface"
+          >
+            <Icon name="lucide:chart-column" class="size-4" aria-hidden="true" />
+            View analytics charts
+          </NuxtLink>
+        </div>
       </div>
     </section>
 

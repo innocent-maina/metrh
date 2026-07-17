@@ -70,6 +70,7 @@ const isSingletonResource = computed(() => Boolean(currentResource.value?.single
 const useEditorPage = computed(() =>
   ["blog", "careers", "services", "tenders"].includes(section.value?.id ?? ""),
 );
+const { successToast } = useAppToast();
 
 const searchPlaceholder = computed(() => "Search records");
 
@@ -205,6 +206,31 @@ async function refreshActiveResource() {
   await loadResource(currentResource.value.id);
 }
 
+async function openCreate() {
+  const resource = currentResource.value;
+  if (!resource || !canWriteCurrentResource.value || resource.allowCreate === false) {
+    return;
+  }
+
+  if (useEditorPage.value) {
+    await navigateTo(
+      buildDashboardEditorRoute(resource, {
+        mode: "create",
+        backTo: route.fullPath,
+      }),
+    );
+    return;
+  }
+
+  drawerMode.value = "create";
+  activeRecord.value = null;
+  formValues.value = buildFormValues(resource);
+  drawerOpen.value = true;
+  notice.value = null;
+  tempPassword.value = null;
+  tempPasswordFor.value = null;
+}
+
 async function openRecord(row: Record<string, unknown>) {
   const resource = currentResource.value;
   if (!resource) return;
@@ -258,7 +284,7 @@ async function submitRecord() {
         method: "POST",
         body: { data: payload },
       });
-      notice.value = `${resource.label} created successfully.`;
+      successToast(`${resource.label} created successfully.`);
       if (resource.id === "profiles" && result.tempPassword) {
         tempPassword.value = result.tempPassword;
         tempPasswordFor.value = String(formValues.value.email ?? "");
@@ -271,7 +297,7 @@ async function submitRecord() {
           data: payload,
         },
       });
-      notice.value = `${resource.label} updated successfully.`;
+      successToast(`${resource.label} updated successfully.`);
     }
 
     await refreshActiveResource();
@@ -298,7 +324,7 @@ async function resetPasswordForCurrentProfile() {
     );
     tempPassword.value = result.tempPassword;
     tempPasswordFor.value = String(activeRecord.value.email ?? "");
-    notice.value = "Password reset successfully.";
+    successToast("Password reset successfully.");
   } catch (error) {
     notice.value =
       error instanceof Error ? error.message : "Could not reset the password.";
@@ -347,9 +373,10 @@ async function toggleProfileActivation(row: Record<string, unknown>) {
       };
     }
 
-    notice.value = `${label} ${
-      nextIsActive ? "reactivated" : "deactivated"
-    } successfully.`;
+    successToast(
+      `${label} ${nextIsActive ? "reactivated" : "deactivated"} successfully.`,
+    );
+    notice.value = null;
     await refreshActiveResource();
   } catch (error) {
     notice.value =
@@ -371,7 +398,11 @@ async function deleteRecord(row: Record<string, unknown>) {
 
   const rawRow = (row.__rawRow as Record<string, unknown> | undefined) ?? row;
   const label = String(
-    rawRow[resource.rowLabelKey ?? "id"] ?? rawRow.id ?? "record",
+    row[resource.rowLabelKey ?? "id"] ??
+      rawRow[resource.rowLabelKey ?? "id"] ??
+      row.id ??
+      rawRow.id ??
+      "record",
   );
   const confirmed = window.confirm(
     `Delete ${resource.label.toLowerCase()} "${label}"?`,
@@ -383,7 +414,8 @@ async function deleteRecord(row: Record<string, unknown>) {
       method: "DELETE",
       body: buildRecordIdentifier(resource, rawRow),
     });
-    notice.value = `${resource.label} deleted successfully.`;
+    successToast(`${resource.label} deleted successfully.`);
+    notice.value = null;
     await refreshActiveResource();
   } catch (error) {
     notice.value =
@@ -482,6 +514,37 @@ watch(
     <section
       class="rounded-card border border-border bg-surface p-5 shadow-card"
     >
+      <div
+        v-if="currentResource"
+        class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+      >
+        <div>
+          <p class="text-caption font-semibold uppercase tracking-wide text-info">
+            {{ section?.label }}
+          </p>
+          <h2 class="mt-2 font-display font-bold text-h2 text-ink">
+            {{ currentResource.label }}
+          </h2>
+          <p class="mt-2 max-w-3xl text-small text-ink-muted">
+            {{ currentResource.description }}
+          </p>
+        </div>
+
+        <button
+          v-if="
+            canWriteCurrentResource &&
+            currentResource.allowCreate !== false &&
+            !isSingletonResource
+          "
+          type="button"
+          class="inline-flex items-center gap-2 rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark"
+          @click="openCreate"
+        >
+          <Icon name="lucide:plus" class="size-4" aria-hidden="true" />
+          Add new
+        </button>
+      </div>
+
       <div v-if="!isSingletonResource" class="mb-5">
         <label class="block">
           <span class="mb-2 block text-small font-semibold text-ink">Search</span>

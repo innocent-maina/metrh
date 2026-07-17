@@ -82,6 +82,7 @@ const selectedApplicationLinks = reactive<Record<string, string | null>>({
 const lookupRowsByResourceId = reactive<Record<string, Record<string, unknown>[]>>(
   {},
 );
+const { successToast } = useAppToast();
 
 const backTo = computed(() => props.backTo || String(route.query.backTo ?? "/dashboard/careers"));
 const readOnly = computed(() => props.mode === "view" || !((postingResource.writeRoles ?? postingResource.readRoles).some((role) => hasRole(role))));
@@ -294,7 +295,7 @@ async function submitPosting() {
         body: { data: payload },
       });
 
-      notice.value = `${postingResource.label} created successfully.`;
+      successToast(`${postingResource.label} created successfully.`);
       await navigateTo(
         buildDashboardEditorRoute(postingResource, {
           mode: "edit",
@@ -313,7 +314,7 @@ async function submitPosting() {
           data: payload,
         },
       });
-      notice.value = `${postingResource.label} updated successfully.`;
+      successToast(`${postingResource.label} updated successfully.`);
       await loadPosting();
     }
   } catch (error) {
@@ -338,7 +339,7 @@ async function deactivatePosting() {
         data: { status: "closed" },
       },
     });
-    notice.value = "Job posting deactivated successfully.";
+    successToast("Job posting deactivated successfully.");
     await loadPosting();
   } catch (error) {
     notice.value =

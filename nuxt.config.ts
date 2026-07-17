@@ -34,7 +34,7 @@ export default defineNuxtConfig({
   // login/session flow. See server/utils/supabase-admin.ts for the
   // service-role client, which is never imported in any client bundle.
   supabase: {
-    redirect: true,
+    redirect: false,
     useSsrCookies: true,
     redirectOptions: {
       login: "/dashboard/login",
@@ -76,6 +76,11 @@ export default defineNuxtConfig({
         detectSessionInUrl: true,
       },
     },
+  },
+
+  routeRules: {
+    "/dashboard": { ssr: false },
+    "/dashboard/**": { ssr: false },
   },
 
   runtimeConfig: {

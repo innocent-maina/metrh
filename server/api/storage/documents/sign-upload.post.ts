@@ -9,17 +9,27 @@ const schema = z.object({
     .trim()
     .min(1)
     .max(160)
-    .regex(/^[a-z0-9-]+$/i),
+    .regex(/^[a-z0-9-]+$/i)
+    .transform((value) => value.toLowerCase()),
   fileName: z.string().trim().min(1).max(255),
 });
 
 export default defineEventHandler(async (event) => {
-  const body = schema.parse(await readBody(event));
+  const parsedBody = schema.safeParse(await readBody(event));
+  if (!parsedBody.success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage:
+        parsedBody.error.issues[0]?.message ?? "Invalid upload request.",
+    });
+  }
+
+  const body = parsedBody.data;
 
   const { data: posting, error } = await supabaseAdmin()
     .from("job_postings")
     .select("id,status,slug")
-    .eq("slug", body.jobSlug)
+    .ilike("slug", body.jobSlug)
     .maybeSingle<{ id: string; status: string; slug: string }>();
 
   if (error || !posting || posting.status !== "open") {

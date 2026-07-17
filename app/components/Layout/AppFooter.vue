@@ -27,8 +27,8 @@ const visitingHours = computed(
 const socialLinks = computed(
   () =>
     siteSettings.value?.social_links ?? {
-      facebook: "https://facebook.com/MeTRH.Hospital",
-      x: "https://x.com/MeTRH_Hospital",
+      facebook: "",
+      x: "",
     },
 );
 </script>
@@ -120,6 +120,7 @@ const socialLinks = computed(
         </address>
         <div class="mt-4 flex gap-3">
           <a
+            v-if="socialLinks.facebook"
             :href="socialLinks.facebook"
             target="_blank"
             rel="noopener noreferrer"
@@ -129,6 +130,7 @@ const socialLinks = computed(
             <Icon name="lucide:facebook" class="size-5" />
           </a>
           <a
+            v-if="socialLinks.x"
             :href="socialLinks.x"
             target="_blank"
             rel="noopener noreferrer"

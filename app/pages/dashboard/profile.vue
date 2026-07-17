@@ -4,7 +4,6 @@ useHead({ title: "Profile — MeTRH Dashboard" });
 
 const { me, load, pending, error: dashboardError } = useDashboardRoles();
 const resolveStorageUrl = usePublicStorageUrl();
-const supabase = useSupabaseClient();
 
 const activeTab = ref<"profile" | "security">("profile");
 const isSavingProfile = ref(false);
@@ -21,6 +20,7 @@ const passwordForm = reactive({
   password: "",
   confirmPassword: "",
 });
+const { successToast } = useAppToast();
 
 const profileForm = reactive({
   full_name: "",
@@ -113,18 +113,11 @@ async function handleAvatarChange(event: Event) {
   isUploadingAvatar.value = true;
 
   try {
-    const formData = new FormData();
-    formData.append("bucket", "media");
-    formData.append("folder", "profiles/avatars");
-    formData.append("fileName", file.name);
-    formData.append("file", file);
-
-    const upload = await $fetch<{
-      path: string;
-      publicUrl: string | null;
-    }>("/api/storage/dashboard/sign-upload", {
-      method: "POST",
-      body: formData,
+    const upload = await uploadStorageFile({
+      bucket: "media",
+      folder: "profiles/avatars",
+      fileName: file.name,
+      file,
     });
 
     profileForm.avatar_url = upload.publicUrl ?? upload.path;
@@ -162,7 +155,8 @@ async function saveProfile() {
 
     await load(true);
     syncProfileForm(me.value?.profile ?? null);
-    profileNotice.value = "Profile saved successfully.";
+    profileNotice.value = null;
+    successToast("Profile saved successfully.");
   } catch (error) {
     profileError.value =
       error instanceof Error ? error.message : "Could not save the profile.";
@@ -187,20 +181,22 @@ async function updatePassword() {
 
   isUpdatingPassword.value = true;
 
-  const { error } = await supabase.auth.updateUser({
-    password: passwordForm.password,
-  });
+  try {
+    await $fetch<{ ok: true }>("/api/dashboard/me/password", {
+      method: "PATCH",
+      body: { password: passwordForm.password },
+    });
 
-  isUpdatingPassword.value = false;
-
-  if (error) {
-    passwordError.value = error.message;
-    return;
+    passwordForm.password = "";
+    passwordForm.confirmPassword = "";
+    passwordNotice.value = null;
+    successToast("Password updated successfully.");
+  } catch (error) {
+    passwordError.value =
+      error instanceof Error ? error.message : "Could not update password.";
+  } finally {
+    isUpdatingPassword.value = false;
   }
-
-  passwordForm.password = "";
-  passwordForm.confirmPassword = "";
-  passwordNotice.value = "Password updated successfully.";
 }
 
 const tabButtonClasses = (tab: "profile" | "security") =>

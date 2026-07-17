@@ -6,6 +6,7 @@ interface Props {
   title: string;
   description: string;
   backTo?: string;
+  fallbackPage?: Partial<PageRecord> | null;
 }
 
 type PageRecord = Record<string, unknown> & {
@@ -21,6 +22,7 @@ type PageRecord = Record<string, unknown> & {
 
 const props = withDefaults(defineProps<Props>(), {
   backTo: "/dashboard/pages-and-content",
+  fallbackPage: null,
 });
 
 const statusOptions = [
@@ -35,6 +37,7 @@ const isEditing = ref(true);
 const isSaving = ref(false);
 const notice = ref<string | null>(null);
 const loadError = ref<string | null>(null);
+const { successToast } = useAppToast();
 
 const draft = reactive({
   slug: props.slug,
@@ -49,15 +52,22 @@ function toDraftValue(value: unknown) {
   return String(value ?? "");
 }
 
+function getDraftSource(page: PageRecord | Partial<PageRecord> | null) {
+  return page ?? props.fallbackPage ?? null;
+}
+
 function syncDraft(page: PageRecord | null) {
   loadedPage.value = page;
+  const source = getDraftSource(page);
   draft.slug = props.slug;
-  draft.title = toDraftValue(page?.title);
-  draft.content = toDraftValue(page?.content);
-  draft.seo_title = toDraftValue(page?.seo_title);
-  draft.seo_description = toDraftValue(page?.seo_description);
-  draft.status = toDraftValue(page?.status) || "draft";
+  draft.title = toDraftValue(source?.title);
+  draft.content = toDraftValue(source?.content);
+  draft.seo_title = toDraftValue(source?.seo_title);
+  draft.seo_description = toDraftValue(source?.seo_description);
+  draft.status = toDraftValue(source?.status) || "draft";
 }
+
+syncDraft(null);
 
 async function loadPage() {
   isLoading.value = true;
@@ -69,11 +79,11 @@ async function loadPage() {
     });
 
     const data = rows[0] ?? null;
-    if (!data) {
+    if (data) {
+      syncDraft(data as PageRecord);
+    } else if (!props.fallbackPage) {
       throw new Error("Page not found.");
     }
-
-    syncDraft(data as PageRecord);
   } catch (error) {
     loadedPage.value = null;
     loadError.value =
@@ -83,12 +93,16 @@ async function loadPage() {
   }
 }
 
-await loadPage();
+onMounted(() => {
+  void loadPage();
+});
 
 const previewHtml = computed(() => richTextToHtml(draft.content));
 
+const baselinePage = computed(() => loadedPage.value ?? props.fallbackPage ?? null);
+
 const isDirty = computed(() => {
-  const page = loadedPage.value;
+  const page = baselinePage.value;
   if (!page) return false;
 
   return (
@@ -113,8 +127,6 @@ const lastUpdated = computed(() => {
 });
 
 async function saveChanges() {
-  if (!loadedPage.value) return;
-
   isSaving.value = true;
   notice.value = null;
 
@@ -128,12 +140,17 @@ async function saveChanges() {
       status: draft.status || "draft",
     };
 
+    const isExistingPage = Boolean(loadedPage.value);
     const response = await $fetch<{ row: PageRecord }>(`/api/dashboard/pages`, {
-      method: "PATCH",
-      body: {
-        id: loadedPage.value.id,
-        data: payload,
-      },
+      method: isExistingPage ? "PATCH" : "POST",
+      body: isExistingPage
+        ? {
+            id: loadedPage.value?.id,
+            data: payload,
+          }
+        : {
+            data: payload,
+          },
     });
 
     if (response.row) {
@@ -142,7 +159,7 @@ async function saveChanges() {
       await loadPage();
     }
 
-    notice.value = `${props.title} saved successfully.`;
+    successToast(`${props.title} saved successfully.`);
   } catch (error) {
     notice.value =
       error instanceof Error ? error.message : "Could not save the page.";
@@ -166,7 +183,7 @@ function stopEditing() {
     }
   }
 
-  syncDraft(loadedPage.value);
+  syncDraft(baselinePage.value as PageRecord | null);
   isEditing.value = false;
 }
 </script>

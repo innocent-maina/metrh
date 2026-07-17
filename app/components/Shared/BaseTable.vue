@@ -43,6 +43,10 @@ function formatCell(value: unknown, kind?: CrudColumn["kind"]) {
   return String(value);
 }
 
+function hasIconValue(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function getRowKey(row: Record<string, unknown>) {
   const source = (row.__rawRow as Record<string, unknown> | undefined) ?? row;
 
@@ -91,7 +95,19 @@ function getRowKey(row: Record<string, unknown>) {
               class="px-5 py-4 text-small text-ink"
               :class="column.class"
             >
-              {{ formatCell(row[column.key], column.kind) }}
+              <template v-if="column.kind === 'icon'">
+                <span
+                  v-if="hasIconValue(row[column.key])"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-alt text-ink"
+                  :title="String(row[column.key])"
+                >
+                  <Icon :name="String(row[column.key])" class="size-4" aria-hidden="true" />
+                </span>
+                <span v-else>—</span>
+              </template>
+              <template v-else>
+                {{ formatCell(row[column.key], column.kind) }}
+              </template>
             </td>
             <td v-if="showActions" class="w-0 whitespace-nowrap px-5 py-4 text-right">
               <slot name="actions" :row="row" />

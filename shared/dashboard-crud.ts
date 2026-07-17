@@ -55,7 +55,7 @@ export interface CrudField {
 export interface CrudColumn {
   key: string;
   label: string;
-  kind?: "text" | "number" | "date" | "time" | "status" | "boolean";
+  kind?: "text" | "number" | "date" | "time" | "status" | "boolean" | "icon";
   class?: string;
 }
 
@@ -438,6 +438,83 @@ export const dashboardSections: CrudSectionConfig[] = [
         ]),
         stampFields: { create: ["author_id"] },
       },
+      {
+        id: "blog_categories",
+        label: "Blog categories",
+        description: "Organize blog posts into editorial buckets.",
+        table: "blog_categories",
+        readRoles: ["content_editor"],
+        writeRoles: ["content_editor"],
+        rowLabelKey: "name",
+        defaultSort: { key: "name", ascending: true },
+        columns: baseColumns([
+          { key: "name", label: "Name" },
+          { key: "slug", label: "Slug" },
+          { key: "description", label: "Description" },
+          { key: "created_at", label: "Created", kind: "date" },
+        ]),
+        fields: fields([
+          { key: "name", label: "Name", kind: "text", required: true },
+          { key: "slug", label: "Slug", kind: "text", required: true },
+          {
+            key: "description",
+            label: "Description",
+            kind: "textarea",
+            rows: 4,
+          },
+        ]),
+      },
+      {
+        id: "blog_tags",
+        label: "Blog tags",
+        description: "Reuse tags across stories to keep related posts connected.",
+        table: "blog_tags",
+        readRoles: ["content_editor"],
+        writeRoles: ["content_editor"],
+        rowLabelKey: "name",
+        defaultSort: { key: "name", ascending: true },
+        columns: baseColumns([
+          { key: "name", label: "Name" },
+          { key: "slug", label: "Slug" },
+        ]),
+        fields: fields([
+          { key: "name", label: "Name", kind: "text", required: true },
+          { key: "slug", label: "Slug", kind: "text", required: true },
+        ]),
+      },
+      {
+        id: "blog_post_tags",
+        label: "Post tags",
+        description: "Assign tags to published posts from a dedicated junction table.",
+        table: "blog_post_tags",
+        primaryKey: ["post_id", "tag_id"],
+        readRoles: ["content_editor"],
+        writeRoles: ["content_editor"],
+        rowLabelKey: "post_id",
+        defaultSort: { key: "post_id", ascending: true },
+        columns: baseColumns([
+          { key: "post_id", label: "Post" },
+          { key: "tag_id", label: "Tag" },
+        ]),
+        fields: fields([
+          {
+            key: "post_id",
+            label: "Post",
+            kind: "select",
+            optionsFromResourceId: "blog_posts",
+            optionLabelKey: "title",
+            required: true,
+          },
+          {
+            key: "tag_id",
+            label: "Tag",
+            kind: "select",
+            optionsFromResourceId: "blog_tags",
+            optionLabelKey: "name",
+            required: true,
+          },
+        ]),
+      },
     ],
   },
   {
@@ -460,7 +537,6 @@ export const dashboardSections: CrudSectionConfig[] = [
         columns: baseColumns([
           { key: "name", label: "Name" },
           { key: "slug", label: "Slug" },
-          { key: "icon", label: "Icon" },
           { key: "display_order", label: "Order", kind: "number" },
         ]),
         fields: fields([

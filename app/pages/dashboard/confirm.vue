@@ -3,27 +3,25 @@ definePageMeta({ layout: "auth" });
 useHead({ title: "Set your password — MeTRH Staff" });
 
 const supabase = useSupabaseClient();
-const user = useSupabaseUser();
 const router = useRouter();
 
 const password = ref("");
 const confirmPassword = ref("");
 const isSubmitting = ref(false);
 const isCheckingSession = ref(true);
+const hasSession = ref(false);
 const errorMessage = ref("");
 
 // The @nuxtjs/supabase module exchanges the invite/recovery token in the URL
-// for a session automatically before this page's setup runs; `user` becomes
-// reactive once that completes. If it never arrives, the link was invalid
-// or expired.
+// for a session automatically before this page's setup runs. If it never
+// arrives, the link was invalid or expired.
 onMounted(async () => {
-  await supabase.auth.getSession();
+  const { data } = await supabase.auth.getSession();
+  hasSession.value = !!data.session;
   isCheckingSession.value = false;
 });
 
-const isSessionReady = computed(
-  () => !isCheckingSession.value && !!user.value,
-);
+const isSessionReady = computed(() => !isCheckingSession.value && hasSession.value);
 
 async function handleSubmit() {
   errorMessage.value = "";

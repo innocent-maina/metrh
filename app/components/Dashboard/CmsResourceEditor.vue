@@ -95,6 +95,7 @@ const relatedRecordsLoading = ref(false);
 const relatedRecordsError = ref<string | null>(null);
 const notice = ref<string | null>(null);
 const isSaving = ref(false);
+const { successToast } = useAppToast();
 
 async function loadResourceRows(
   resourceId: string,
@@ -348,18 +349,11 @@ async function handleUploadChange(field: CrudField, event: Event) {
   uploadingFields[field.key] = true;
 
   try {
-    const formData = new FormData();
-    formData.append("bucket", field.uploadBucket);
-    formData.append("folder", field.uploadFolder);
-    formData.append("fileName", file.name);
-    formData.append("file", file);
-
-    const upload = await $fetch<{
-      path: string;
-      publicUrl: string | null;
-    }>("/api/storage/dashboard/sign-upload", {
-      method: "POST",
-      body: formData,
+    const upload = await uploadStorageFile({
+      bucket: field.uploadBucket,
+      folder: field.uploadFolder,
+      fileName: file.name,
+      file,
     });
 
     const storedValue =
@@ -394,7 +388,7 @@ async function submitRecord() {
         body: { data: payload },
       });
 
-      notice.value = `${resource.label} created successfully.`;
+      successToast(`${resource.label} created successfully.`);
       await navigateTo(
         buildDashboardEditorRoute(resource, {
           mode: "edit",
@@ -413,7 +407,7 @@ async function submitRecord() {
           data: payload,
         },
       });
-      notice.value = `${resource.label} updated successfully.`;
+      successToast(`${resource.label} updated successfully.`);
       await loadAll();
     }
   } catch (error) {
@@ -442,6 +436,7 @@ async function deleteRecord() {
       method: "DELETE",
       body: buildResourceIdentifier(resource, activeRecord.value),
     });
+    successToast(`${resource.label} deleted successfully.`);
     await navigateTo(backTo.value);
   } catch (error) {
     notice.value =

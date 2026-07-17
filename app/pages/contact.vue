@@ -24,7 +24,7 @@ const form = reactive({
 
 const isSubmitting = ref(false);
 const errorMessage = ref("");
-const successMessage = ref("");
+const { successToast } = useAppToast();
 
 const contactImages = useHospitalMedia();
 
@@ -59,7 +59,6 @@ function resetForm() {
 
 async function submitForm() {
   errorMessage.value = "";
-  successMessage.value = "";
 
   if (!form.name.trim()) {
     errorMessage.value = "Enter your name.";
@@ -88,9 +87,11 @@ async function submitForm() {
       },
     });
 
-    successMessage.value =
-      "Submitted. A member of the team will review your message.";
     resetForm();
+    successToast(
+      "Message sent successfully.",
+      "A member of the team will review your enquiry.",
+    );
   } catch (error) {
     errorMessage.value =
       error instanceof Error
@@ -323,14 +324,6 @@ async function submitForm() {
               >
                 {{ errorMessage }}
               </p>
-              <p
-                v-if="successMessage"
-                role="status"
-                class="text-small text-success"
-              >
-                {{ successMessage }}
-              </p>
-
               <div class="flex flex-col gap-3 sm:flex-row">
                 <button
                   type="submit"

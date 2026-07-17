@@ -13,6 +13,7 @@ export function createDashboardClientMock(options?: {
     table: "",
     selects: [] as unknown[][],
     eqs: [] as unknown[][],
+    gteCalls: [] as unknown[][],
     ins: null as unknown,
     updates: null as unknown,
     matches: null as unknown,
@@ -42,6 +43,10 @@ export function createDashboardClientMock(options?: {
     }),
     eq: vi.fn((...args: unknown[]) => {
       state.eqs.push(args);
+      return builder;
+    }),
+    gte: vi.fn((...args: unknown[]) => {
+      state.gteCalls.push(args);
       return builder;
     }),
     in: vi.fn((...args: unknown[]) => {

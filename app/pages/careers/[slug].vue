@@ -6,7 +6,6 @@ definePageMeta({ layout: "default" });
 const route = useRoute();
 const slug = computed(() => String(route.params.slug ?? ""));
 const { recruitmentRounds } = useMetrhContent();
-const supabase = useSupabaseClient();
 
 type JobPostingRow = {
   id: string;
@@ -330,57 +329,22 @@ async function submitApplication() {
   isSubmitting.value = true;
 
   try {
-    const resumeUpload = await $fetch<{
-      signedUrl: string;
-      token: string;
-      path: string;
-    }>("/api/storage/documents/sign-upload", {
-      method: "POST",
-      body: {
-        jobSlug: posting.value.slug,
-        fileName: resumeFile.value.name,
-      },
+    const resumeUpload = await uploadStorageFile({
+      bucket: "documents",
+      folder: `applications/${posting.value.slug}`,
+      fileName: resumeFile.value.name,
+      file: resumeFile.value,
     });
-
-    const { error: resumeError } = await supabase.storage
-      .from("documents")
-      .uploadToSignedUrl(resumeUpload.path, resumeUpload.token, resumeFile.value, {
-        contentType: resumeFile.value.type || "application/octet-stream",
-      });
-
-    if (resumeError) {
-      throw resumeError;
-    }
 
     let supportingUploadPath: string | null = null;
 
     if (supportingFile.value) {
-      const supportingUpload = await $fetch<{
-        signedUrl: string;
-        token: string;
-        path: string;
-      }>("/api/storage/documents/sign-upload", {
-        method: "POST",
-        body: {
-          jobSlug: posting.value.slug,
-          fileName: supportingFile.value.name,
-        },
+      const supportingUpload = await uploadStorageFile({
+        bucket: "documents",
+        folder: `applications/${posting.value.slug}`,
+        fileName: supportingFile.value.name,
+        file: supportingFile.value,
       });
-
-      const { error: supportingError } = await supabase.storage
-        .from("documents")
-        .uploadToSignedUrl(
-          supportingUpload.path,
-          supportingUpload.token,
-          supportingFile.value,
-          {
-            contentType: supportingFile.value.type || "application/octet-stream",
-          },
-        );
-
-      if (supportingError) {
-        throw supportingError;
-      }
 
       supportingUploadPath = supportingUpload.path;
     }

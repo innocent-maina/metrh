@@ -66,6 +66,7 @@ const formValues = ref<Record<string, unknown>>({});
 const isSaving = ref(false);
 const searchTerm = ref("");
 const notice = ref<string | null>(null);
+const { successToast } = useAppToast();
 const createButtonLabel = computed(() =>
   resource.value ? getResourceCreateLabel(resource.value) : "New record",
 );
@@ -230,7 +231,7 @@ async function submitRecord() {
         method: "POST",
         body: { data: payload },
       });
-      notice.value = `${current.label} created successfully.`;
+      successToast(`${current.label} created successfully.`);
     } else if (activeRecord.value) {
       await $fetch(`/api/dashboard/${current.id}`, {
         method: "PATCH",
@@ -239,9 +240,10 @@ async function submitRecord() {
           data: payload,
         },
       });
-      notice.value = `${current.label} updated successfully.`;
+      successToast(`${current.label} updated successfully.`);
     }
 
+    notice.value = null;
     await loadAll();
     closeDrawer();
   } catch (error) {
@@ -257,7 +259,13 @@ async function deleteRecord(row: Record<string, unknown>) {
   if (!current || current.allowDelete === false) return;
 
   const rawRow = (row.__rawRow as Record<string, unknown> | undefined) ?? row;
-  const label = String(rawRow[current.rowLabelKey ?? "id"] ?? rawRow.id ?? "record");
+  const label = String(
+    row[current.rowLabelKey ?? "id"] ??
+      rawRow[current.rowLabelKey ?? "id"] ??
+      row.id ??
+      rawRow.id ??
+      "record",
+  );
   const confirmed = window.confirm(
     `Delete ${current.label.toLowerCase()} "${label}"?`,
   );
@@ -268,7 +276,8 @@ async function deleteRecord(row: Record<string, unknown>) {
       method: "DELETE",
       body: buildRecordIdentifier(current, rawRow),
     });
-    notice.value = `${current.label} deleted successfully.`;
+    successToast(`${current.label} deleted successfully.`);
+    notice.value = null;
     await loadAll();
   } catch (error) {
     notice.value =

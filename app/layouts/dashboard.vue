@@ -43,6 +43,25 @@ const currentSection = computed(() => {
   );
 });
 
+const analyticsNav = {
+  label: "Analytics",
+  to: "/dashboard/analytics",
+  icon: "lucide:chart-column",
+};
+
+const isAnalyticsActive = computed(() => {
+  const path = route.path;
+  return path === analyticsNav.to || path.startsWith(`${analyticsNav.to}/`);
+});
+
+const currentDashboardLabel = computed(
+  () =>
+    currentChildSection.value?.label ||
+    currentSection.value?.label ||
+    (isAnalyticsActive.value ? analyticsNav.label : null) ||
+    "Overview",
+);
+
 const currentChildSection = computed(() => {
   const section = currentSection.value;
   if (!section?.children?.length) return null;
@@ -177,6 +196,20 @@ async function handleSignOut() {
           Overview
         </NuxtLink>
 
+        <NuxtLink
+          :to="analyticsNav.to"
+          class="mb-4 flex items-center gap-3 rounded-control px-3 py-3 text-small font-medium"
+          :class="
+            isAnalyticsActive
+              ? 'bg-surface/10 text-white'
+              : 'text-white/90 hover:bg-surface/10'
+          "
+          @click="closeSidebar"
+        >
+          <Icon :name="analyticsNav.icon" class="size-4" />
+          {{ analyticsNav.label }}
+        </NuxtLink>
+
         <ul class="space-y-1">
           <li v-for="section in visibleSections" :key="section.id">
             <NuxtLink
@@ -248,11 +281,7 @@ async function handleSignOut() {
                 Staff area
               </p>
               <h1 class="truncate font-display font-semibold text-[1.05rem] leading-tight text-ink sm:text-h3">
-                {{
-                  currentChildSection?.label ||
-                  currentSection?.label ||
-                  "Overview"
-                }}
+                {{ currentDashboardLabel }}
               </h1>
             </div>
           </div>

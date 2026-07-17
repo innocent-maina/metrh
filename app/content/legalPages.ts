@@ -87,6 +87,12 @@ export const termsOfUsePage: LegalPageContent = {
 `,
 };
 
+export const termsOfServicePage: LegalPageContent = {
+  ...termsOfUsePage,
+  title: "Terms of Service",
+  seoTitle: "Terms of Service - MeTRH",
+};
+
 export const cookiePolicyPage: LegalPageContent = {
   title: "Cookie Policy",
   seoTitle: "Cookie Policy - MeTRH",
