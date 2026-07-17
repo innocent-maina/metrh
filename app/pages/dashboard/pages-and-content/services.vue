@@ -38,6 +38,7 @@ useSeoMeta({
       resource-id="page_sections"
       title="Services sections"
       description="Edit the introductory text and any services page callouts."
+      use-page-editor
       :query-filters="serviceDefaults"
       :create-defaults="serviceDefaults"
     />

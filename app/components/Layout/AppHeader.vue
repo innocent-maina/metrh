@@ -20,7 +20,6 @@ const primaryNav = [
   { label: "Blog", to: "/blog" },
   { label: "Careers", to: "/careers" },
   { label: "Tenders", to: "/tenders" },
-  { label: "Contact", to: "/contact" },
 ];
 
 const isMenuOpen = ref(false);

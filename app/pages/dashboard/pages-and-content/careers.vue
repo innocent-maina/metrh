@@ -37,6 +37,7 @@ useSeoMeta({
       resource-id="page_sections"
       title="Careers sections"
       description="Edit the Careers page introduction and support copy."
+      use-page-editor
       :query-filters="careersDefaults"
       :create-defaults="careersDefaults"
     />

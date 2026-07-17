@@ -37,6 +37,7 @@ useSeoMeta({
       resource-id="page_sections"
       title="Blog sections"
       description="Edit the introductory block and supporting text for the Blog page."
+      use-page-editor
       :query-filters="blogDefaults"
       :create-defaults="blogDefaults"
     />

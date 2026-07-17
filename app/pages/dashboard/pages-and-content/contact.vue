@@ -37,6 +37,7 @@ useSeoMeta({
       resource-id="page_sections"
       title="Contact sections"
       description="Edit the introductory block and support text for the Contact page."
+      use-page-editor
       :query-filters="contactDefaults"
       :create-defaults="contactDefaults"
     />

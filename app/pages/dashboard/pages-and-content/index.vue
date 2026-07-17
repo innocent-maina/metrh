@@ -22,12 +22,11 @@ useSeoMeta({
           Pages &amp; Content
         </p>
         <h2 class="mt-2 font-display font-bold text-h1 text-ink">
-          Public pages, legal pages, and shared site settings
+          Public pages and legal pages
         </h2>
         <p class="mt-4 text-body text-ink-muted">
           Use the child pages in the sidebar to edit the homepage, About,
           Services, Careers, Blog, Contact, Tenders, and legal page content.
-          Global contact and emergency settings stay here as well.
         </p>
       </div>
     </section>
@@ -50,11 +49,5 @@ useSeoMeta({
         </NuxtLink>
       </div>
     </section>
-
-    <CmsResourcePanel
-      resource-id="site_settings_editor"
-      title="Global site settings"
-      description="Emergency details, WhatsApp buttons, visiting hours, and homepage hero fallback copy."
-    />
   </div>
 </template>

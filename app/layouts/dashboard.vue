@@ -104,7 +104,7 @@ async function handleSignOut() {
 
 <template>
   <div
-    class="relative h-dvh overflow-hidden bg-surface-alt text-ink lg:grid lg:grid-cols-[18rem_minmax(0,1fr)]"
+    class="relative min-h-dvh overflow-x-hidden bg-surface-alt text-ink lg:grid lg:h-dvh lg:grid-cols-[18rem_minmax(0,1fr)] lg:overflow-hidden"
   >
     <Transition
       enter-active-class="transition duration-200 ease-out"
@@ -124,47 +124,51 @@ async function handleSignOut() {
 
     <aside
       id="dashboard-sidebar"
-      class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] transform flex-col border-r border-border bg-primary-dark text-white shadow-2xl transition-transform duration-200 lg:static lg:z-auto lg:w-full lg:max-w-none lg:translate-x-0 lg:shadow-none"
+      class="fixed inset-y-0 left-0 z-50 flex h-dvh min-h-0 w-full max-w-none transform flex-col overflow-hidden border-r border-border bg-primary-dark text-white shadow-2xl transition-transform duration-200 sm:w-80 sm:max-w-[85vw] lg:static lg:z-auto lg:h-auto lg:w-full lg:max-w-none lg:translate-x-0 lg:shadow-none"
       :class="
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       "
       aria-label="Dashboard navigation"
     >
-      <div class="flex items-start justify-between gap-3 px-4 py-5 sm:px-6">
-        <NuxtLink
-          to="/dashboard"
-          class="flex items-center gap-3"
-          @click="closeSidebar"
-        >
-          <img
-            src="/logo2.png"
-            alt="MeTRH logo"
-            class="size-10 rounded-control bg-transparent object-contain"
-          />
-          <div>
-            <p class="font-display font-semibold text-h4 leading-none">
-              MeTRH Dashboard
-            </p>
-            <p class="mt-1 text-caption text-white/70">
-              Staff tools and content management
-            </p>
-          </div>
-        </NuxtLink>
+      <div
+        class="sticky top-0 z-10 border-b border-white/10 bg-primary-dark/95 px-4 py-4 backdrop-blur sm:px-6 lg:static lg:border-b-0 lg:bg-transparent lg:px-4 lg:py-5 lg:backdrop-blur-0"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <NuxtLink
+            to="/dashboard"
+            class="flex min-w-0 items-center gap-3"
+            @click="closeSidebar"
+          >
+            <img
+              src="/logo2.png"
+              alt="MeTRH logo"
+              class="size-9 rounded-control bg-transparent object-contain sm:size-10"
+            />
+            <div class="min-w-0">
+              <p class="truncate font-display font-semibold text-h4 leading-none">
+                MeTRH Dashboard
+              </p>
+              <p class="mt-1 hidden text-caption text-white/70 sm:block">
+                Staff tools and content management
+              </p>
+            </div>
+          </NuxtLink>
 
-        <button
-          type="button"
-          class="rounded-control border border-surface/15 p-2 text-white hover:bg-surface/10 lg:hidden"
-          aria-label="Close navigation"
-          @click="closeSidebar"
-        >
-          <Icon name="lucide:x" class="size-5" aria-hidden="true" />
-        </button>
+          <button
+            type="button"
+            class="shrink-0 rounded-control border border-surface/15 p-2 text-white hover:bg-surface/10 lg:hidden"
+            aria-label="Close navigation"
+            @click="closeSidebar"
+          >
+            <Icon name="lucide:x" class="size-5" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
-      <nav class="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+      <nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4 lg:py-5">
         <NuxtLink
           to="/dashboard"
-          class="mb-2 flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium text-white/90 hover:bg-surface/10"
+          class="mb-2 flex items-center gap-3 rounded-control px-3 py-3 text-small font-medium text-white/90 hover:bg-surface/10"
           active-class="bg-surface/10 text-white"
           exact-active-class="bg-surface/10 text-white"
           @click="closeSidebar"
@@ -173,16 +177,11 @@ async function handleSignOut() {
           Overview
         </NuxtLink>
 
-        <div
-          class="mb-2 mt-4 px-3 text-caption uppercase tracking-wide text-white/50"
-        >
-          Sections
-        </div>
         <ul class="space-y-1">
           <li v-for="section in visibleSections" :key="section.id">
             <NuxtLink
               :to="section.to"
-              class="flex items-center gap-3 rounded-control px-3 py-2.5 text-small font-medium"
+              class="flex items-center gap-3 rounded-control px-3 py-3 text-small font-medium"
               :class="
                 isSectionActive(section)
                   ? 'bg-surface/10 text-white'
@@ -191,7 +190,14 @@ async function handleSignOut() {
               @click="closeSidebar"
             >
               <Icon :name="section.icon" class="size-4" />
-              {{ section.label }}
+              <span class="min-w-0 flex-1">{{ section.label }}</span>
+              <Icon
+                v-if="section.children?.length"
+                name="lucide:chevron-down"
+                class="size-4 shrink-0 transition-transform duration-200"
+                :class="isSectionActive(section) ? 'rotate-180' : ''"
+                aria-hidden="true"
+              />
             </NuxtLink>
 
             <ul
@@ -201,7 +207,7 @@ async function handleSignOut() {
               <li v-for="child in section.children" :key="child.id">
                 <NuxtLink
                   :to="child.to"
-                  class="block rounded-control px-3 py-2 text-caption font-medium"
+                  class="block rounded-control px-3 py-2.5 text-caption font-medium"
                   :class="
                     isChildActive(child)
                       ? 'bg-surface/10 text-white'
@@ -223,12 +229,12 @@ async function handleSignOut() {
         class="shrink-0 border-b border-border bg-surface/95 backdrop-blur"
       >
         <div
-          class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
+          class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
         >
           <div class="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-control border border-border bg-surface p-2 text-ink hover:bg-surface-alt lg:hidden"
+              class="inline-flex shrink-0 items-center justify-center rounded-control border border-border bg-surface p-2 text-ink hover:bg-surface-alt lg:hidden"
               :aria-expanded="isSidebarOpen"
               aria-controls="dashboard-sidebar"
               aria-label="Open navigation menu"
@@ -238,10 +244,10 @@ async function handleSignOut() {
             </button>
 
             <div class="min-w-0">
-              <p class="text-caption uppercase tracking-wide text-ink-muted">
+              <p class="hidden text-caption uppercase tracking-wide text-ink-muted sm:block">
                 Staff area
               </p>
-              <h1 class="truncate font-display font-semibold text-h3 text-ink">
+              <h1 class="truncate font-display font-semibold text-h4 text-ink sm:text-h3">
                 {{
                   currentChildSection?.label ||
                   currentSection?.label ||
@@ -251,11 +257,11 @@ async function handleSignOut() {
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 self-end sm:self-auto">
             <div ref="userMenuRef" class="relative">
               <button
                 type="button"
-                class="inline-flex items-center gap-3 rounded-control border border-border bg-surface px-3 py-2 text-small font-semibold text-ink hover:bg-surface-alt"
+                class="inline-flex items-center gap-3 rounded-control border border-border bg-surface px-2 py-2 text-small font-semibold text-ink hover:bg-surface-alt sm:px-3"
                 :aria-expanded="isUserMenuOpen"
                 aria-haspopup="menu"
                 @click="toggleUserMenu"
@@ -265,12 +271,12 @@ async function handleSignOut() {
                 >
                   {{ userInitials }}
                 </span>
-                <span class="max-w-40 truncate">
+                <span class="hidden max-w-40 truncate sm:block">
                   {{ userDisplayName }}
                 </span>
                 <Icon
                   name="lucide:chevron-down"
-                  class="size-4 text-ink-muted"
+                  class="hidden size-4 text-ink-muted sm:block"
                   aria-hidden="true"
                 />
               </button>
@@ -354,7 +360,7 @@ async function handleSignOut() {
         </div>
       </header>
 
-      <main class="min-h-0 flex-1 overflow-y-auto">
+      <main class="min-h-0 flex-1 overflow-visible lg:overflow-y-auto">
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <slot />
         </div>

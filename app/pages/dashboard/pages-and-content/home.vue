@@ -59,6 +59,7 @@ useSeoMeta({
       resource-id="page_slides"
       title="Hero slides"
       description="Edit the rotating homepage hero slides."
+      use-page-editor
       :query-filters="heroDefaults"
       :lookup-query-filters="{}"
       :create-defaults="heroDefaults"
@@ -68,6 +69,7 @@ useSeoMeta({
       resource-id="page_sections"
       title="Homepage sections"
       description="Edit MeTRH at a glance, community impact, services overview, careers CTA, and teaching context sections."
+      use-page-editor
       :query-filters="sectionDefaults"
       :create-defaults="sectionDefaults"
     />
@@ -76,6 +78,7 @@ useSeoMeta({
       resource-id="page_section_items"
       title="Homepage section items"
       description="Edit the homepage highlight items, stats, and teaching links."
+      use-page-editor
       :query-filters="{ section_id: homeSectionIds }"
       :lookup-query-filters="{ page_sections: { page_slug: 'home' } }"
       :create-defaults="{ section_id: homeSectionIds[0] ?? '' }"

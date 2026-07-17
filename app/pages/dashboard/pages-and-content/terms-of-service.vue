@@ -27,6 +27,7 @@ useSeoMeta({
       resource-id="pages"
       title="Terms of service page"
       description="Keep the terms of service content up to date."
+      use-page-editor
       :query-filters="{ slug: 'terms-of-service' }"
       :create-defaults="{ slug: 'terms-of-service', title: 'Terms of Service' }"
     />

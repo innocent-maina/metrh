@@ -11,9 +11,11 @@ const dashboardUploadSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAnyRole(event, [
+    "super_admin",
     "content_editor",
     "hr_manager",
     "procurement_manager",
+    "front_desk",
   ]);
 
   const body = dashboardUploadSchema.parse(await readBody(event));

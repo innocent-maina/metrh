@@ -76,6 +76,7 @@ export interface CrudResourceConfig {
   allowUpdate?: boolean;
   allowDelete?: boolean;
   singleton?: boolean;
+  createLabel?: string;
   submitLabel?: string;
   stampFields?: {
     create?: string[];
@@ -114,8 +115,110 @@ export interface DashboardResourceMeta extends CrudResourceConfig {
   sectionLabel: string;
 }
 
+export type CrudEditorMode = "create" | "edit" | "view";
+
 function selectRoles(resource: CrudResourceConfig): AppRole[] {
   return resource.writeRoles ?? resource.readRoles;
+}
+
+export function getResourcePrimaryKeyFields(resource: CrudResourceConfig) {
+  if (!resource.primaryKey) return ["id"];
+  return Array.isArray(resource.primaryKey)
+    ? resource.primaryKey
+    : [resource.primaryKey];
+}
+
+export function buildResourceIdentifier(
+  resource: CrudResourceConfig,
+  row: Record<string, unknown>,
+) {
+  const keyFields = getResourcePrimaryKeyFields(resource);
+
+  if (keyFields.length === 1) {
+    const key = keyFields[0] ?? "id";
+    const value = row[key];
+    return { id: value == null ? "" : String(value) };
+  }
+
+  const identifier: Record<string, string> = {};
+  for (const key of keyFields) {
+    identifier[key] = String(row[key] ?? "");
+  }
+
+  return { identifier };
+}
+
+export function parseResourceIdentifierQuery(
+  resource: CrudResourceConfig,
+  query: Record<string, unknown>,
+) {
+  const keyFields = getResourcePrimaryKeyFields(resource);
+
+  if (keyFields.length === 1) {
+    const key = keyFields[0] ?? "id";
+    const value = query.id ?? query[key];
+    return value == null || value === "" ? null : { id: String(value) };
+  }
+
+  const rawIdentifier = query.identifier;
+  if (typeof rawIdentifier === "string" && rawIdentifier.trim()) {
+    try {
+      const parsed = JSON.parse(rawIdentifier) as Record<string, unknown>;
+      const identifier: Record<string, string> = {};
+      for (const key of keyFields) {
+        const value = parsed[key];
+        if (value == null || value === "") {
+          return null;
+        }
+        identifier[key] = String(value);
+      }
+      return { identifier };
+    } catch {
+      return null;
+    }
+  }
+
+  const identifier: Record<string, string> = {};
+  for (const key of keyFields) {
+    const value = query[key];
+    if (value == null || value === "") {
+      return null;
+    }
+    identifier[key] = String(value);
+  }
+
+  return { identifier };
+}
+
+export function buildDashboardEditorRoute(
+  resource: CrudResourceConfig,
+  options: {
+    mode: CrudEditorMode;
+    row?: Record<string, unknown>;
+    defaults?: Record<string, unknown>;
+    backTo?: string;
+  },
+) {
+  const query: Record<string, string> = { mode: options.mode };
+
+  if (options.row) {
+    const identifier = buildResourceIdentifier(resource, options.row);
+    if ("id" in identifier) {
+      query.id = String(identifier.id);
+    } else {
+      query.identifier = JSON.stringify(identifier.identifier);
+    }
+  }
+
+  if (options.defaults && Object.keys(options.defaults).length > 0) {
+    query.defaults = JSON.stringify(options.defaults);
+  }
+
+  if (options.backTo) {
+    query.backTo = options.backTo;
+  }
+
+  return { path: `/dashboard/editor/${resource.id}`, query };
 }
 
 function baseColumns(
@@ -263,11 +366,12 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "excerpt", label: "Excerpt", kind: "textarea", rows: 3 },
           {
             key: "content",
-            label: "Content",
+            label: "Main body",
             kind: "richtext",
             required: true,
-            placeholder: "Write the full story here.",
-            helpText: "Use the toolbar to add headings, lists, quotes, links, bold, and italic text.",
+            placeholder: "Write the blog post body here.",
+            helpText:
+              "This is the WYSIWYG article body. Use the toolbar to add headings, lists, quotes, links, bold, and italic text.",
           },
           {
             key: "cover_image_url",
@@ -285,10 +389,20 @@ export const dashboardSections: CrudSectionConfig[] = [
             optionsFromResourceId: "blog_categories",
             optionLabelKey: "name",
           },
-          { key: "status", label: "Status", kind: "select", options: publishStatuses },
+          {
+            key: "status",
+            label: "Status",
+            kind: "select",
+            options: publishStatuses,
+          },
           { key: "published_at", label: "Published on", kind: "date" },
           { key: "seo_title", label: "SEO title", kind: "text" },
-          { key: "seo_description", label: "SEO description", kind: "textarea", rows: 3 },
+          {
+            key: "seo_description",
+            label: "SEO description",
+            kind: "textarea",
+            rows: 3,
+          },
           {
             key: "seo_og_image_url",
             label: "SEO image",
@@ -319,7 +433,12 @@ export const dashboardSections: CrudSectionConfig[] = [
         fields: fields([
           { key: "name", label: "Name", kind: "text", required: true },
           { key: "slug", label: "Slug", kind: "text", required: true },
-          { key: "description", label: "Description", kind: "textarea", rows: 4 },
+          {
+            key: "description",
+            label: "Description",
+            kind: "textarea",
+            rows: 4,
+          },
         ]),
       },
       {
@@ -407,14 +526,20 @@ export const dashboardSections: CrudSectionConfig[] = [
             kind: "icon",
             helpText: "Pick an icon for the service category card.",
           },
-          { key: "description", label: "Description", kind: "textarea", rows: 4 },
+          {
+            key: "description",
+            label: "Description",
+            kind: "textarea",
+            rows: 4,
+          },
           { key: "display_order", label: "Display order", kind: "number" },
         ]),
       },
       {
         id: "services",
         label: "Services",
-        description: "Maintain the public service catalog and service detail pages.",
+        description:
+          "Maintain the public service catalog and service detail pages.",
         table: "services",
         readRoles: ["content_editor"],
         writeRoles: ["content_editor"],
@@ -459,7 +584,8 @@ export const dashboardSections: CrudSectionConfig[] = [
             key: "cover_image_alt",
             label: "Cover image alt text",
             kind: "text",
-            helpText: "Describe the image for screen readers and search engines.",
+            helpText:
+              "Describe the image for screen readers and search engines.",
           },
           {
             key: "description",
@@ -509,9 +635,25 @@ export const dashboardSections: CrudSectionConfig[] = [
             optionsFromResourceId: "services",
             optionLabelKey: "name",
           },
-          { key: "clinic_name", label: "Clinic name", kind: "text", required: true },
-          { key: "day_of_week", label: "Day of week", kind: "select", options: daysOfWeek, required: true },
-          { key: "start_time", label: "Start time", kind: "time", required: true },
+          {
+            key: "clinic_name",
+            label: "Clinic name",
+            kind: "text",
+            required: true,
+          },
+          {
+            key: "day_of_week",
+            label: "Day of week",
+            kind: "select",
+            options: daysOfWeek,
+            required: true,
+          },
+          {
+            key: "start_time",
+            label: "Start time",
+            kind: "time",
+            required: true,
+          },
           { key: "is_active", label: "Active", kind: "checkbox" },
           { key: "notes", label: "Notes", kind: "textarea", rows: 4 },
         ]),
@@ -520,7 +662,7 @@ export const dashboardSections: CrudSectionConfig[] = [
   },
   {
     id: "contact",
-    label: "Contact inbox",
+    label: "Contact Inbox",
     to: "/dashboard/contact",
     description: "Review enquiries and internal notes.",
     roles: ["front_desk", "content_editor"],
@@ -547,9 +689,25 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "email", label: "Email", kind: "text", required: true },
           { key: "phone", label: "Phone", kind: "text" },
           { key: "subject", label: "Subject", kind: "text" },
-          { key: "message", label: "Message", kind: "textarea", rows: 8, required: true },
-          { key: "status", label: "Status", kind: "select", options: contactStatuses },
-          { key: "internal_notes", label: "Internal notes", kind: "textarea", rows: 5 },
+          {
+            key: "message",
+            label: "Message",
+            kind: "textarea",
+            rows: 8,
+            required: true,
+          },
+          {
+            key: "status",
+            label: "Status",
+            kind: "select",
+            options: contactStatuses,
+          },
+          {
+            key: "internal_notes",
+            label: "Internal notes",
+            kind: "textarea",
+            rows: 5,
+          },
         ]),
         stampFields: { update: ["handled_by"] },
       },
@@ -584,23 +742,61 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "slug", label: "Slug", kind: "text", required: true },
           { key: "department", label: "Department", kind: "text" },
-          { key: "employment_type", label: "Employment type", kind: "select", options: employmentTypes, required: true },
+          {
+            key: "employment_type",
+            label: "Employment type",
+            kind: "select",
+            options: employmentTypes,
+            required: true,
+          },
           { key: "positions_count", label: "Positions", kind: "number" },
-          { key: "description", label: "Description", kind: "textarea", rows: 8, required: true },
-          { key: "requirements", label: "Requirements", kind: "textarea", rows: 6 },
-          { key: "responsibilities", label: "Responsibilities", kind: "textarea", rows: 6 },
-          { key: "how_to_apply", label: "How to apply", kind: "textarea", rows: 6 },
+          {
+            key: "description",
+            label: "Description",
+            kind: "textarea",
+            rows: 8,
+            required: true,
+          },
+          {
+            key: "requirements",
+            label: "Requirements",
+            kind: "textarea",
+            rows: 6,
+          },
+          {
+            key: "responsibilities",
+            label: "Responsibilities",
+            kind: "textarea",
+            rows: 6,
+          },
+          {
+            key: "how_to_apply",
+            label: "How to apply",
+            kind: "textarea",
+            rows: 6,
+          },
           {
             key: "attachment_url",
             label: "Attachment document",
             kind: "upload",
-            helpText: "Upload the job notice, PDF brief, or supporting document for this opening.",
-            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            helpText:
+              "Upload the job notice, PDF brief, or supporting document for this opening.",
+            accept:
+              ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             uploadBucket: "documents",
             uploadFolder: "jobs/postings/attachments",
           },
-          { key: "status", label: "Status", kind: "select", options: jobStatuses },
-          { key: "application_deadline", label: "Application deadline", kind: "date" },
+          {
+            key: "status",
+            label: "Status",
+            kind: "select",
+            options: jobStatuses,
+          },
+          {
+            key: "application_deadline",
+            label: "Application deadline",
+            kind: "date",
+          },
         ]),
         stampFields: { create: ["created_by"] },
       },
@@ -628,16 +824,27 @@ export const dashboardSections: CrudSectionConfig[] = [
             optionLabelKey: "title",
             required: true,
           },
-          { key: "applicant_name", label: "Applicant name", kind: "text", required: true },
+          {
+            key: "applicant_name",
+            label: "Applicant name",
+            kind: "text",
+            required: true,
+          },
           { key: "email", label: "Email", kind: "text", required: true },
           { key: "phone", label: "Phone", kind: "text" },
-          { key: "cover_letter", label: "Cover letter", kind: "textarea", rows: 8 },
+          {
+            key: "cover_letter",
+            label: "Cover letter",
+            kind: "textarea",
+            rows: 8,
+          },
           {
             key: "resume_url",
             label: "Resume",
             kind: "upload",
             required: true,
-            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            accept:
+              ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             uploadBucket: "documents",
             uploadFolder: "jobs/applications/resumes",
           },
@@ -645,13 +852,25 @@ export const dashboardSections: CrudSectionConfig[] = [
             key: "supporting_document_url",
             label: "Supporting document",
             kind: "upload",
-            helpText: "Optional certificates, portfolio files, or additional supporting documents.",
-            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            helpText:
+              "Optional certificates, portfolio files, or additional supporting documents.",
+            accept:
+              ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             uploadBucket: "documents",
             uploadFolder: "jobs/applications/supporting-documents",
           },
-          { key: "status", label: "Status", kind: "select", options: applicationStatuses },
-          { key: "reviewer_notes", label: "Reviewer notes", kind: "textarea", rows: 5 },
+          {
+            key: "status",
+            label: "Status",
+            kind: "select",
+            options: applicationStatuses,
+          },
+          {
+            key: "reviewer_notes",
+            label: "Reviewer notes",
+            kind: "textarea",
+            rows: 5,
+          },
         ]),
       },
     ],
@@ -681,12 +900,33 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "closing_date", label: "Closing", kind: "date" },
         ]),
         fields: fields([
-          { key: "tender_number", label: "Tender number", kind: "text", required: true },
+          {
+            key: "tender_number",
+            label: "Tender number",
+            kind: "text",
+            required: true,
+          },
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "slug", label: "Slug", kind: "text", required: true },
-          { key: "category", label: "Category", kind: "select", options: tenderCategories, required: true },
-          { key: "description", label: "Description", kind: "textarea", rows: 8 },
-          { key: "status", label: "Status", kind: "select", options: tenderStatuses },
+          {
+            key: "category",
+            label: "Category",
+            kind: "select",
+            options: tenderCategories,
+            required: true,
+          },
+          {
+            key: "description",
+            label: "Description",
+            kind: "textarea",
+            rows: 8,
+          },
+          {
+            key: "status",
+            label: "Status",
+            kind: "select",
+            options: tenderStatuses,
+          },
           { key: "opening_date", label: "Opening date", kind: "date" },
           { key: "closing_date", label: "Closing date", kind: "date" },
           { key: "awarded_to", label: "Awarded to", kind: "text" },
@@ -716,13 +956,19 @@ export const dashboardSections: CrudSectionConfig[] = [
             optionLabelKey: "title",
             required: true,
           },
-          { key: "file_name", label: "File name", kind: "text", required: true },
+          {
+            key: "file_name",
+            label: "File name",
+            kind: "text",
+            required: true,
+          },
           {
             key: "file_url",
             label: "Document",
             kind: "upload",
             required: true,
-            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            accept:
+              ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             uploadBucket: "documents",
             uploadFolder: "tenders/documents",
           },
@@ -745,14 +991,20 @@ export const dashboardSections: CrudSectionConfig[] = [
         ]),
         fields: fields([
           { key: "title", label: "Title", kind: "text", required: true },
-          { key: "description", label: "Description", kind: "textarea", rows: 4 },
+          {
+            key: "description",
+            label: "Description",
+            kind: "textarea",
+            rows: 4,
+          },
           { key: "category", label: "Category", kind: "text" },
           {
             key: "file_url",
             label: "Document",
             kind: "upload",
             required: true,
-            accept: ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            accept:
+              ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             uploadBucket: "documents",
             uploadFolder: "tenders/downloads",
           },
@@ -772,8 +1024,8 @@ export const dashboardSections: CrudSectionConfig[] = [
     resources: [
       {
         id: "team_members",
-        label: "Team members",
-        description: "Edit leadership and board profile cards.",
+        label: "Leadership profiles",
+        description: "Edit public leadership and board profile cards.",
         table: "team_members",
         readRoles: ["content_editor"],
         writeRoles: ["content_editor"],
@@ -787,7 +1039,12 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "display_order", label: "Order", kind: "number" },
         ]),
         fields: fields([
-          { key: "full_name", label: "Full name", kind: "text", required: true },
+          {
+            key: "full_name",
+            label: "Full name",
+            kind: "text",
+            required: true,
+          },
           { key: "title", label: "Title", kind: "text", required: true },
           { key: "bio", label: "Bio", kind: "textarea", rows: 7 },
           {
@@ -806,8 +1063,9 @@ export const dashboardSections: CrudSectionConfig[] = [
       },
       {
         id: "profiles",
-        label: "Staff accounts",
-        description: "Create auth users, manage dashboard access, and reset passwords.",
+        label: "Team members",
+        description:
+          "Create auth users, assign roles, manage access, deactivate accounts, and reset passwords.",
         table: "profiles",
         readRoles: ["super_admin"],
         writeRoles: ["super_admin"],
@@ -821,7 +1079,12 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "is_active", label: "Active", kind: "boolean" },
         ]),
         fields: fields([
-          { key: "full_name", label: "Full name", kind: "text", required: true },
+          {
+            key: "full_name",
+            label: "Full name",
+            kind: "text",
+            required: true,
+          },
           { key: "email", label: "Email", kind: "text", required: true },
           {
             key: "avatar_url",
@@ -839,11 +1102,17 @@ export const dashboardSections: CrudSectionConfig[] = [
             label: "Roles",
             kind: "multiselect",
             options: appRoles,
-            helpText: "Leave empty for a staff record without dashboard access yet.",
+            required: true,
+            helpText: "Every team member needs at least one role.",
           },
-          { key: "is_active", label: "Active", kind: "checkbox", defaultValue: true },
+          {
+            key: "is_active",
+            label: "Active",
+            kind: "checkbox",
+            defaultValue: true,
+          },
         ]),
-        submitLabel: "Save staff account",
+        submitLabel: "Save team member",
       },
     ],
   },
@@ -860,7 +1129,8 @@ export const dashboardSections: CrudSectionConfig[] = [
         id: "pages-and-content-home",
         label: "Home",
         to: "/dashboard/pages-and-content/home",
-        description: "Edit hero slides, at-a-glance stats, and homepage blocks.",
+        description:
+          "Edit hero slides, at-a-glance stats, and homepage blocks.",
       },
       {
         id: "pages-and-content-about",
@@ -947,30 +1217,54 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "emergency_line", label: "Emergency line", kind: "text" },
           { key: "main_phone", label: "Main phone", kind: "text" },
           { key: "main_email", label: "Main email", kind: "text" },
-          { key: "physical_address", label: "Physical address", kind: "textarea", rows: 3 },
-          { key: "postal_address", label: "Postal address", kind: "textarea", rows: 3 },
+          {
+            key: "physical_address",
+            label: "Physical address",
+            kind: "textarea",
+            rows: 3,
+          },
+          {
+            key: "postal_address",
+            label: "Postal address",
+            kind: "textarea",
+            rows: 3,
+          },
           {
             key: "visiting_hours",
             label: "Visiting hours JSON",
             kind: "json",
-            helpText: "Example: [{\"label\":\"Weekdays\",\"start\":\"08:00\",\"end\":\"17:00\"}]",
+            helpText:
+              'Example: [{"label":"Weekdays","start":"08:00","end":"17:00"}]',
           },
           {
             key: "social_links",
             label: "Social links JSON",
             kind: "json",
-            helpText: "Example: {\"facebook\":\"https://...\"}",
+            helpText: 'Example: {"facebook":"https://..."}',
           },
           {
             key: "homepage_hero",
             label: "Homepage hero JSON",
             kind: "json",
-            helpText: "Controls the fallback hero content used on the homepage.",
+            helpText:
+              "Controls the fallback hero content used on the homepage.",
           },
-          { key: "whatsapp_label", label: "WhatsApp button label", kind: "text" },
+          {
+            key: "whatsapp_label",
+            label: "WhatsApp button label",
+            kind: "text",
+          },
           { key: "whatsapp_href", label: "WhatsApp button link", kind: "text" },
-          { key: "emergency_label", label: "Emergency button label", kind: "text" },
-          { key: "emergency_href", label: "Emergency button link", kind: "text" },
+          {
+            key: "emergency_label",
+            label: "Emergency button label",
+            kind: "text",
+          },
+          {
+            key: "emergency_href",
+            label: "Emergency button link",
+            kind: "text",
+          },
         ]),
         stampFields: { update: ["updated_by"] },
       },
@@ -992,17 +1286,36 @@ export const dashboardSections: CrudSectionConfig[] = [
         fields: fields([
           { key: "slug", label: "Slug", kind: "text", required: true },
           { key: "title", label: "Title", kind: "text", required: true },
-          { key: "content", label: "Content", kind: "textarea", rows: 14, required: true },
+          {
+            key: "content",
+            label: "Content",
+            kind: "richtext",
+            required: true,
+            placeholder: "Write the page body here.",
+            helpText:
+              "Use the toolbar to format headings, lists, quotes, and links.",
+          },
           { key: "seo_title", label: "SEO title", kind: "text" },
-          { key: "seo_description", label: "SEO description", kind: "textarea", rows: 3 },
-          { key: "status", label: "Status", kind: "select", options: publishStatuses },
+          {
+            key: "seo_description",
+            label: "SEO description",
+            kind: "textarea",
+            rows: 3,
+          },
+          {
+            key: "status",
+            label: "Status",
+            kind: "select",
+            options: publishStatuses,
+          },
         ]),
         stampFields: { update: ["updated_by"] },
       },
       {
         id: "page_sections",
         label: "Page sections",
-        description: "Manage the editable section blocks shown across the public site.",
+        description:
+          "Manage the editable section blocks shown across the public site.",
         table: "page_sections",
         readRoles: ["content_editor"],
         writeRoles: ["content_editor"],
@@ -1093,7 +1406,12 @@ export const dashboardSections: CrudSectionConfig[] = [
             required: true,
           },
           { key: "title", label: "Title", kind: "text", required: true },
-          { key: "description", label: "Description", kind: "textarea", rows: 4 },
+          {
+            key: "description",
+            label: "Description",
+            kind: "textarea",
+            rows: 4,
+          },
           {
             key: "icon",
             label: "Icon",
@@ -1153,7 +1471,13 @@ export const dashboardSections: CrudSectionConfig[] = [
           },
           { key: "eyebrow", label: "Eyebrow", kind: "text" },
           { key: "title", label: "Title", kind: "text", required: true },
-          { key: "body", label: "Body", kind: "textarea", rows: 4, required: true },
+          {
+            key: "body",
+            label: "Body",
+            kind: "textarea",
+            rows: 4,
+            required: true,
+          },
           { key: "cta_label", label: "Button label", kind: "text" },
           { key: "cta_href", label: "Button link", kind: "text" },
           {
@@ -1190,7 +1514,8 @@ export const dashboardSections: CrudSectionConfig[] = [
       {
         id: "page_pulses",
         label: "Page pulses",
-        description: "Inspect lightweight page activity captured from the public site.",
+        description:
+          "Inspect lightweight page activity captured from the public site.",
         table: "page_pulses",
         readRoles: ["super_admin"],
         writeRoles: [],
@@ -1206,18 +1531,64 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "referrer", label: "Referrer" },
         ]),
         fields: fields([
-          { key: "session_id", label: "Session ID", kind: "text", disabled: true },
+          {
+            key: "session_id",
+            label: "Session ID",
+            kind: "text",
+            disabled: true,
+          },
           { key: "path", label: "Path", kind: "text", disabled: true },
-          { key: "page_title", label: "Page title", kind: "text", disabled: true },
+          {
+            key: "page_title",
+            label: "Page title",
+            kind: "text",
+            disabled: true,
+          },
           { key: "referrer", label: "Referrer", kind: "text", disabled: true },
           { key: "language", label: "Language", kind: "text", disabled: true },
-          { key: "user_agent", label: "User agent", kind: "textarea", rows: 4, disabled: true },
-          { key: "ip_address", label: "IP address", kind: "text", disabled: true },
-          { key: "screen_width", label: "Screen width", kind: "number", disabled: true },
-          { key: "screen_height", label: "Screen height", kind: "number", disabled: true },
-          { key: "viewport_width", label: "Viewport width", kind: "number", disabled: true },
-          { key: "viewport_height", label: "Viewport height", kind: "number", disabled: true },
-          { key: "created_at", label: "Captured at", kind: "text", disabled: true },
+          {
+            key: "user_agent",
+            label: "User agent",
+            kind: "textarea",
+            rows: 4,
+            disabled: true,
+          },
+          {
+            key: "ip_address",
+            label: "IP address",
+            kind: "text",
+            disabled: true,
+          },
+          {
+            key: "screen_width",
+            label: "Screen width",
+            kind: "number",
+            disabled: true,
+          },
+          {
+            key: "screen_height",
+            label: "Screen height",
+            kind: "number",
+            disabled: true,
+          },
+          {
+            key: "viewport_width",
+            label: "Viewport width",
+            kind: "number",
+            disabled: true,
+          },
+          {
+            key: "viewport_height",
+            label: "Viewport height",
+            kind: "number",
+            disabled: true,
+          },
+          {
+            key: "created_at",
+            label: "Captured at",
+            kind: "text",
+            disabled: true,
+          },
         ]),
       },
     ],
@@ -1252,19 +1623,30 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "emergency_line", label: "Emergency line", kind: "text" },
           { key: "main_phone", label: "Main phone", kind: "text" },
           { key: "main_email", label: "Main email", kind: "text" },
-          { key: "physical_address", label: "Physical address", kind: "textarea", rows: 3 },
-          { key: "postal_address", label: "Postal address", kind: "textarea", rows: 3 },
+          {
+            key: "physical_address",
+            label: "Physical address",
+            kind: "textarea",
+            rows: 3,
+          },
+          {
+            key: "postal_address",
+            label: "Postal address",
+            kind: "textarea",
+            rows: 3,
+          },
           {
             key: "visiting_hours",
             label: "Visiting hours JSON",
             kind: "json",
-            helpText: "Example: [{\"label\":\"Weekdays\",\"start\":\"08:00\",\"end\":\"17:00\"}]",
+            helpText:
+              'Example: [{"label":"Weekdays","start":"08:00","end":"17:00"}]',
           },
           {
             key: "social_links",
             label: "Social links JSON",
             kind: "json",
-            helpText: "Example: {\"facebook\":\"https://...\"}",
+            helpText: 'Example: {"facebook":"https://..."}',
           },
           {
             key: "homepage_hero",
@@ -1272,10 +1654,22 @@ export const dashboardSections: CrudSectionConfig[] = [
             kind: "json",
             helpText: "Keeps the homepage hero content editable in one place.",
           },
-          { key: "whatsapp_label", label: "WhatsApp button label", kind: "text" },
+          {
+            key: "whatsapp_label",
+            label: "WhatsApp button label",
+            kind: "text",
+          },
           { key: "whatsapp_href", label: "WhatsApp button link", kind: "text" },
-          { key: "emergency_label", label: "Emergency button label", kind: "text" },
-          { key: "emergency_href", label: "Emergency button link", kind: "text" },
+          {
+            key: "emergency_label",
+            label: "Emergency button label",
+            kind: "text",
+          },
+          {
+            key: "emergency_href",
+            label: "Emergency button link",
+            kind: "text",
+          },
         ]),
         stampFields: { update: ["updated_by"] },
       },
@@ -1317,11 +1711,47 @@ export function getResourceReadRoles(resourceId: string) {
   return getDashboardResource(resourceId)?.resource.readRoles ?? null;
 }
 
-export function getResourceStampFields(resourceId: string, mode: "create" | "update") {
+function singularizeLabel(label: string) {
+  const parts = label.trim().split(/\s+/);
+  if (parts.length === 0) return label.trim();
+
+  const lastIndex = parts.length - 1;
+  const lastWord = parts[lastIndex] ?? "";
+  const lowerLastWord = lastWord.toLowerCase();
+
+  let singularLastWord = lastWord;
+  if (lowerLastWord.endsWith("ies") && lastWord.length > 3) {
+    singularLastWord = `${lastWord.slice(0, -3)}y`;
+  } else if (
+    lowerLastWord.endsWith("ses") ||
+    lowerLastWord.endsWith("xes") ||
+    lowerLastWord.endsWith("zes") ||
+    lowerLastWord.endsWith("ches") ||
+    lowerLastWord.endsWith("shes")
+  ) {
+    singularLastWord = lastWord.slice(0, -2);
+  } else if (lowerLastWord.endsWith("s") && !lowerLastWord.endsWith("ss")) {
+    singularLastWord = lastWord.slice(0, -1);
+  }
+
+  parts[lastIndex] = singularLastWord;
+  return parts.join(" ");
+}
+
+export function getResourceCreateLabel(resource: CrudResourceConfig) {
+  return resource.createLabel ?? `New ${singularizeLabel(resource.label)}`;
+}
+
+export function getResourceStampFields(
+  resourceId: string,
+  mode: "create" | "update",
+) {
   return getDashboardResource(resourceId)?.resource.stampFields?.[mode] ?? [];
 }
 
-export function getResourceFieldLookup(field: CrudField): ResourceLookup | null {
+export function getResourceFieldLookup(
+  field: CrudField,
+): ResourceLookup | null {
   if (!field.optionsFromResourceId) return null;
 
   return {

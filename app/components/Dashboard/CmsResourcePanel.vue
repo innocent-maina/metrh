@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import {
   buildFormValues,
+  buildDashboardEditorRoute,
   getDashboardResource,
   getFieldOptions,
+  getResourceCreateLabel,
   serializeFormValues,
   type CrudResourceConfig,
 } from "~~/shared/dashboard-crud";
@@ -25,6 +27,7 @@ interface Props {
   emptyTitle?: string;
   emptyDescription?: string;
   hideSearch?: boolean;
+  usePageEditor?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -35,9 +38,11 @@ const props = withDefaults(defineProps<Props>(), {
   emptyTitle: "No records yet",
   emptyDescription: "Create the first record to get started.",
   hideSearch: false,
+  usePageEditor: false,
 });
 
 const supabase = useSupabaseClient();
+const route = useRoute();
 const resource = computed<CrudResourceConfig | null>(() => {
   return getDashboardResource(props.resourceId)?.resource ?? null;
 });
@@ -52,6 +57,9 @@ const formValues = ref<Record<string, unknown>>({});
 const isSaving = ref(false);
 const searchTerm = ref("");
 const notice = ref<string | null>(null);
+const createButtonLabel = computed(() =>
+  resource.value ? getResourceCreateLabel(resource.value) : "New record",
+);
 
 const lookupRowsByResourceId = reactive<Record<string, Record<string, unknown>[]>>(
   {},
@@ -180,6 +188,17 @@ function openCreate() {
   const current = resource.value;
   if (!current || current.allowCreate === false) return;
 
+  if (props.usePageEditor) {
+    navigateTo(
+      buildDashboardEditorRoute(current, {
+        mode: "create",
+        defaults: props.createDefaults,
+        backTo: route.fullPath,
+      }),
+    );
+    return;
+  }
+
   drawerMode.value = "create";
   activeRecord.value = null;
   formValues.value = {
@@ -195,6 +214,17 @@ function openRecord(row: Record<string, unknown>) {
   if (!current) return;
 
   const rawRow = (row.__rawRow as Record<string, unknown> | undefined) ?? row;
+
+  if (props.usePageEditor) {
+    navigateTo(
+      buildDashboardEditorRoute(current, {
+        mode: current.allowUpdate === false ? "view" : "edit",
+        row: rawRow,
+        backTo: route.fullPath,
+      }),
+    );
+    return;
+  }
 
   drawerMode.value = current.allowUpdate === false ? "view" : "edit";
   activeRecord.value = rawRow;
@@ -353,10 +383,11 @@ const filteredRows = computed(() => {
       <button
         v-if="resource && resource.allowCreate !== false"
         type="button"
-        class="rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark"
+        class="inline-flex items-center gap-2 rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark"
         @click="openCreate"
       >
-        New record
+        <Icon name="lucide:plus" class="size-4" aria-hidden="true" />
+        {{ createButtonLabel }}
       </button>
     </div>
 
@@ -393,36 +424,33 @@ const filteredRows = computed(() => {
       >
         <template #actions="{ row }">
           <div class="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              class="rounded-control border border-border px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink hover:bg-surface-alt"
+            <BaseTableActionButton
+              label="Open record"
+              icon="lucide:eye"
+              tone="open"
               @click="openRecord(row)"
-            >
-              Open
-            </button>
-            <button
+            />
+            <BaseTableActionButton
               v-if="resource.allowUpdate !== false"
-              type="button"
-              class="rounded-control border border-primary/30 px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-primary hover:bg-primary/5"
+              label="Edit record"
+              icon="lucide:pen-line"
+              tone="edit"
               @click="openRecord(row)"
-            >
-              Edit
-            </button>
-            <button
+            />
+            <BaseTableActionButton
               v-if="resource.allowDelete !== false"
-              type="button"
-              class="rounded-control border border-danger/30 px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-danger hover:bg-danger/5"
+              label="Delete record"
+              icon="lucide:trash-2"
+              tone="delete"
               @click="deleteRecord(row)"
-            >
-              Delete
-            </button>
+            />
           </div>
         </template>
       </BaseTable>
     </div>
 
     <BaseCrudDrawer
-      v-if="resource"
+      v-if="resource && !props.usePageEditor"
       v-model:open="drawerOpen"
       :title="`${drawerMode === 'create' ? 'Create' : drawerMode === 'edit' ? 'Edit' : 'View'} ${resource.label}`"
       :description="resource.description"

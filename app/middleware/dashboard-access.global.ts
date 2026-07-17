@@ -27,7 +27,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const { me, load } = useDashboardRoles();
   if (!me.value) await load();
 
-  if (me.value && me.value.roles.length === 0) {
+  if (
+    !me.value ||
+    me.value.profile?.is_active === false ||
+    me.value.roles.length === 0
+  ) {
     return navigateTo("/dashboard/unauthorized");
   }
 });

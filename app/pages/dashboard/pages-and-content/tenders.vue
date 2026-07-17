@@ -37,6 +37,7 @@ useSeoMeta({
       resource-id="page_sections"
       title="Tenders sections"
       description="Edit the introductory block and support text for the Tenders page."
+      use-page-editor
       :query-filters="tendersDefaults"
       :create-defaults="tendersDefaults"
     />

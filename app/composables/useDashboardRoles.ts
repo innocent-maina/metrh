@@ -34,13 +34,16 @@ export function useDashboardRoles() {
   }
 
   function hasRole(role: AppRole) {
-    if (!state.value) return false;
+    if (!state.value || state.value.profile?.is_active === false) return false;
     return (
       state.value.roles.includes(role) ||
       state.value.roles.includes("super_admin")
     );
   }
 
+  const isActive = computed(
+    () => state.value?.profile?.is_active ?? false,
+  );
   const isSuperAdmin = computed(
     () => state.value?.roles.includes("super_admin") ?? false,
   );
@@ -49,5 +52,5 @@ export function useDashboardRoles() {
     state.value = null;
   }
 
-  return { me: state, pending, error, load, hasRole, isSuperAdmin, reset };
+  return { me: state, pending, error, load, hasRole, isActive, isSuperAdmin, reset };
 }

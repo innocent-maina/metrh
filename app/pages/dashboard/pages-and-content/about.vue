@@ -54,6 +54,7 @@ useSeoMeta({
       resource-id="page_sections"
       title="About sections"
       description="Edit the introductory block and the About page content sections."
+      use-page-editor
       :query-filters="aboutDefaults"
       :create-defaults="aboutDefaults"
     />
@@ -62,6 +63,7 @@ useSeoMeta({
       resource-id="page_section_items"
       title="About section items"
       description="Edit the values, goals, growth projects, and teaching links."
+      use-page-editor
       :query-filters="{ section_id: aboutSectionIds }"
       :lookup-query-filters="{ page_sections: { page_slug: 'about' } }"
       :create-defaults="{ section_id: aboutSectionIds[0] ?? '' }"

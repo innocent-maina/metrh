@@ -9,6 +9,8 @@ export type StaffProfileInput = Pick<
   "full_name" | "email" | "avatar_url" | "phone" | "job_title" | "roles" | "is_active"
 >;
 
+const TEMP_BAN_DURATION = "876000h";
+
 function generateTemporaryPassword() {
   return randomBytes(12).toString("base64url");
 }
@@ -16,19 +18,31 @@ function generateTemporaryPassword() {
 function normalizeRoles(value: unknown): AppRole[] {
   if (!Array.isArray(value)) return [];
 
-  return value
-    .map((entry) => String(entry).trim())
-    .filter((entry): entry is AppRole => {
-      return entry === "super_admin"
-        || entry === "content_editor"
-        || entry === "hr_manager"
-        || entry === "procurement_manager"
-        || entry === "front_desk";
-    });
+  return Array.from(
+    new Set(
+      value
+        .map((entry) => String(entry).trim())
+        .filter((entry): entry is AppRole => {
+          return (
+            entry === "super_admin" ||
+            entry === "content_editor" ||
+            entry === "hr_manager" ||
+            entry === "procurement_manager" ||
+            entry === "front_desk"
+          );
+        }),
+    ),
+  );
 }
 
 function normalizeBoolean(value: unknown, fallback: boolean) {
   if (value == null || value === "") return fallback;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["false", "0", "off", "no"].includes(normalized)) return false;
+    if (["true", "1", "on", "yes"].includes(normalized)) return true;
+  }
+
   return Boolean(value);
 }
 
@@ -50,13 +64,21 @@ function normalizeStaffInput(data: Record<string, unknown>): StaffProfileInput {
     throw createError({ statusCode: 400, statusMessage: "Email is required." });
   }
 
+  const roles = normalizeRoles(data.roles);
+  if (roles.length === 0) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "At least one role is required for every team member.",
+    });
+  }
+
   return {
     full_name: fullName,
     email,
     avatar_url: normalizeText(data.avatar_url),
     phone: normalizeText(data.phone),
     job_title: normalizeText(data.job_title),
-    roles: normalizeRoles(data.roles),
+    roles,
     is_active: normalizeBoolean(data.is_active, true),
   };
 }
@@ -80,6 +102,21 @@ export async function createStaffAccount(data: Record<string, unknown>) {
       statusCode: 500,
       statusMessage: authError?.message ?? "Could not create the auth user.",
     });
+  }
+
+  if (!payload.is_active) {
+    const { error: banError } = await adminClient.auth.admin.updateUserById(
+      authUser.user.id,
+      { ban_duration: TEMP_BAN_DURATION },
+    );
+
+    if (banError) {
+      await adminClient.auth.admin.deleteUser(authUser.user.id);
+      throw createError({
+        statusCode: 500,
+        statusMessage: banError.message ?? "Could not deactivate the auth user.",
+      });
+    }
   }
 
   const profileRow = {
@@ -136,11 +173,22 @@ export async function updateStaffAccount(
     is_active: data.is_active ?? current.is_active,
   });
 
-  const authUpdate: { email?: string; email_confirm?: boolean } = {};
+  const authUpdate: {
+    email?: string;
+    email_confirm?: boolean;
+    ban_duration?: string | "none";
+    user_metadata?: { full_name?: string };
+  } = {};
+  authUpdate.user_metadata = { full_name: payload.full_name };
   const nextEmail = payload.email;
   if (nextEmail !== current.email) {
     authUpdate.email = nextEmail;
     authUpdate.email_confirm = true;
+  }
+
+  const activeChanged = payload.is_active !== current.is_active;
+  if (activeChanged) {
+    authUpdate.ban_duration = payload.is_active ? "none" : TEMP_BAN_DURATION;
   }
 
   if (Object.keys(authUpdate).length > 0) {
@@ -164,10 +212,12 @@ export async function updateStaffAccount(
     .maybeSingle();
 
   if (error || !row) {
-    if (authUpdate.email) {
+    if (Object.keys(authUpdate).length > 0) {
       await adminClient.auth.admin.updateUserById(userId, {
         email: current.email,
         email_confirm: true,
+        ban_duration: current.is_active ? "none" : TEMP_BAN_DURATION,
+        user_metadata: { full_name: current.full_name },
       });
     }
 

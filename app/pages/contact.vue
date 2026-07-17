@@ -42,9 +42,7 @@ const postalAddress = computed(
   () => siteSettings.value?.postal_address || "P.O. Box 8 – 60200, Meru",
 );
 
-const visitingHours = computed(
-  () => siteSettings.value?.visiting_hours ?? [],
-);
+const visitingHours = computed(() => siteSettings.value?.visiting_hours ?? []);
 
 const mapsHref = computed(
   () =>
@@ -125,27 +123,32 @@ async function submitForm() {
       </div>
     </section>
 
-    <PageMediaStrip
-      :items="contactImages"
-      title="Visit and reach us"
-      subtitle="Contact details supported by real hospital imagery."
-      compact
-    />
-
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
         <div class="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
           <div class="space-y-6">
-            <div class="rounded-card border border-border bg-surface p-6 shadow-card">
-              <p class="text-small font-semibold uppercase tracking-wide text-danger">
+            <div
+              class="rounded-card border border-border bg-surface p-6 shadow-card"
+            >
+              <p
+                class="text-small font-semibold uppercase tracking-wide text-danger"
+              >
                 Emergency line
               </p>
               <a
-                :href="siteSettings?.emergency_href || `tel:${emergencyLine.replace(/-/g, '')}`"
+                :href="
+                  siteSettings?.emergency_href ||
+                  `tel:${emergencyLine.replace(/-/g, '')}`
+                "
                 class="mt-3 inline-flex items-center gap-2 font-display font-semibold text-h2 text-primary hover:underline"
               >
-                <Icon name="lucide:phone-call" class="size-5 text-accent" aria-hidden="true" />
-                {{ siteSettings?.emergency_label || "Emergency line" }}: {{ emergencyLine }}
+                <Icon
+                  name="lucide:phone-call"
+                  class="size-5 text-accent"
+                  aria-hidden="true"
+                />
+                {{ siteSettings?.emergency_label || "Emergency line" }}:
+                {{ emergencyLine }}
               </a>
               <p class="mt-3 text-small text-ink-muted">
                 For urgent care, call directly instead of sending a form.
@@ -153,7 +156,9 @@ async function submitForm() {
             </div>
 
             <div class="rounded-card border border-border bg-surface p-6">
-              <p class="text-small font-semibold uppercase tracking-wide text-info">
+              <p
+                class="text-small font-semibold uppercase tracking-wide text-info"
+              >
                 Visiting hours
               </p>
               <ul class="mt-4 space-y-3">
@@ -162,7 +167,9 @@ async function submitForm() {
                   :key="hours.label"
                   class="flex items-center justify-between gap-4 border-b border-border pb-3 last:border-b-0 last:pb-0"
                 >
-                  <span class="text-small font-medium text-ink">{{ hours.label }}</span>
+                  <span class="text-small font-medium text-ink">{{
+                    hours.label
+                  }}</span>
                   <span class="tabular-nums text-small text-ink-muted">
                     {{ hours.start }} – {{ hours.end }}
                   </span>
@@ -171,7 +178,9 @@ async function submitForm() {
             </div>
 
             <div class="rounded-card border border-border bg-surface p-6">
-              <p class="text-small font-semibold uppercase tracking-wide text-info">
+              <p
+                class="text-small font-semibold uppercase tracking-wide text-info"
+              >
                 Address
               </p>
               <p class="mt-3 text-body text-ink">
@@ -191,8 +200,12 @@ async function submitForm() {
               </a>
             </div>
 
-            <div class="rounded-card border border-border bg-primary-dark p-6 text-white">
-              <p class="text-small font-semibold uppercase tracking-wide text-accent">
+            <div
+              class="rounded-card border border-border bg-primary-dark p-6 text-white"
+            >
+              <p
+                class="text-small font-semibold uppercase tracking-wide text-accent"
+              >
                 General enquiries
               </p>
               <p class="mt-3 text-small text-white/80">
@@ -202,10 +215,14 @@ async function submitForm() {
             </div>
           </div>
 
-          <div class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
+          <div
+            class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card"
+          >
             <div class="flex items-start justify-between gap-4">
               <div>
-                <p class="text-small font-semibold uppercase tracking-wide text-info">
+                <p
+                  class="text-small font-semibold uppercase tracking-wide text-info"
+                >
                   Enquiry form
                 </p>
                 <h2 class="mt-1 font-display font-semibold text-h3 text-ink">
@@ -217,7 +234,10 @@ async function submitForm() {
             <form class="mt-6 space-y-4" @submit.prevent="submitForm">
               <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label for="name" class="block text-small font-medium text-ink mb-1.5">
+                  <label
+                    for="name"
+                    class="block text-small font-medium text-ink mb-1.5"
+                  >
                     Full name
                   </label>
                   <input
@@ -230,7 +250,10 @@ async function submitForm() {
                   />
                 </div>
                 <div>
-                  <label for="email" class="block text-small font-medium text-ink mb-1.5">
+                  <label
+                    for="email"
+                    class="block text-small font-medium text-ink mb-1.5"
+                  >
                     Email address
                   </label>
                   <input
@@ -246,7 +269,10 @@ async function submitForm() {
 
               <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label for="phone" class="block text-small font-medium text-ink mb-1.5">
+                  <label
+                    for="phone"
+                    class="block text-small font-medium text-ink mb-1.5"
+                  >
                     Phone number
                   </label>
                   <input
@@ -258,7 +284,10 @@ async function submitForm() {
                   />
                 </div>
                 <div>
-                  <label for="subject" class="block text-small font-medium text-ink mb-1.5">
+                  <label
+                    for="subject"
+                    class="block text-small font-medium text-ink mb-1.5"
+                  >
                     Subject
                   </label>
                   <input
@@ -272,7 +301,10 @@ async function submitForm() {
               </div>
 
               <div>
-                <label for="message" class="block text-small font-medium text-ink mb-1.5">
+                <label
+                  for="message"
+                  class="block text-small font-medium text-ink mb-1.5"
+                >
                   Message
                 </label>
                 <textarea
@@ -284,10 +316,18 @@ async function submitForm() {
                 ></textarea>
               </div>
 
-              <p v-if="errorMessage" role="alert" class="text-small text-danger">
+              <p
+                v-if="errorMessage"
+                role="alert"
+                class="text-small text-danger"
+              >
                 {{ errorMessage }}
               </p>
-              <p v-if="successMessage" role="status" class="text-small text-success">
+              <p
+                v-if="successMessage"
+                role="status"
+                class="text-small text-success"
+              >
                 {{ successMessage }}
               </p>
 
@@ -300,7 +340,10 @@ async function submitForm() {
                   {{ isSubmitting ? "Sending…" : "Send enquiry" }}
                 </button>
                 <a
-                  :href="siteSettings?.emergency_href || `tel:${emergencyLine.replace(/-/g, '')}`"
+                  :href="
+                    siteSettings?.emergency_href ||
+                    `tel:${emergencyLine.replace(/-/g, '')}`
+                  "
                   class="inline-flex items-center justify-center rounded-control border border-border px-5 py-2.5 text-small font-semibold text-ink transition-colors hover:bg-surface-alt"
                 >
                   Call emergency line

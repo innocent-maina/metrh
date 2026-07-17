@@ -76,7 +76,7 @@ function getRowKey(row: Record<string, unknown>) {
             <th
               v-if="showActions"
               scope="col"
-              class="px-5 py-3 text-right text-caption font-semibold uppercase tracking-wide text-ink-muted"
+              class="w-0 whitespace-nowrap px-5 py-3 text-right text-caption font-semibold uppercase tracking-wide text-ink-muted"
             >
               {{ actionsLabel }}
             </th>
@@ -93,7 +93,7 @@ function getRowKey(row: Record<string, unknown>) {
             >
               {{ formatCell(row[column.key], column.kind) }}
             </td>
-            <td v-if="showActions" class="px-5 py-4 text-right">
+            <td v-if="showActions" class="w-0 whitespace-nowrap px-5 py-4 text-right">
               <slot name="actions" :row="row" />
             </td>
           </tr>

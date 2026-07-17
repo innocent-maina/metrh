@@ -5,7 +5,7 @@ import { richTextToHtml, richTextToPlainText } from "~~/shared/rich-text";
 definePageMeta({ layout: "default" });
 
 const route = useRoute();
-const slug = String(route.params.slug);
+const slug = computed(() => String(route.params.slug ?? ""));
 const supabase = useSupabaseClient<Database>();
 const runtimeConfig = useRuntimeConfig();
 const serviceImages = useHospitalMedia();
@@ -61,81 +61,99 @@ function isInternalHref(value: string) {
   return value.startsWith("/");
 }
 
+function resolveServiceMediaUrl(value: string | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (
+    raw.startsWith("/") ||
+    /^https?:\/\//i.test(raw) ||
+    raw.startsWith("data:")
+  ) {
+    return raw;
+  }
+
+  return supabase.storage.from("media").getPublicUrl(raw).data.publicUrl;
+}
+
 const { data: serviceData } = await useAsyncData<ServicePageData | null>(
-  `public-service-${slug}`,
+  () => `public-service-${slug.value}`,
   async () => {
-  try {
-    const { data: serviceRow, error } = await supabase
-      .from("services")
-      .select(
-        "id,category_id,name,slug,summary,description,cover_image_url,cover_image_alt,cta_label,cta_href,is_specialized,display_order,is_active,created_at,updated_at",
-      )
-      .eq("slug", slug)
-      .eq("is_active", true)
-      .maybeSingle();
+    const currentSlug = slug.value;
 
-    if (error) throw error;
-
-    const service = serviceRow as ServiceRow | null;
-    if (!service) return null;
-
-    const [categoryResult, relatedResult] = await Promise.all([
-      supabase
-        .from("service_categories")
-        .select("id,name,slug,icon,description,display_order")
-        .eq("id", service.category_id)
-        .maybeSingle(),
-      supabase
+    try {
+      const { data: serviceRow, error } = await supabase
         .from("services")
         .select(
           "id,category_id,name,slug,summary,description,cover_image_url,cover_image_alt,cta_label,cta_href,is_specialized,display_order,is_active,created_at,updated_at",
         )
-        .eq("category_id", service.category_id)
+        .eq("slug", currentSlug)
         .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .order("name", { ascending: true })
-        .limit(6),
-    ]);
+        .maybeSingle();
 
-    if (categoryResult.error) throw categoryResult.error;
-    if (relatedResult.error) throw relatedResult.error;
+      if (error) throw error;
 
-    const category = (categoryResult.data as ServiceCategoryRow | null) ?? null;
-    const relatedRows = (relatedResult.data ?? []) as ServiceRow[];
-    const heroImageUrl = resolveContentMediaUrl(service.cover_image_url) || fallbackServiceImage.value;
+      const service = serviceRow as ServiceRow | null;
+      if (!service) return null;
 
-    return {
-      service: {
-        id: service.id,
-        slug: service.slug,
-        name: service.name,
-        summary: summarize(service.summary, service.description),
-        bodyHtml: richTextToHtml(service.description),
-        categoryName: category?.name ?? "Services",
-        categoryLink: category?.slug ? `/services#${category.slug}` : "/services",
-        categoryIcon: category?.icon ?? "lucide:stethoscope",
-        categoryDescription: category?.description ?? null,
-        heroImageUrl,
-        heroImageAlt: service.cover_image_alt || service.name,
-        ctaLabel: service.cta_label,
-        ctaHref: String(service.cta_href ?? "").trim(),
-        isSpecialized: service.is_specialized,
-      },
-      relatedServices: relatedRows
-        .filter((entry) => entry.slug !== slug)
-        .slice(0, 3)
-        .map((entry) => ({
-          slug: entry.slug,
-          name: entry.name,
-          summary: summarize(entry.summary, entry.description),
-          isSpecialized: entry.is_specialized,
-        })),
-    };
-  } catch (error) {
-    console.warn("[services] Could not load service detail.", error);
-    return null;
-  }
+      const [categoryResult, relatedResult] = await Promise.all([
+        supabase
+          .from("service_categories")
+          .select("id,name,slug,icon,description,display_order")
+          .eq("id", service.category_id)
+          .maybeSingle(),
+        supabase
+          .from("services")
+          .select(
+            "id,category_id,name,slug,summary,description,cover_image_url,cover_image_alt,cta_label,cta_href,is_specialized,display_order,is_active,created_at,updated_at",
+          )
+          .eq("category_id", service.category_id)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .order("name", { ascending: true })
+          .limit(6),
+      ]);
+
+      if (categoryResult.error) throw categoryResult.error;
+      if (relatedResult.error) throw relatedResult.error;
+
+      const category = (categoryResult.data as ServiceCategoryRow | null) ?? null;
+      const relatedRows = (relatedResult.data ?? []) as ServiceRow[];
+      const heroImageUrl =
+        resolveServiceMediaUrl(service.cover_image_url) || fallbackServiceImage.value;
+
+      return {
+        service: {
+          id: service.id,
+          slug: service.slug,
+          name: service.name,
+          summary: summarize(service.summary, service.description),
+          bodyHtml: richTextToHtml(service.description),
+          categoryName: category?.name ?? "Services",
+          categoryLink: category?.slug ? `/services#${category.slug}` : "/services",
+          categoryIcon: category?.icon ?? "lucide:stethoscope",
+          categoryDescription: category?.description ?? null,
+          heroImageUrl,
+          heroImageAlt: service.cover_image_alt || service.name,
+          ctaLabel: service.cta_label,
+          ctaHref: String(service.cta_href ?? "").trim(),
+          isSpecialized: service.is_specialized,
+        },
+        relatedServices: relatedRows
+          .filter((entry) => entry.slug !== currentSlug)
+          .slice(0, 3)
+          .map((entry) => ({
+            slug: entry.slug,
+            name: entry.name,
+            summary: summarize(entry.summary, entry.description),
+            isSpecialized: entry.is_specialized,
+          })),
+      };
+    } catch (error) {
+      console.warn("[services] Could not load service detail.", error);
+      return null;
+    }
   },
+  { watch: [slug] },
 );
 
 const service = computed(() => serviceData.value?.service ?? null);

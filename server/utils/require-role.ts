@@ -58,7 +58,15 @@ export async function requireAnyRole(event: H3Event, roles: AppRole[]) {
     });
   }
 
-  const roleRows: AppRole[] = (profile as ProfileRow | null)?.roles ?? [];
+  const staffProfile = profile as ProfileRow | null;
+  if (!staffProfile || !staffProfile.is_active) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: "This staff account is inactive.",
+    });
+  }
+
+  const roleRows: AppRole[] = staffProfile.roles ?? [];
   const allowedRoles = new Set(roles);
   const hasRole = roleRows.some(
     (entry) => entry === "super_admin" || allowedRoles.has(entry),

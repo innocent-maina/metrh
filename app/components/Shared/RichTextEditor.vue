@@ -7,11 +7,13 @@ const props = withDefaults(
     placeholder?: string;
     disabled?: boolean;
     required?: boolean;
+    editorClass?: string;
   }>(),
   {
     placeholder: "",
     disabled: false,
     required: false,
+    editorClass: "",
   },
 );
 
@@ -191,7 +193,7 @@ onMounted(() => {
       <div
         ref="editorRef"
         class="min-h-72 rounded-card border border-border bg-surface px-4 py-3 text-body text-ink outline-none transition-colors focus:border-primary"
-        :class="disabled ? 'cursor-not-allowed bg-surface-alt/60' : ''"
+        :class="[editorClass, disabled ? 'cursor-not-allowed bg-surface-alt/60' : '']"
         :contenteditable="!disabled"
         role="textbox"
         :aria-multiline="true"
