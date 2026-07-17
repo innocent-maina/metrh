@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type { Database } from "~~/types/database.types";
-
 definePageMeta({ layout: "default" });
 
-const supabase = useSupabaseClient<Database>();
 const { data: tendersContent } = await usePageContent("tenders");
 
 useSeoMeta({
@@ -74,24 +71,13 @@ function formatTenderCategory(value: string) {
 
 const { data: tenderIndex } = await useAsyncData("public-tenders-index", async () => {
   try {
-    const [tendersResult, downloadsResult] = await Promise.all([
-      supabase
-        .from("tenders")
-        .select("id,tender_number,title,slug,category,description,status,opening_date,closing_date,awarded_to,created_at,updated_at")
-        .neq("status", "draft")
-        .order("closing_date", { ascending: true }),
-      supabase
-        .from("downloads")
-        .select("id,title,description,category,file_url,file_size_kb,is_published,created_at")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false }),
-    ]);
+    const response = await $fetch<{
+      tenders: TenderRow[];
+      downloads: DownloadRow[];
+    }>("/api/public/tenders");
 
-    if (tendersResult.error) throw tendersResult.error;
-    if (downloadsResult.error) throw downloadsResult.error;
-
-    const tenderRows = (tendersResult.data ?? []) as TenderRow[];
-    const downloadRows = (downloadsResult.data ?? []) as DownloadRow[];
+    const tenderRows = response.tenders ?? [];
+    const downloadRows = response.downloads ?? [];
     const downloadUrlMap = await fetchSignedDocumentUrls(
       downloadRows.map((download) => ({
         resource: "downloads",

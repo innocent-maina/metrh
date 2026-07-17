@@ -1,28 +1,37 @@
+import { createError, readBody } from "h3";
 import { z } from "zod";
-import { readBody } from "h3";
+import { supabaseAdmin } from "~~/server/utils/supabase-admin";
 import { createSignedStorageUpload } from "~~/server/utils/storage-upload";
 
-const signUploadSchema = z.object({
+const schema = z.object({
   jobSlug: z
     .string()
     .trim()
     .min(1)
     .max(160)
-    .regex(/^[a-z0-9-]+$/),
+    .regex(/^[a-z0-9-]+$/i),
   fileName: z.string().trim().min(1).max(255),
 });
 
-function sanitizeFileName(fileName: string) {
-  return fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-");
-}
-
 export default defineEventHandler(async (event) => {
-  const body = signUploadSchema.parse(await readBody(event));
-  const fileName = sanitizeFileName(body.fileName);
+  const body = schema.parse(await readBody(event));
+
+  const { data: posting, error } = await supabaseAdmin()
+    .from("job_postings")
+    .select("id,status,slug")
+    .eq("slug", body.jobSlug)
+    .maybeSingle<{ id: string; status: string; slug: string }>();
+
+  if (error || !posting || posting.status !== "open") {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "This posting is no longer open.",
+    });
+  }
 
   return createSignedStorageUpload({
     bucket: "documents",
     folder: `applications/${body.jobSlug}`,
-    fileName,
+    fileName: body.fileName,
   });
 });

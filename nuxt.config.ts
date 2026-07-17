@@ -35,6 +35,7 @@ export default defineNuxtConfig({
   // service-role client, which is never imported in any client bundle.
   supabase: {
     redirect: true,
+    useSsrCookies: true,
     redirectOptions: {
       login: "/dashboard/login",
       callback: "/dashboard/confirm",
@@ -59,6 +60,7 @@ export default defineNuxtConfig({
     },
     types: fileURLToPath(new URL("./types/database.types.ts", import.meta.url)),
     cookieOptions: {
+      path: "/",
       httpOnly: false,
       sameSite: "lax",
       // Local `nuxt dev` runs over http://localhost, even if NODE_ENV is set to
@@ -66,6 +68,13 @@ export default defineNuxtConfig({
       // which makes serverSupabaseUser() think the session is missing.
       secure: !process.dev && process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // staff sessions: 7 days
+    },
+    clientOptions: {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
     },
   },
 
@@ -93,11 +102,5 @@ export default defineNuxtConfig({
   icon: {
     serverBundle: "remote",
     clientBundle: { scan: true },
-  },
-
-  nitro: {
-    prerender: {
-      routes: ["/sitemap.xml", "/robots.txt"],
-    },
   },
 });

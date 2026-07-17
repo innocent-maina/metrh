@@ -16,8 +16,6 @@ const legalLinks = [
   { label: "Cookie Policy", to: "/cookie-policy" },
 ];
 
-const currentYear = new Date().getFullYear();
-
 const emergencyLine = computed(
   () => siteSettings.value?.emergency_line?.trim() || "0711-207623",
 );
@@ -38,7 +36,7 @@ const socialLinks = computed(
 <template>
   <footer class="bg-primary-dark text-white">
     <div
-      class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 grid gap-10 md:grid-cols-4"
+      class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 grid gap-10 md:grid-cols-2 xl:grid-cols-5"
     >
       <div class="md:col-span-1">
         <div class="flex items-center gap-3">
@@ -141,25 +139,53 @@ const socialLinks = computed(
           </a>
         </div>
       </div>
+
+      <div>
+        <h2
+          class="text-small font-semibold uppercase tracking-wide text-white/60"
+        >
+          Legal Pages
+        </h2>
+        <ul class="mt-4 space-y-2.5">
+          <li v-for="item in legalLinks" :key="item.to">
+            <NuxtLink
+              :to="item.to"
+              class="text-small text-white/85 hover:text-accent transition-colors"
+            >
+              {{ item.label }}
+            </NuxtLink>
+          </li>
+        </ul>
+      </div>
     </div>
 
     <div class="border-t border-surface/10">
       <div
         class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-caption text-white/60"
       >
-        <p>
-          &copy; {{ currentYear }} Meru Teaching and Referral Hospital. All
-          rights reserved.
+        <p class="text-center sm:text-left">
+          Website built by
+          <a
+            href="https://nuvanahq.co.ke"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-semibold text-accent hover:underline"
+          >
+            Nuvana Technology
+          </a>
+          for Meru Teaching and Referral Hospital.
         </p>
-        <ul class="flex gap-5">
-          <li v-for="item in legalLinks" :key="item.to">
-            <NuxtLink
-              :to="item.to"
-              class="hover:text-white transition-colors"
-              >{{ item.label }}</NuxtLink
-            >
-          </li>
-        </ul>
+        <p class="text-center sm:text-right text-white/45">
+          Official builder site:
+          <a
+            href="https://nuvanahq.co.ke"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-medium text-white/70 hover:text-accent hover:underline"
+          >
+            nuvanahq.co.ke
+          </a>
+        </p>
       </div>
     </div>
   </footer>

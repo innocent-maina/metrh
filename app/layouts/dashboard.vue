@@ -229,9 +229,9 @@ async function handleSignOut() {
         class="shrink-0 border-b border-border bg-surface/95 backdrop-blur"
       >
         <div
-          class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
+          class="mx-auto flex max-w-7xl flex-row items-center justify-between gap-2 px-4 py-3 sm:gap-3 sm:px-6 lg:px-8"
         >
-          <div class="flex min-w-0 items-center gap-3">
+          <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <button
               type="button"
               class="inline-flex shrink-0 items-center justify-center rounded-control border border-border bg-surface p-2 text-ink hover:bg-surface-alt lg:hidden"
@@ -243,11 +243,11 @@ async function handleSignOut() {
               <Icon name="lucide:menu" class="size-5" aria-hidden="true" />
             </button>
 
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
               <p class="hidden text-caption uppercase tracking-wide text-ink-muted sm:block">
                 Staff area
               </p>
-              <h1 class="truncate font-display font-semibold text-h4 text-ink sm:text-h3">
+              <h1 class="truncate font-display font-semibold text-[1.05rem] leading-tight text-ink sm:text-h3">
                 {{
                   currentChildSection?.label ||
                   currentSection?.label ||
@@ -365,6 +365,35 @@ async function handleSignOut() {
           <slot />
         </div>
       </main>
+
+      <footer class="shrink-0 border-t border-border bg-surface/95 backdrop-blur">
+        <div
+          class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 text-caption text-ink-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
+        >
+          <p class="font-medium text-ink">
+            Admin dashboard built by
+            <a
+              href="https://nuvanahq.co.ke"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-semibold text-primary hover:underline"
+            >
+              Nuvana Technology
+            </a>
+          </p>
+          <p>
+            Website link:
+            <a
+              href="https://nuvanahq.co.ke"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-semibold text-ink hover:underline"
+            >
+              nuvanahq.co.ke
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   </div>
 </template>

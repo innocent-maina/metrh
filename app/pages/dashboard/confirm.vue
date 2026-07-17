@@ -9,13 +9,21 @@ const router = useRouter();
 const password = ref("");
 const confirmPassword = ref("");
 const isSubmitting = ref(false);
+const isCheckingSession = ref(true);
 const errorMessage = ref("");
 
 // The @nuxtjs/supabase module exchanges the invite/recovery token in the URL
 // for a session automatically before this page's setup runs; `user` becomes
 // reactive once that completes. If it never arrives, the link was invalid
 // or expired.
-const isSessionReady = computed(() => !!user.value);
+onMounted(async () => {
+  await supabase.auth.getSession();
+  isCheckingSession.value = false;
+});
+
+const isSessionReady = computed(
+  () => !isCheckingSession.value && !!user.value,
+);
 
 async function handleSubmit() {
   errorMessage.value = "";
@@ -101,7 +109,7 @@ async function handleSubmit() {
       </form>
     </template>
 
-    <template v-else>
+    <template v-else-if="!isCheckingSession">
       <h1 class="font-display font-semibold text-h3 text-ink">Link expired</h1>
       <p class="text-small text-ink-muted mt-2">
         This invite or reset link is no longer valid. Request a new one below.
@@ -112,6 +120,15 @@ async function handleSubmit() {
       >
         Request a new link
       </NuxtLink>
+    </template>
+
+    <template v-else>
+      <h1 class="font-display font-semibold text-h3 text-ink">
+        Checking link...
+      </h1>
+      <p class="text-small text-ink-muted mt-2">
+        Verifying your reset link.
+      </p>
     </template>
   </div>
 </template>

@@ -8,6 +8,7 @@ import {
   serializeFormValues,
   type CrudResourceConfig,
 } from "~~/shared/dashboard-crud";
+import { richTextToPlainText } from "~~/shared/rich-text";
 
 type FilterValue =
   | string
@@ -30,6 +31,15 @@ interface Props {
   usePageEditor?: boolean;
 }
 
+interface PageEditorGroup {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  order?: number;
+  rows: Record<string, unknown>[];
+}
+
 const props = withDefaults(defineProps<Props>(), {
   description: "",
   queryFilters: () => ({}),
@@ -41,7 +51,6 @@ const props = withDefaults(defineProps<Props>(), {
   usePageEditor: false,
 });
 
-const supabase = useSupabaseClient();
 const route = useRoute();
 const resource = computed<CrudResourceConfig | null>(() => {
   return getDashboardResource(props.resourceId)?.resource ?? null;
@@ -60,6 +69,13 @@ const notice = ref<string | null>(null);
 const createButtonLabel = computed(() =>
   resource.value ? getResourceCreateLabel(resource.value) : "New record",
 );
+const searchLabel = computed(() =>
+  props.usePageEditor ? "Search sections" : "Search",
+);
+const searchPlaceholder = computed(() =>
+  props.usePageEditor ? "Search sections" : "Search records",
+);
+const resolveStorageUrl = usePublicStorageUrl();
 
 const lookupRowsByResourceId = reactive<Record<string, Record<string, unknown>[]>>(
   {},
@@ -92,26 +108,6 @@ function buildRecordIdentifier(
   return { identifier };
 }
 
-function applyFilters(
-  query: ReturnType<typeof supabase.from>,
-  filters: Record<string, FilterValue>,
-) {
-  let nextQuery = query;
-  for (const [key, value] of Object.entries(filters)) {
-    if (value == null) continue;
-    if (Array.isArray(value)) {
-      const entries = value.map((entry) => String(entry));
-      if (entries.length > 0) {
-        nextQuery = nextQuery.in(key, entries);
-      }
-      continue;
-    }
-
-    nextQuery = nextQuery.eq(key, value as never);
-  }
-  return nextQuery;
-}
-
 async function loadResourceRows(
   resourceId: string,
   filters: Record<string, FilterValue> = {},
@@ -119,26 +115,7 @@ async function loadResourceRows(
   const current = getDashboardResource(resourceId)?.resource;
   if (!current) return [];
 
-  let query = supabase.from(current.table as never).select("*");
-  query = applyFilters(query, filters);
-
-  if (current.defaultSort) {
-    query = query.order(current.defaultSort.key, {
-      ascending: current.defaultSort.ascending ?? false,
-    });
-  }
-
-  if (current.singleton) {
-    query = query.limit(1);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as Record<string, unknown>[];
+  return await fetchDashboardResourceRows(resourceId, filters);
 }
 
 async function loadAll() {
@@ -246,7 +223,7 @@ async function submitRecord() {
   notice.value = null;
 
   try {
-    const payload = serializeFormValues(current, formValues.value);
+    const payload = serializeFormValues(current, formValues.value, drawerMode.value);
 
     if (drawerMode.value === "create") {
       await $fetch(`/api/dashboard/${current.id}`, {
@@ -366,6 +343,135 @@ const filteredRows = computed(() => {
     ),
   );
 });
+
+function getRawValue(row: Record<string, unknown>, key: string) {
+  const rawRow = row.__rawRow as Record<string, unknown> | undefined;
+  return row[key] ?? rawRow?.[key];
+}
+
+function getRowTitle(row: Record<string, unknown>) {
+  return (
+    String(getRawValue(row, "title") ?? "").trim() ||
+    String(getRawValue(row, "name") ?? "").trim() ||
+    String(getRawValue(row, "section_key") ?? "").trim() ||
+    String(getRawValue(row, "slug") ?? "").trim() ||
+    String(getRawValue(row, "id") ?? "").trim() ||
+    "Untitled record"
+  );
+}
+
+function getRowSummary(value: unknown, limit = 180) {
+  const text = richTextToPlainText(String(value ?? ""))
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return "";
+  if (text.length <= limit) return text;
+
+  return `${text.slice(0, limit - 1).trimEnd()}…`;
+}
+
+function resolveImageUrl(value: unknown) {
+  return resolveStorageUrl(String(value ?? ""), "media");
+}
+
+function getBooleanLabel(value: unknown) {
+  return value ? "Active" : "Inactive";
+}
+
+function formatDateTime(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return raw;
+  }
+
+  return parsed.toLocaleString();
+}
+
+function sortByDisplayOrder(rows: Record<string, unknown>[]) {
+  return [...rows].sort((left, right) => {
+    const leftOrder = Number(getRawValue(left, "display_order") ?? 0);
+    const rightOrder = Number(getRawValue(right, "display_order") ?? 0);
+
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+
+    return getRowTitle(left).localeCompare(getRowTitle(right));
+  });
+}
+
+const pageEditorGroups = computed<PageEditorGroup[]>(() => {
+  const current = resource.value;
+  if (!current) return [];
+
+  const rows = sortByDisplayOrder(filteredRows.value);
+
+  if (current.id !== "page_section_items") {
+    return [
+      {
+        id: `${current.id}-group`,
+        title: current.label,
+        description: current.description,
+        rows,
+      },
+    ];
+  }
+
+  const pageSections = lookupRowsByResourceId.page_sections ?? [];
+  const sectionsById = new Map<string, Record<string, unknown>>();
+  for (const section of pageSections) {
+    sectionsById.set(String(section.id ?? ""), section);
+  }
+
+  const grouped = new Map<
+    string,
+    {
+      section: Record<string, unknown> | null;
+      rows: Record<string, unknown>[];
+    }
+  >();
+
+  for (const row of rows) {
+    const rawRow = row.__rawRow as Record<string, unknown> | undefined;
+    const sectionId = String(rawRow?.section_id ?? row.section_id ?? "");
+    const section = sectionsById.get(sectionId) ?? null;
+    const key = sectionId || `group-${row.id ?? getRowTitle(row)}`;
+
+    if (!grouped.has(key)) {
+      grouped.set(key, { section, rows: [] });
+    }
+
+    grouped.get(key)?.rows.push(row);
+  }
+
+  return [...grouped.entries()]
+    .map(([id, value]) => {
+      const section = value.section;
+      return {
+        id,
+        title:
+          String(section?.title ?? "").trim() ||
+          String(section?.section_key ?? "").trim() ||
+          "Ungrouped section items",
+        subtitle:
+          String(section?.section_key ?? "").trim() ||
+          String(section?.page_slug ?? "").trim() ||
+          undefined,
+        description:
+          String(section?.summary ?? "").trim() ||
+          getRowSummary(section?.body ?? null) ||
+          undefined,
+        order: Number(section?.display_order ?? 0),
+        rows: sortByDisplayOrder(value.rows),
+      };
+    })
+    .sort((left, right) => {
+      if (left.order !== right.order) return left.order - right.order;
+      return left.title.localeCompare(right.title);
+    });
+});
 </script>
 
 <template>
@@ -377,6 +483,9 @@ const filteredRows = computed(() => {
         </p>
         <p v-if="description" class="mt-2 max-w-3xl text-small text-ink-muted">
           {{ description }}
+        </p>
+        <p v-if="props.usePageEditor" class="mt-3 text-caption text-ink-muted">
+          Cards are ordered to match the public page layout.
         </p>
       </div>
 
@@ -401,19 +510,241 @@ const filteredRows = computed(() => {
 
     <div v-if="!hideSearch" class="mt-5">
       <label class="block">
-        <span class="mb-2 block text-small font-semibold text-ink">Search</span>
+        <span class="mb-2 block text-small font-semibold text-ink">
+          {{ searchLabel }}
+        </span>
         <input
           v-model="searchTerm"
           type="search"
           class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
-          placeholder="Search records"
+          :placeholder="searchPlaceholder"
         />
       </label>
     </div>
 
     <div class="mt-5">
+      <template v-if="resource && props.usePageEditor">
+        <div v-if="resourceLoading" class="rounded-card border border-border bg-surface px-5 py-4 text-small text-ink-muted">
+          Loading {{ resource.label.toLowerCase() }}...
+        </div>
+
+        <div v-else-if="pageEditorGroups.length" class="space-y-5">
+          <section
+            v-for="group in pageEditorGroups"
+            :key="group.id"
+            class="rounded-card border border-border bg-surface p-5 shadow-card"
+          >
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div class="max-w-3xl">
+                <p class="text-caption font-semibold uppercase tracking-wide text-info">
+                  Page layout
+                </p>
+                <h3 class="mt-1 font-display text-h3 text-ink">
+                  {{ group.title }}
+                </h3>
+                <p v-if="group.subtitle" class="mt-1 text-small font-medium text-ink-muted">
+                  {{ group.subtitle }}
+                </p>
+                <p v-if="group.description" class="mt-2 text-small text-ink-muted">
+                  {{ group.description }}
+                </p>
+              </div>
+
+              <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                {{ group.rows.length }} {{ group.rows.length === 1 ? "record" : "records" }}
+              </p>
+            </div>
+
+            <div class="mt-5 space-y-4">
+              <article
+                v-for="row in group.rows"
+                :key="String(getRawValue(row, 'id') ?? row.id ?? getRowTitle(row))"
+                class="rounded-card border border-border bg-[#fbfcfe] p-4 transition-colors hover:border-primary/20 hover:bg-white md:p-5"
+              >
+                <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div class="min-w-0 flex-1 space-y-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h4 class="min-w-0 font-display text-h4 text-ink">
+                        {{ getRowTitle(row) }}
+                      </h4>
+                      <span
+                        v-if="getRawValue(row, 'is_active') !== undefined"
+                        class="rounded-full border border-border bg-surface-alt px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                      >
+                        {{ getBooleanLabel(getRawValue(row, "is_active")) }}
+                      </span>
+                      <span
+                        v-if="getRawValue(row, 'display_order') !== undefined"
+                        class="rounded-full border border-border bg-surface-alt px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                      >
+                        Order {{ getRawValue(row, "display_order") }}
+                      </span>
+                    </div>
+
+                    <div v-if="resource.id === 'page_sections'" class="space-y-3">
+                      <p
+                        v-if="String(getRawValue(row, 'eyebrow') ?? '').trim()"
+                        class="text-caption font-semibold uppercase tracking-wide text-info"
+                      >
+                        {{ getRawValue(row, "eyebrow") }}
+                      </p>
+
+                      <p v-if="getRowSummary(getRawValue(row, 'summary'))" class="text-small text-ink-muted">
+                        {{ getRowSummary(getRawValue(row, "summary")) }}
+                      </p>
+
+                      <p v-if="getRowSummary(getRawValue(row, 'body'))" class="text-small text-ink-muted">
+                        {{ getRowSummary(getRawValue(row, "body")) }}
+                      </p>
+
+                      <div class="flex flex-wrap gap-2">
+                        <span class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                          {{ String(getRawValue(row, "page_slug") ?? row.page_slug ?? "page") }}
+                        </span>
+                        <span class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                          {{ String(getRawValue(row, "section_key") ?? row.section_key ?? "section") }}
+                        </span>
+                        <span class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                          {{ String(getRawValue(row, "section_type") ?? row.section_type ?? "content") }}
+                        </span>
+                        <span
+                          v-if="String(getRawValue(row, 'cta_label') ?? '').trim()"
+                          class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                        >
+                          CTA: {{ getRawValue(row, "cta_label") }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div v-else-if="resource.id === 'page_section_items'" class="space-y-3">
+                      <p class="text-small text-ink-muted">
+                        Section:
+                        <span class="font-semibold text-ink">
+                          {{ String(getRawValue(row, "section_id") ?? row.section_id ?? "Unassigned") }}
+                        </span>
+                      </p>
+
+                      <p v-if="getRowSummary(getRawValue(row, 'description'))" class="text-small text-ink-muted">
+                        {{ getRowSummary(getRawValue(row, "description")) }}
+                      </p>
+
+                      <div class="flex flex-wrap gap-2">
+                        <span
+                          v-if="String(getRawValue(row, 'icon') ?? '').trim()"
+                          class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                        >
+                          Icon: {{ getRawValue(row, "icon") }}
+                        </span>
+                        <span class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                          {{ String(getRawValue(row, "section_id") ?? row.section_id ?? "section") }}
+                        </span>
+                        <span
+                          v-if="String(getRawValue(row, 'cta_label') ?? '').trim()"
+                          class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                        >
+                          CTA: {{ getRawValue(row, "cta_label") }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div v-else-if="resource.id === 'page_slides'" class="space-y-3">
+                      <p v-if="String(getRawValue(row, 'eyebrow') ?? '').trim()" class="text-caption font-semibold uppercase tracking-wide text-info">
+                        {{ getRawValue(row, "eyebrow") }}
+                      </p>
+
+                      <p v-if="getRowSummary(getRawValue(row, 'body'))" class="text-small text-ink-muted">
+                        {{ getRowSummary(getRawValue(row, "body")) }}
+                      </p>
+
+                      <p v-if="String(getRawValue(row, 'caption') ?? '').trim()" class="text-small text-ink-muted">
+                        {{ getRawValue(row, "caption") }}
+                      </p>
+
+                      <div class="flex flex-wrap gap-2">
+                        <span class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                          {{ String(getRawValue(row, "page_slug") ?? row.page_slug ?? "page") }}
+                        </span>
+                        <span class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                          {{ String(getRawValue(row, "section_key") ?? row.section_key ?? "hero") }}
+                        </span>
+                        <span
+                          v-if="String(getRawValue(row, 'cta_label') ?? '').trim()"
+                          class="rounded-full border border-border bg-surface-alt px-3 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                        >
+                          CTA: {{ getRawValue(row, "cta_label") }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 border-t border-border pt-3 text-caption text-ink-muted">
+                      <span class="rounded-full bg-surface-alt px-3 py-1 font-semibold uppercase tracking-wide">
+                        {{ resource.label }}
+                      </span>
+                      <span v-if="String(getRawValue(row, 'updated_at') ?? '').trim()" class="font-mono">
+                        Updated {{ formatDateTime(getRawValue(row, "updated_at")) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="flex shrink-0 flex-col gap-3 xl:w-[280px]">
+                    <div
+                      v-if="String(getRawValue(row, 'image_url') ?? '').trim()"
+                      class="overflow-hidden rounded-card border border-border bg-surface-alt"
+                    >
+                      <img
+                        :src="resolveImageUrl(getRawValue(row, 'image_url'))"
+                        :alt="String(getRawValue(row, 'image_alt') ?? getRowTitle(row))"
+                        class="h-44 w-full object-cover"
+                      />
+                    </div>
+
+                    <div v-else class="rounded-card border border-border bg-surface-alt px-4 py-5 text-small text-ink-muted">
+                      <p class="font-semibold text-ink">No image attached</p>
+                      <p class="mt-1">
+                        {{ resource.id === "page_section_items" ? "Use this item card to manage text, icon, and action copy." : "This section is text-driven and can still include a body, CTA, or rich content." }}
+                      </p>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2">
+                      <BaseTableActionButton
+                        label="Open record"
+                        icon="lucide:eye"
+                        tone="open"
+                        @click="openRecord(row)"
+                      />
+                      <BaseTableActionButton
+                        v-if="resource.allowUpdate !== false"
+                        label="Edit record"
+                        icon="lucide:pen-line"
+                        tone="edit"
+                        @click="openRecord(row)"
+                      />
+                      <BaseTableActionButton
+                        v-if="resource.allowDelete !== false"
+                        label="Delete record"
+                        icon="lucide:trash-2"
+                        tone="delete"
+                        @click="deleteRecord(row)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div v-else class="rounded-card border border-border bg-surface px-5 py-10 text-center">
+          <p class="font-display text-h4 text-ink">{{ emptyTitle }}</p>
+          <p class="mt-2 text-small text-ink-muted">{{ emptyDescription }}</p>
+          <div v-if="$slots.empty" class="mt-4">
+            <slot name="empty" />
+          </div>
+        </div>
+      </template>
+
       <BaseTable
-        v-if="resource"
+        v-else-if="resource"
         :columns="resource.columns"
         :rows="filteredRows"
         :row-key="resource.primaryKey ?? 'id'"

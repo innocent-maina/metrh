@@ -9,6 +9,8 @@
     "preview": "nuxt preview",
     "prepare": "nuxt prepare",
     "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "nuxt typecheck",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID --schema public > types/database.types.ts"
   },
@@ -29,6 +31,7 @@
   "devDependencies": {
     "@types/node": "^25.7.0",
     "typescript": "^6.0.3",
+    "vitest": "^4.1.10",
     "vue-tsc": "^3.2.8"
   }
 }

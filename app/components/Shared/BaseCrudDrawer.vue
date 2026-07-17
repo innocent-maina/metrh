@@ -27,7 +27,7 @@ const emit = defineEmits<{
   (event: "cancel"): void;
 }>();
 
-const supabase = useSupabaseClient();
+const resolveStorageUrl = usePublicStorageUrl();
 const uploadingFields = reactive<Record<string, boolean>>({});
 const uploadErrors = reactive<Record<string, string | null>>({});
 const formRef = ref<HTMLFormElement | null>(null);
@@ -73,10 +73,9 @@ function getStoredFileName(value: unknown) {
 function resolvePublicUploadUrl(field: CrudField, value: unknown) {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
-  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
   if (field.uploadBucket !== "media") return raw;
 
-  return supabase.storage.from("media").getPublicUrl(raw).data.publicUrl;
+  return resolveStorageUrl(raw, "media");
 }
 
 async function handleUploadChange(field: CrudField, event: Event) {
@@ -95,32 +94,23 @@ async function handleUploadChange(field: CrudField, event: Event) {
   uploadingFields[field.key] = true;
 
   try {
+    const formData = new FormData();
+    formData.append("bucket", field.uploadBucket);
+    formData.append("folder", field.uploadFolder);
+    formData.append("fileName", file.name);
+    formData.append("file", file);
+
     const upload = await $fetch<{
       path: string;
-      token: string;
-      signedUrl: string;
+      publicUrl: string | null;
     }>("/api/storage/dashboard/sign-upload", {
       method: "POST",
-      body: {
-        bucket: field.uploadBucket,
-        folder: field.uploadFolder,
-        fileName: file.name,
-      },
+      body: formData,
     });
-
-    const { error } = await supabase.storage
-      .from(field.uploadBucket)
-      .uploadToSignedUrl(upload.path, upload.token, file, {
-        contentType: file.type || "application/octet-stream",
-      });
-
-    if (error) {
-      throw new Error(error.message);
-    }
 
     const storedValue =
       field.uploadBucket === "media"
-        ? supabase.storage.from(field.uploadBucket).getPublicUrl(upload.path).data.publicUrl
+        ? upload.publicUrl ?? upload.path
         : upload.path;
 
     updateField(field.key, storedValue);
@@ -211,7 +201,7 @@ function handleSubmit() {
                   v-show="!field.serverOnly"
                   :key="field.key"
                   class="space-y-2"
-                  :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' || field.kind === 'richtext' || field.kind === 'multiselect' || field.kind === 'icon' ? 'md:col-span-2' : ''"
+                  :class="field.kind === 'textarea' || field.kind === 'upload' || field.kind === 'richtext' || field.kind === 'multiselect' || field.kind === 'icon' ? 'md:col-span-2' : ''"
                 >
                   <span class="block text-small font-semibold text-ink">
                     {{ field.label }}
@@ -228,7 +218,7 @@ function handleSubmit() {
                   />
 
                   <textarea
-                    v-else-if="field.kind === 'textarea' || field.kind === 'json'"
+                    v-else-if="field.kind === 'textarea'"
                     :rows="field.rows ?? 5"
                     class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
                     :placeholder="field.placeholder"
@@ -236,6 +226,17 @@ function handleSubmit() {
                     :disabled="readOnly || disabled || field.disabled"
                     :value="String(modelValue[field.key] ?? '')"
                     @input="updateField(field.key, ($event.target as HTMLTextAreaElement).value)"
+                  />
+
+                  <input
+                    v-else-if="field.kind === 'json'"
+                    type="text"
+                    class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
+                    :placeholder="field.placeholder"
+                    :required="field.required"
+                    :disabled="readOnly || disabled || field.disabled"
+                    :value="String(modelValue[field.key] ?? '')"
+                    @input="updateField(field.key, ($event.target as HTMLInputElement).value)"
                   />
 
                   <div v-else-if="field.kind === 'upload'" class="space-y-3">
@@ -336,11 +337,12 @@ function handleSubmit() {
 
                   <input
                     v-else
-                    :type="field.kind === 'number' ? 'number' : field.kind === 'date' ? 'date' : field.kind === 'time' ? 'time' : 'text'"
+                    :type="field.kind === 'password' ? 'password' : field.kind === 'number' ? 'number' : field.kind === 'date' ? 'date' : field.kind === 'time' ? 'time' : 'text'"
                     class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
                     :placeholder="field.placeholder"
                     :required="field.required"
                     :disabled="readOnly || disabled || field.disabled"
+                    :autocomplete="field.kind === 'password' ? 'new-password' : undefined"
                     :value="String(modelValue[field.key] ?? '')"
                     @input="updateField(field.key, ($event.target as HTMLInputElement).value)"
                   />

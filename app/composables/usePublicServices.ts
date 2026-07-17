@@ -118,40 +118,17 @@ function emptyServicesData() {
 }
 
 export function usePublicServices() {
-  const supabase = useSupabaseClient<Database>();
-
   return useAsyncData("public-services", async () => {
     try {
-      const [categoriesResult, servicesResult, scheduleResult] =
-        await Promise.all([
-          supabase
-            .from("service_categories")
-            .select("id,name,slug,icon,display_order")
-            .order("display_order", { ascending: true })
-            .order("name", { ascending: true }),
-          supabase
-          .from("services")
-            .select("id,category_id,name,slug,summary,is_specialized,display_order")
-            .eq("is_active", true)
-            .order("display_order", { ascending: true })
-            .order("name", { ascending: true }),
-          supabase
-            .from("clinic_schedule")
-            .select("id,clinic_name,day_of_week,start_time,created_at")
-            .eq("is_active", true)
-            .order("created_at", { ascending: true }),
-        ]);
+      const response = await $fetch<{
+        categories: ServiceCategoryRow[];
+        services: ServiceRow[];
+        clinicSchedule: ClinicScheduleRow[];
+      }>("/api/public/services");
 
-      const categoryError = categoriesResult.error;
-      if (categoryError) throw categoryError;
-      const serviceError = servicesResult.error;
-      if (serviceError) throw serviceError;
-      const scheduleError = scheduleResult.error;
-      if (scheduleError) throw scheduleError;
-
-      const categories = (categoriesResult.data ?? []) as ServiceCategoryRow[];
-      const services = (servicesResult.data ?? []) as ServiceRow[];
-      const schedule = (scheduleResult.data ?? []) as ClinicScheduleRow[];
+      const categories = response.categories ?? [];
+      const services = response.services ?? [];
+      const schedule = response.clinicSchedule ?? [];
 
       return {
         serviceGroups: buildServiceGroups(categories, services),

@@ -1,13 +1,6 @@
-import { z } from "zod";
-import { readBody } from "h3";
+import { createError, readMultipartFormData } from "h3";
 import { requireAnyRole } from "~~/server/utils/require-role";
-import { createSignedStorageUpload } from "~~/server/utils/storage-upload";
-
-const dashboardUploadSchema = z.object({
-  bucket: z.enum(["media", "documents"]),
-  folder: z.string().trim().min(1).max(200),
-  fileName: z.string().trim().min(1).max(255),
-});
+import { uploadStorageObject } from "~~/server/utils/storage-upload";
 
 export default defineEventHandler(async (event) => {
   await requireAnyRole(event, [
@@ -18,11 +11,48 @@ export default defineEventHandler(async (event) => {
     "front_desk",
   ]);
 
-  const body = dashboardUploadSchema.parse(await readBody(event));
+  const formData = await readMultipartFormData(event);
+  if (!formData) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "A file upload is required.",
+    });
+  }
 
-  return createSignedStorageUpload({
-    bucket: body.bucket,
-    folder: body.folder,
-    fileName: body.fileName,
+  const getFieldValue = (name: string) =>
+    formData.find((part) => part.name === name && part.filename == null)?.data?.toString("utf8").trim() ?? "";
+
+  const filePart = formData.find((part) => part.name === "file" && part.filename);
+  if (!filePart?.data || !filePart.filename) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "A file is required.",
+    });
+  }
+
+  const bucket = getFieldValue("bucket");
+  const folder = getFieldValue("folder");
+  const fileName = getFieldValue("fileName") || filePart.filename;
+
+  if (bucket !== "media" && bucket !== "documents") {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "An upload bucket is required.",
+    });
+  }
+
+  if (!folder) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "An upload folder is required.",
+    });
+  }
+
+  return uploadStorageObject({
+    bucket,
+    folder,
+    fileName,
+    file: filePart.data,
+    contentType: filePart.type ?? "application/octet-stream",
   });
 });

@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import type { Database } from "~~/types/database.types";
 import { richTextToHtml, richTextToPlainText } from "~~/shared/rich-text";
 
 definePageMeta({ layout: "default" });
 
 const route = useRoute();
-const slug = String(route.params.slug);
-const supabase = useSupabaseClient<Database>();
+const slug = computed(() => String(route.params.slug ?? ""));
 const { milestoneStories } = useMetrhContent();
 
 type BlogPostRow = {
@@ -50,39 +48,21 @@ function summarize(text: string | null | undefined, fallback = "") {
     : collapsed;
 }
 
-const { data: storyData } = await useAsyncData(`public-blog-${slug}`, async () => {
+const { data: storyData } = await useAsyncData(
+  () => `public-blog-${slug.value}`,
+  async () => {
   try {
-    const { data: postRow, error } = await supabase
-      .from("blog_posts")
-      .select("id,title,slug,excerpt,content,cover_image_url,category_id,published_at,reading_minutes,view_count,created_at,updated_at")
-      .eq("slug", slug)
-      .eq("status", "published")
-      .maybeSingle();
+    const response = await $fetch<{
+      post: BlogPostRow | null;
+      category: BlogCategoryRow | null;
+      relatedPosts: BlogPostRow[];
+    }>(`/api/public/blog/${slug.value}`);
 
-    if (error) throw error;
-
-    const post = postRow as BlogPostRow | null;
+    const post = response.post;
 
     if (post) {
-      const [{ data: categories, error: categoriesError }, { data: relatedPosts, error: relatedError }] =
-        await Promise.all([
-          supabase
-            .from("blog_categories")
-            .select("id,name,slug,description")
-            .eq("id", post.category_id ?? ""),
-          supabase
-            .from("blog_posts")
-            .select("id,title,slug,excerpt,content,category_id,published_at,reading_minutes,view_count,created_at,updated_at")
-            .eq("status", "published")
-            .order("published_at", { ascending: false })
-            .limit(6),
-        ]);
-
-      if (categoriesError) throw categoriesError;
-      if (relatedError) throw relatedError;
-
-      const category = ((categories ?? []) as BlogCategoryRow[])[0] ?? null;
-      const relatedRows = (relatedPosts ?? []) as BlogPostRow[];
+      const category = response.category;
+      const relatedRows = response.relatedPosts ?? [];
       return {
         story: {
           id: post.id,
@@ -102,7 +82,7 @@ const { data: storyData } = await useAsyncData(`public-blog-${slug}`, async () =
           seoDescription: summarize(post.excerpt, post.content),
         },
         relatedStories: relatedRows
-          .filter((entry) => entry.slug !== slug)
+          .filter((entry) => entry.slug !== slug.value)
           .slice(0, 3)
           .map((entry) => ({
             slug: entry.slug,
@@ -115,7 +95,7 @@ const { data: storyData } = await useAsyncData(`public-blog-${slug}`, async () =
     console.warn("[blog] Falling back to seeded story.", error);
   }
 
-  const fallback = milestoneStories.find((entry) => entry.slug === slug);
+  const fallback = milestoneStories.find((entry) => entry.slug === slug.value);
   if (!fallback) return null;
 
   return {
@@ -137,7 +117,7 @@ const { data: storyData } = await useAsyncData(`public-blog-${slug}`, async () =
       seoDescription: fallback.summary,
     },
     relatedStories: milestoneStories
-      .filter((entry) => entry.slug !== slug)
+      .filter((entry) => entry.slug !== slug.value)
       .slice(0, 3)
       .map((entry) => ({
         slug: entry.slug,
@@ -145,7 +125,9 @@ const { data: storyData } = await useAsyncData(`public-blog-${slug}`, async () =
         category: entry.category,
       })),
   };
-});
+  },
+  { watch: [slug] },
+);
 
 const story = computed(() => storyData.value?.story ?? null);
 const relatedStories = computed(() => storyData.value?.relatedStories ?? []);

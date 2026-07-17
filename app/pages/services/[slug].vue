@@ -6,10 +6,10 @@ definePageMeta({ layout: "default" });
 
 const route = useRoute();
 const slug = computed(() => String(route.params.slug ?? ""));
-const supabase = useSupabaseClient<Database>();
 const runtimeConfig = useRuntimeConfig();
 const serviceImages = useHospitalMedia();
 const fallbackServiceImage = computed(() => serviceImages.value[0]?.src ?? "");
+const resolveMediaUrl = usePublicStorageUrl();
 
 type ServiceRow = Database["public"]["Tables"]["services"]["Row"];
 type ServiceCategoryRow = Database["public"]["Tables"]["service_categories"]["Row"];
@@ -62,17 +62,7 @@ function isInternalHref(value: string) {
 }
 
 function resolveServiceMediaUrl(value: string | null) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  if (
-    raw.startsWith("/") ||
-    /^https?:\/\//i.test(raw) ||
-    raw.startsWith("data:")
-  ) {
-    return raw;
-  }
-
-  return supabase.storage.from("media").getPublicUrl(raw).data.publicUrl;
+  return resolveMediaUrl(value, "media");
 }
 
 const { data: serviceData } = await useAsyncData<ServicePageData | null>(
@@ -81,43 +71,16 @@ const { data: serviceData } = await useAsyncData<ServicePageData | null>(
     const currentSlug = slug.value;
 
     try {
-      const { data: serviceRow, error } = await supabase
-        .from("services")
-        .select(
-          "id,category_id,name,slug,summary,description,cover_image_url,cover_image_alt,cta_label,cta_href,is_specialized,display_order,is_active,created_at,updated_at",
-        )
-        .eq("slug", currentSlug)
-        .eq("is_active", true)
-        .maybeSingle();
+      const response = await $fetch<{
+        service: ServiceRow | null;
+        category: ServiceCategoryRow | null;
+        relatedServices: ServiceRow[];
+      }>(`/api/public/services/${currentSlug}`);
 
-      if (error) throw error;
-
-      const service = serviceRow as ServiceRow | null;
+      const service = response.service;
       if (!service) return null;
-
-      const [categoryResult, relatedResult] = await Promise.all([
-        supabase
-          .from("service_categories")
-          .select("id,name,slug,icon,description,display_order")
-          .eq("id", service.category_id)
-          .maybeSingle(),
-        supabase
-          .from("services")
-          .select(
-            "id,category_id,name,slug,summary,description,cover_image_url,cover_image_alt,cta_label,cta_href,is_specialized,display_order,is_active,created_at,updated_at",
-          )
-          .eq("category_id", service.category_id)
-          .eq("is_active", true)
-          .order("display_order", { ascending: true })
-          .order("name", { ascending: true })
-          .limit(6),
-      ]);
-
-      if (categoryResult.error) throw categoryResult.error;
-      if (relatedResult.error) throw relatedResult.error;
-
-      const category = (categoryResult.data as ServiceCategoryRow | null) ?? null;
-      const relatedRows = (relatedResult.data ?? []) as ServiceRow[];
+      const category = response.category;
+      const relatedRows = response.relatedServices ?? [];
       const heroImageUrl =
         resolveServiceMediaUrl(service.cover_image_url) || fallbackServiceImage.value;
 

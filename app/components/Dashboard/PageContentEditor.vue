@@ -23,8 +23,6 @@ const props = withDefaults(defineProps<Props>(), {
   backTo: "/dashboard/pages-and-content",
 });
 
-const supabase = useSupabaseClient();
-
 const statusOptions = [
   { label: "Draft", value: "draft" },
   { label: "Published", value: "published" },
@@ -66,16 +64,11 @@ async function loadPage() {
   loadError.value = null;
 
   try {
-    const { data, error } = await supabase
-      .from("pages" as never)
-      .select("*")
-      .eq("slug", props.slug)
-      .maybeSingle();
+    const rows = await fetchDashboardResourceRows("pages", {
+      slug: props.slug,
+    });
 
-    if (error) {
-      throw error;
-    }
-
+    const data = rows[0] ?? null;
     if (!data) {
       throw new Error("Page not found.");
     }
@@ -135,18 +128,16 @@ async function saveChanges() {
       status: draft.status || "draft",
     };
 
-    const { data, error } = await (supabase.from("pages" as never) as any)
-      .update(payload)
-      .eq("id", loadedPage.value.id)
-      .select("*")
-      .maybeSingle();
+    const response = await $fetch<{ row: PageRecord }>(`/api/dashboard/pages`, {
+      method: "PATCH",
+      body: {
+        id: loadedPage.value.id,
+        data: payload,
+      },
+    });
 
-    if (error) {
-      throw error;
-    }
-
-    if (data) {
-      syncDraft(data as PageRecord);
+    if (response.row) {
+      syncDraft(response.row);
     } else {
       await loadPage();
     }

@@ -3,7 +3,6 @@ definePageMeta({ layout: "auth" });
 useHead({ title: "Reset password — MeTRH Staff" });
 
 const supabase = useSupabaseClient();
-const config = useRuntimeConfig();
 
 const email = ref("");
 const isSubmitting = ref(false);
@@ -14,10 +13,15 @@ async function handleSubmit() {
   errorMessage.value = "";
   isSubmitting.value = true;
 
+  const redirectTo = new URL(
+    "/dashboard/confirm",
+    window.location.origin,
+  ).toString();
+
   const { error } = await supabase.auth.resetPasswordForEmail(
     email.value.trim(),
     {
-      redirectTo: `${config.public.siteUrl}/dashboard/confirm`,
+      redirectTo,
     },
   );
 

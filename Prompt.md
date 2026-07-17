@@ -132,8 +132,8 @@ Gate the entire `/dashboard/**` route tree behind Supabase Auth + role check via
 
 - Server-rendered (Nuxt SSR/SSG where content allows) — no critical content hidden behind client-only rendering. Services, blog posts, tenders, and job postings must be crawlable and indexable.
 - Per-page `<Head>` meta: unique `title`, `description`, canonical URL, Open Graph + Twitter card tags, sourced from each table's `seo_*` fields where present, with sensible fallbacks generated from title/excerpt where not.
-- `sitemap.xml` generated dynamically from published content (blog posts, services, open tenders, open jobs, static pages) — not a static hand-written file that goes stale.
-- `robots.txt` — allow public routes, disallow `/dashboard/**`.
+- `sitemap.xml` as a static public asset with the current public route set, regenerated when routes change.
+- `robots.txt` as a static public asset that allows public routes and disallows `/dashboard/**`.
 - Structured data (JSON-LD): `MedicalOrganization` / `Hospital` schema on the homepage and About page with real fields from `content.md` (address, phone, emergency line, medical specialties); `JobPosting` schema on career detail pages; `Article` schema on blog posts.
 - Semantic HTML throughout — real heading hierarchy, `<nav>`/`<main>`/`<footer>` landmarks, not div soup — this matters for both SEO and accessibility.
 - Image optimization: `nuxt/image` (or equivalent), proper `alt` text sourced from captions where available, never left empty on content images.

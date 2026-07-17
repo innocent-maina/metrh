@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import type { Database } from "~~/types/database.types";
 import { richTextToPlainText } from "~~/shared/rich-text";
 
 definePageMeta({ layout: "default" });
 
-const supabase = useSupabaseClient<Database>();
 const { milestoneStories } = useMetrhContent();
 const { data: blogContent } = await usePageContent("blog");
 
@@ -67,23 +65,13 @@ function summarize(text: string | null | undefined, fallback = "") {
 
 const { data: blogIndex } = await useAsyncData("public-blog-index", async () => {
   try {
-    const [categoriesResult, postsResult] = await Promise.all([
-      supabase
-        .from("blog_categories")
-        .select("id,name,slug,description")
-        .order("name", { ascending: true }),
-      supabase
-        .from("blog_posts")
-        .select("id,title,slug,excerpt,content,category_id,published_at,reading_minutes,view_count,created_at,updated_at")
-        .eq("status", "published")
-        .order("published_at", { ascending: false }),
-    ]);
+    const response = await $fetch<{
+      categories: BlogCategoryRow[];
+      posts: BlogPostRow[];
+    }>("/api/public/blog");
 
-    if (categoriesResult.error) throw categoriesResult.error;
-    if (postsResult.error) throw postsResult.error;
-
-    const categoriesRows = (categoriesResult.data ?? []) as BlogCategoryRow[];
-    const postRows = (postsResult.data ?? []) as BlogPostRow[];
+    const categoriesRows = response.categories ?? [];
+    const postRows = response.posts ?? [];
 
     const categories = categoriesRows.map((category) => ({
       id: category.id,

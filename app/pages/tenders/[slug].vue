@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import type { Database } from "~~/types/database.types";
-
 definePageMeta({ layout: "default" });
 
 const route = useRoute();
-const slug = String(route.params.slug);
-const supabase = useSupabaseClient<Database>();
+const slug = computed(() => String(route.params.slug ?? ""));
 
 function formatDateLabel(value: string | null | undefined) {
   if (!value) return "Not listed";
@@ -54,39 +51,20 @@ type TenderDocumentCard = {
   downloadUrl: string | null;
 };
 
-const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async () => {
+const { data: tenderData } = await useAsyncData(
+  () => `public-tender-${slug.value}`,
+  async () => {
   try {
-    const { data: tenderRow, error } = await supabase
-      .from("tenders")
-      .select("id,tender_number,title,slug,category,description,status,opening_date,closing_date,awarded_to,created_at,updated_at")
-      .eq("slug", slug)
-      .neq("status", "draft")
-      .maybeSingle();
+    const response = await $fetch<{
+      tender: TenderRow | null;
+      documents: TenderDocumentRow[];
+      relatedTenders: TenderRow[];
+    }>(`/api/public/tenders/${slug.value}`);
 
-    if (error) throw error;
-    const tender = tenderRow as TenderRow | null;
+    const tender = response.tender;
     if (!tender) return null;
-
-    const [{ data: documentsResult, error: documentsError }, { data: relatedTendersResult, error: relatedError }] =
-      await Promise.all([
-        supabase
-          .from("tender_documents")
-          .select("id,tender_id,file_name,file_url,file_size_kb,created_at")
-          .eq("tender_id", tender.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("tenders")
-          .select("id,tender_number,title,slug,category,description,status,opening_date,closing_date,awarded_to,created_at,updated_at")
-          .neq("status", "draft")
-          .order("closing_date", { ascending: true })
-          .limit(5),
-      ]);
-
-    if (documentsError) throw documentsError;
-    if (relatedError) throw relatedError;
-
-    const documentRows = (documentsResult ?? []) as TenderDocumentRow[];
-    const relatedRows = (relatedTendersResult ?? []) as TenderRow[];
+    const documentRows = response.documents ?? [];
+    const relatedRows = response.relatedTenders ?? [];
     const documentUrlMap = await fetchSignedDocumentUrls(
       documentRows.map((document) => ({
         resource: "tender_documents",
@@ -114,7 +92,7 @@ const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async (
         downloadUrl: documentUrlMap.get(document.id) ?? null,
       })),
       relatedTenders: relatedRows
-        .filter((entry) => entry.slug !== slug)
+        .filter((entry) => entry.slug !== slug.value)
         .slice(0, 3)
         .map((entry) => ({
           slug: entry.slug,
@@ -127,7 +105,9 @@ const { data: tenderData } = await useAsyncData(`public-tender-${slug}`, async (
     console.warn("[tenders] Could not load tender detail.", error);
     return null;
   }
-});
+  },
+  { watch: [slug] },
+);
 
 const tender = computed(() => tenderData.value?.tender ?? null);
 const documents = computed<TenderDocumentCard[]>(() => tenderData.value?.documents ?? []);

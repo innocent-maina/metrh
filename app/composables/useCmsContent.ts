@@ -136,36 +136,20 @@ function defaultSiteSettings(): SiteSettingsContent {
 }
 
 export function resolveContentMediaUrl(value: string | null) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  if (
-    raw.startsWith("/") ||
-    /^https?:\/\//i.test(raw) ||
-    raw.startsWith("data:")
-  ) {
-    return raw;
-  }
-
-  const supabase = useSupabaseClient();
-  return supabase.storage.from("media").getPublicUrl(raw).data.publicUrl;
+  const resolvePublicUrl = usePublicStorageUrl();
+  return resolvePublicUrl(value, "media");
 }
 
 export function useSiteSettings() {
-  const supabase = useSupabaseClient<Database>();
-
   return useAsyncData<SiteSettingsContent>(
     "cms-site-settings",
     async () => {
     try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*")
-        .eq("id", true)
-        .maybeSingle();
+      const response = await $fetch<{ settings: SiteSettingsContent | null }>(
+        "/api/public/cms/site-settings",
+      );
 
-      if (error) throw error;
-
-      return (data as SiteSettingsContent | null) ?? defaultSiteSettings();
+      return response.settings ?? defaultSiteSettings();
     } catch (error) {
       console.warn("[cms] Failed to load site settings.", error);
       return defaultSiteSettings();
@@ -176,21 +160,14 @@ export function useSiteSettings() {
 }
 
 export function useCmsPage(slug: string, fallback?: CmsPageContent) {
-  const supabase = useSupabaseClient<Database>();
-
   return useAsyncData<CmsPageContent | null>(
     `cms-page-${slug}`,
     async () => {
     try {
-      const { data, error } = await supabase
-        .from("pages")
-        .select("*")
-        .eq("slug", slug)
-        .eq("status", "published")
-        .maybeSingle();
-
-      if (error) throw error;
-      return (data as CmsPageContent | null) ?? fallback ?? null;
+      const response = await $fetch<{ page: CmsPageContent | null }>(
+        `/api/public/cms/pages/${slug}`,
+      );
+      return response.page ?? fallback ?? null;
     } catch (error) {
       console.warn(`[cms] Failed to load page "${slug}".`, error);
       return fallback ?? null;
@@ -201,8 +178,6 @@ export function useCmsPage(slug: string, fallback?: CmsPageContent) {
 }
 
 export function usePageContent(pageSlug: string) {
-  const supabase = useSupabaseClient<Database>();
-
   const emptyBundle: CmsPageBundle = {
     sectionsByKey: {},
     itemsBySectionId: {},
@@ -212,27 +187,12 @@ export function usePageContent(pageSlug: string) {
     `cms-page-content-${pageSlug}`,
     async () => {
     try {
-      const [sectionsResult, itemsResult] = await Promise.all([
-        supabase
-          .from("page_sections")
-          .select("*")
-          .eq("page_slug", pageSlug)
-          .eq("is_active", true)
-          .order("display_order", { ascending: true })
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("page_section_items")
-          .select("*")
-          .eq("is_active", true)
-          .order("display_order", { ascending: true })
-          .order("created_at", { ascending: true }),
-      ]);
-
-      if (sectionsResult.error) throw sectionsResult.error;
-      if (itemsResult.error) throw itemsResult.error;
-
-      const sections = (sectionsResult.data ?? []) as CmsSectionContent[];
-      const items = (itemsResult.data ?? []) as CmsSectionItemContent[];
+      const response = await $fetch<{
+        sections: CmsSectionContent[];
+        items: CmsSectionItemContent[];
+      }>(`/api/public/cms/pages/${pageSlug}/content`);
+      const sections = response.sections ?? [];
+      const items = response.items ?? [];
 
       const itemsBySectionId = items.reduce<Record<string, CmsSectionItemContent[]>>(
         (acc, item) => {
@@ -262,22 +222,17 @@ export function usePageContent(pageSlug: string) {
 }
 
 export function usePageSlides(pageSlug = "home", sectionKey = "hero") {
-  const supabase = useSupabaseClient<Database>();
-
   return useAsyncData<CmsSlideContent[]>(
     `cms-page-slides-${pageSlug}-${sectionKey}`,
     async () => {
     try {
-      const { data, error } = await supabase
-        .from("page_slides")
-        .select("*")
-        .eq("page_slug", pageSlug)
-        .eq("section_key", sectionKey)
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
-
-      if (error) throw error;
-      return (data ?? []) as CmsSlideContent[];
+      const response = await $fetch<{ slides: CmsSlideContent[] }>(
+        `/api/public/cms/pages/${pageSlug}/slides`,
+        {
+          query: { sectionKey },
+        },
+      );
+      return response.slides ?? [];
     } catch (error) {
       console.warn(`[cms] Failed to load slides for "${pageSlug}/${sectionKey}".`, error);
       return [];

@@ -14,6 +14,7 @@ export type CrudFieldKind =
   | "text"
   | "textarea"
   | "richtext"
+  | "password"
   | "select"
   | "multiselect"
   | "number"
@@ -41,6 +42,7 @@ export interface CrudField {
   optionsFromResourceId?: string;
   optionLabelKey?: string;
   optionValueKey?: string;
+  createOnly?: boolean;
   serverOnly?: boolean;
   disabled?: boolean;
   defaultValue?: unknown;
@@ -340,9 +342,29 @@ export const dashboardSections: CrudSectionConfig[] = [
     id: "blog",
     label: "Blog",
     to: "/dashboard/blog",
-    description: "Manage milestone stories, categories, and tags.",
+    description: "Manage milestone stories and blog taxonomy tables.",
     roles: ["content_editor"],
     icon: "lucide:newspaper",
+    children: [
+      {
+        id: "blog-categories",
+        label: "Categories",
+        to: "/dashboard/blog/categories",
+        description: "Organize posts into editorial buckets.",
+      },
+      {
+        id: "blog-tags",
+        label: "Tags",
+        to: "/dashboard/blog/tags",
+        description: "Reuse tags across stories.",
+      },
+      {
+        id: "blog-post-tags",
+        label: "Post tags",
+        to: "/dashboard/blog/post-tags",
+        description: "Assign tags to published posts.",
+      },
+    ],
     resources: [
       {
         id: "blog_posts",
@@ -415,82 +437,6 @@ export const dashboardSections: CrudSectionConfig[] = [
           { key: "reading_minutes", label: "Reading minutes", kind: "number" },
         ]),
         stampFields: { create: ["author_id"] },
-      },
-      {
-        id: "blog_categories",
-        label: "Categories",
-        description: "Organize posts into editorial buckets.",
-        table: "blog_categories",
-        readRoles: ["content_editor"],
-        writeRoles: ["content_editor"],
-        rowLabelKey: "name",
-        defaultSort: { key: "created_at", ascending: false },
-        columns: baseColumns([
-          { key: "name", label: "Name" },
-          { key: "slug", label: "Slug" },
-          { key: "description", label: "Description" },
-        ]),
-        fields: fields([
-          { key: "name", label: "Name", kind: "text", required: true },
-          { key: "slug", label: "Slug", kind: "text", required: true },
-          {
-            key: "description",
-            label: "Description",
-            kind: "textarea",
-            rows: 4,
-          },
-        ]),
-      },
-      {
-        id: "blog_tags",
-        label: "Tags",
-        description: "Reuse tags across stories.",
-        table: "blog_tags",
-        readRoles: ["content_editor"],
-        writeRoles: ["content_editor"],
-        rowLabelKey: "name",
-        defaultSort: { key: "name", ascending: true },
-        columns: baseColumns([
-          { key: "name", label: "Name" },
-          { key: "slug", label: "Slug" },
-        ]),
-        fields: fields([
-          { key: "name", label: "Name", kind: "text", required: true },
-          { key: "slug", label: "Slug", kind: "text", required: true },
-        ]),
-      },
-      {
-        id: "blog_post_tags",
-        label: "Post tags",
-        description: "Assign tags to published posts.",
-        table: "blog_post_tags",
-        primaryKey: ["post_id", "tag_id"],
-        readRoles: ["content_editor"],
-        writeRoles: ["content_editor"],
-        rowLabelKey: "post_id",
-        defaultSort: { key: "post_id", ascending: true },
-        columns: baseColumns([
-          { key: "post_id", label: "Post" },
-          { key: "tag_id", label: "Tag" },
-        ]),
-        fields: fields([
-          {
-            key: "post_id",
-            label: "Post",
-            kind: "select",
-            optionsFromResourceId: "blog_posts",
-            optionLabelKey: "title",
-            required: true,
-          },
-          {
-            key: "tag_id",
-            label: "Tag",
-            kind: "select",
-            optionsFromResourceId: "blog_tags",
-            optionLabelKey: "name",
-            required: true,
-          },
-        ]),
       },
     ],
   },
@@ -890,6 +836,7 @@ export const dashboardSections: CrudSectionConfig[] = [
         table: "tenders",
         readRoles: ["procurement_manager"],
         writeRoles: ["procurement_manager"],
+        allowDelete: false,
         rowLabelKey: "title",
         defaultSort: { key: "created_at", ascending: false },
         columns: baseColumns([
@@ -1018,54 +965,15 @@ export const dashboardSections: CrudSectionConfig[] = [
     id: "team",
     label: "Team",
     to: "/dashboard/team",
-    description: "Maintain leadership cards and staff auth accounts.",
-    roles: ["content_editor"],
+    description: "Manage authenticated staff users and their dashboard access.",
+    roles: ["super_admin"],
     icon: "lucide:users",
     resources: [
       {
-        id: "team_members",
-        label: "Leadership profiles",
-        description: "Edit public leadership and board profile cards.",
-        table: "team_members",
-        readRoles: ["content_editor"],
-        writeRoles: ["content_editor"],
-        rowLabelKey: "full_name",
-        defaultSort: { key: "display_order", ascending: true },
-        columns: baseColumns([
-          { key: "full_name", label: "Name" },
-          { key: "title", label: "Title" },
-          { key: "department", label: "Department" },
-          { key: "is_active", label: "Active", kind: "boolean" },
-          { key: "display_order", label: "Order", kind: "number" },
-        ]),
-        fields: fields([
-          {
-            key: "full_name",
-            label: "Full name",
-            kind: "text",
-            required: true,
-          },
-          { key: "title", label: "Title", kind: "text", required: true },
-          { key: "bio", label: "Bio", kind: "textarea", rows: 7 },
-          {
-            key: "photo_url",
-            label: "Photo",
-            kind: "upload",
-            accept: "image/*",
-            uploadBucket: "media",
-            uploadFolder: "team/members",
-            uploadPreview: "image",
-          },
-          { key: "department", label: "Department", kind: "text" },
-          { key: "display_order", label: "Display order", kind: "number" },
-          { key: "is_active", label: "Active", kind: "checkbox" },
-        ]),
-      },
-      {
         id: "profiles",
-        label: "Team members",
+        label: "Users",
         description:
-          "Create auth users, assign roles, manage access, deactivate accounts, and reset passwords.",
+          "Create authenticated staff users, assign dashboard roles, manage access, deactivate accounts, and reset passwords.",
         table: "profiles",
         readRoles: ["super_admin"],
         writeRoles: ["super_admin"],
@@ -1087,6 +995,15 @@ export const dashboardSections: CrudSectionConfig[] = [
           },
           { key: "email", label: "Email", kind: "text", required: true },
           {
+            key: "temporary_password",
+            label: "Temporary password",
+            kind: "password",
+            placeholder: "Leave blank to generate one automatically",
+            helpText:
+              "Optional. This is the first password the user can sign in with.",
+            createOnly: true,
+          },
+          {
             key: "avatar_url",
             label: "Avatar",
             kind: "upload",
@@ -1103,7 +1020,7 @@ export const dashboardSections: CrudSectionConfig[] = [
             kind: "multiselect",
             options: appRoles,
             required: true,
-            helpText: "Every team member needs at least one role.",
+            helpText: "Choose one or more dashboard roles for this user.",
           },
           {
             key: "is_active",
@@ -1112,7 +1029,8 @@ export const dashboardSections: CrudSectionConfig[] = [
             defaultValue: true,
           },
         ]),
-        submitLabel: "Save team member",
+        createLabel: "New user",
+        submitLabel: "Save user",
       },
     ],
   },
@@ -1321,6 +1239,7 @@ export const dashboardSections: CrudSectionConfig[] = [
         writeRoles: ["content_editor"],
         rowLabelKey: "title",
         defaultSort: { key: "page_slug", ascending: true },
+        createLabel: "New section",
         columns: baseColumns([
           { key: "page_slug", label: "Page" },
           { key: "section_key", label: "Section key" },
@@ -1390,6 +1309,7 @@ export const dashboardSections: CrudSectionConfig[] = [
         writeRoles: ["content_editor"],
         rowLabelKey: "title",
         defaultSort: { key: "display_order", ascending: true },
+        createLabel: "New item",
         columns: baseColumns([
           { key: "title", label: "Title" },
           { key: "section_id", label: "Section" },
@@ -1448,6 +1368,7 @@ export const dashboardSections: CrudSectionConfig[] = [
         writeRoles: ["content_editor"],
         rowLabelKey: "title",
         defaultSort: { key: "display_order", ascending: true },
+        createLabel: "New slide",
         columns: baseColumns([
           { key: "page_slug", label: "Page" },
           { key: "title", label: "Title" },
@@ -1498,96 +1419,6 @@ export const dashboardSections: CrudSectionConfig[] = [
             label: "Active",
             kind: "checkbox",
             defaultValue: true,
-          },
-        ]),
-      },
-    ],
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    to: "/dashboard/analytics",
-    description: "Review visitor activity and page pulse records.",
-    roles: ["super_admin"],
-    icon: "lucide:activity",
-    resources: [
-      {
-        id: "page_pulses",
-        label: "Page pulses",
-        description:
-          "Inspect lightweight page activity captured from the public site.",
-        table: "page_pulses",
-        readRoles: ["super_admin"],
-        writeRoles: [],
-        rowLabelKey: "path",
-        allowCreate: false,
-        allowUpdate: false,
-        allowDelete: false,
-        defaultSort: { key: "created_at", ascending: false },
-        columns: baseColumns([
-          { key: "created_at", label: "Captured", kind: "date" },
-          { key: "path", label: "Path" },
-          { key: "page_title", label: "Page title" },
-          { key: "referrer", label: "Referrer" },
-        ]),
-        fields: fields([
-          {
-            key: "session_id",
-            label: "Session ID",
-            kind: "text",
-            disabled: true,
-          },
-          { key: "path", label: "Path", kind: "text", disabled: true },
-          {
-            key: "page_title",
-            label: "Page title",
-            kind: "text",
-            disabled: true,
-          },
-          { key: "referrer", label: "Referrer", kind: "text", disabled: true },
-          { key: "language", label: "Language", kind: "text", disabled: true },
-          {
-            key: "user_agent",
-            label: "User agent",
-            kind: "textarea",
-            rows: 4,
-            disabled: true,
-          },
-          {
-            key: "ip_address",
-            label: "IP address",
-            kind: "text",
-            disabled: true,
-          },
-          {
-            key: "screen_width",
-            label: "Screen width",
-            kind: "number",
-            disabled: true,
-          },
-          {
-            key: "screen_height",
-            label: "Screen height",
-            kind: "number",
-            disabled: true,
-          },
-          {
-            key: "viewport_width",
-            label: "Viewport width",
-            kind: "number",
-            disabled: true,
-          },
-          {
-            key: "viewport_height",
-            label: "Viewport height",
-            kind: "number",
-            disabled: true,
-          },
-          {
-            key: "created_at",
-            label: "Captured at",
-            kind: "text",
-            disabled: true,
           },
         ]),
       },
@@ -1766,9 +1597,11 @@ export function buildFormValues(
   row?: Record<string, unknown> | null,
 ) {
   const values: Record<string, unknown> = {};
+  const mode: CrudEditorMode = row ? "edit" : "create";
 
   for (const field of resource.fields) {
     if (field.serverOnly) continue;
+    if (field.createOnly && mode !== "create") continue;
 
     const current = row?.[field.key];
     if (current == null) {
@@ -1824,11 +1657,13 @@ export function buildFormValues(
 export function serializeFormValues(
   resource: CrudResourceConfig,
   formValues: Record<string, unknown>,
+  mode: CrudEditorMode = "create",
 ) {
   const payload: Record<string, unknown> = {};
 
   for (const field of resource.fields) {
     if (field.serverOnly) continue;
+    if (field.createOnly && mode !== "create") continue;
 
     const raw = formValues[field.key];
     if (field.kind === "checkbox") {

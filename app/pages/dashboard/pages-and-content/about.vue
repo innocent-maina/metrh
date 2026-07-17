@@ -1,20 +1,13 @@
 <script setup lang="ts">
 definePageMeta({ layout: "dashboard" });
 
-const supabase = useSupabaseClient();
-
 const { data: aboutSections } = await useAsyncData(
   "dashboard-pages-about-sections",
   async () => {
-    const { data, error } = await supabase
-      .from("page_sections")
-      .select("id,section_key")
-      .eq("page_slug", "about")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
-
-    if (error) throw error;
-    return data ?? [];
+    return (await fetchDashboardResourceRows("page_sections", {
+      page_slug: "about",
+      is_active: true,
+    })) as Array<{ id: string; section_key: string }>;
   },
   { default: () => [] as Array<{ id: string; section_key: string }> },
 );

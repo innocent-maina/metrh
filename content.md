@@ -6,6 +6,8 @@ Compiled for the Nuvana HQ build. Sources: MeTRH's previous site content (client
 
 ## 1. Identity
 
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
+
 **Full name:** Meru Teaching and Referral Hospital
 **Short name / brand:** MeTRH
 **Type:** Public referral hospital, medical training and research institution
@@ -21,6 +23,8 @@ Compiled for the Nuvana HQ build. Sources: MeTRH's previous site content (client
 ---
 
 ## 2. Location & Contact
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 - **County:** Meru
 - **Sub-county:** Imenti North
@@ -38,6 +42,8 @@ Compiled for the Nuvana HQ build. Sources: MeTRH's previous site content (client
 ---
 
 ## 3. Vision, Mission, Core Values
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 **Vision:**
 A specialized referral hospital committed to excellence in innovative health care and training.
@@ -67,6 +73,8 @@ To provide client-centered, innovative, specialized and affordable health care; 
 
 ## 4. Scale & Capacity
 
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
+
 - **Land:** 7.6 hectares
 - **Catchment population:** ~1.4 million people (Meru County and beyond)
 - **Referral catchment:** Regional referral facility for Meru, Tharaka-Nithi, Marsabit, and Isiolo counties
@@ -91,6 +99,8 @@ _Note for build: use KMHFR figures as the "verified" numbers, but flag to client
 ---
 
 ## 5. Services Offered
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 ### High-level categories (from legacy site)
 
@@ -218,6 +228,8 @@ Oncology, ICU/HDU, Renal, Dermatology, Urology, Maxillofacial Surgery, Endoscopi
 
 ## 6. Clinic Days & Schedules (weekly specialist clinics)
 
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
+
 | Day       | Clinics (all typically 7–8 AM start)                                     |
 | --------- | ------------------------------------------------------------------------ |
 | Monday    | Dermatology, NCD, Psychiatry, Maxillofacial                              |
@@ -230,6 +242,8 @@ _Build note: this table is a strong candidate for a dynamic/editable "Clinic Sch
 
 ## 7. Visiting Hours
 
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
+
 - Morning: 6:00 AM – 7:00 AM
 - Lunch: 12:30 PM – 2:00 PM
 - Evening: 4:30 PM – 5:30 PM
@@ -237,6 +251,8 @@ _Build note: this table is a strong candidate for a dynamic/editable "Clinic Sch
 ---
 
 ## 8. Leadership
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 - **CEO:** Dr. Bernard Murithi (referenced in multiple 2025–2026 press/FB items as CEO / Ag. CEO — title fluctuates between "CEO" and "Ag. CEO" across sources, confirm current designation with client before publishing)
 - **Board Chairman:** Prof. Jotham Micheni
@@ -249,6 +265,8 @@ _Build note: leadership changed between 2023 (Dr. Gacheri Kathiiri) and 2025–2
 ---
 
 ## 9. Institutional Role & Teaching Affiliations
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 MeTRH serves as the teaching hospital for:
 
@@ -263,6 +281,8 @@ MeTRH participates in county, national, and global healthcare policy formulation
 ---
 
 ## 10. Growth, Development & Milestones
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 **Historical trajectory:** MeTRH transitioned from a dispensary → to a Level 5 hospital → and is now transitioning to Level 6 (specialized referral) status.
 
@@ -304,6 +324,8 @@ MeTRH partnered with the National Cancer Institute of Kenya and Meru County (mob
 
 ## 11. Community Engagement & Blood Donation Drives
 
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
+
 Blood donation is a recurring, high-visibility community engagement theme for MeTRH — strong candidate for a "News & Community" or "Get Involved" section on the site.
 
 - **Manchester United Fans Kenya (Meru chapter):** ~100 fans donated blood at MeTRH in a organized drive (covered by Nation Media/K24).
@@ -316,6 +338,8 @@ _Build note: this is rich, emotionally resonant, ready-made storytelling content
 ---
 
 ## 12. Careers / Recruitment
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 MeTRH periodically advertises contract positions. Example (most recent found):
 
@@ -337,6 +361,8 @@ Deadline noted: Thursday 2nd April, 2026 (this specific round will be closed by 
 
 ## 13. Procurement / Tenders
 
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
+
 MeTRH runs open national tenders and maintains a registered suppliers list — this is standard for a public institution and should be a maintained section (likely PDF-download driven), e.g.:
 
 - Framework agreements (e.g., supply and delivery of inpatient foodstuff)
@@ -348,6 +374,8 @@ _Build note: this needs a simple CMS-manageable "Tenders & Procurement" section 
 ---
 
 ## 14. Content/Site Architecture Implications (notes for the build prompt)
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 Based on the above, the site needs to support easily-editable, frequently-changing content types — this should shape the Supabase schema:
 
@@ -372,6 +400,8 @@ Based on the above, the site needs to support easily-editable, frequently-changi
 ---
 
 ## 15. Sources
+
+**Website build attribution:** This website was built by [Nuvana Technology](https://nuvanahq.co.ke).
 
 - Client-supplied legacy site content (Meru_Teaching_and_Referral_Hospital.md)
 - Kenya Master Health Facility Registry (kmhfr.health.go.ke) — facility #12516, official government data

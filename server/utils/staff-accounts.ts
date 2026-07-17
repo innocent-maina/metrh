@@ -15,6 +15,21 @@ function generateTemporaryPassword() {
   return randomBytes(12).toString("base64url");
 }
 
+function normalizeTemporaryPassword(value: unknown) {
+  if (value == null) return null;
+  const password = String(value).trim();
+  if (!password) return null;
+
+  if (password.length < 8) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Temporary password must be at least 8 characters.",
+    });
+  }
+
+  return password;
+}
+
 function normalizeRoles(value: unknown): AppRole[] {
   if (!Array.isArray(value)) return [];
 
@@ -86,7 +101,7 @@ function normalizeStaffInput(data: Record<string, unknown>): StaffProfileInput {
 export async function createStaffAccount(data: Record<string, unknown>) {
   const adminClient = supabaseAdmin();
   const payload = normalizeStaffInput(data);
-  const tempPassword = generateTemporaryPassword();
+  const tempPassword = normalizeTemporaryPassword(data.temporary_password) ?? generateTemporaryPassword();
 
   const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
     email: payload.email,

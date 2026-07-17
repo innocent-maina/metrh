@@ -2,7 +2,14 @@
 definePageMeta({ layout: "dashboard" });
 
 const { me, hasRole, isSuperAdmin } = useDashboardRoles();
-const supabase = useSupabaseClient();
+const numberFormatter = new Intl.NumberFormat("en-US");
+
+interface ChartBar {
+  label: string;
+  value: number;
+  percent: number;
+  detail?: string;
+}
 
 const canReadContacts = computed(
   () =>
@@ -14,26 +21,32 @@ const canReadCareers = computed(
 const canReadProcurement = computed(
   () => hasRole("procurement_manager") || isSuperAdmin.value,
 );
-const canReadAnalytics = computed(() => isSuperAdmin.value);
-const canEditContent = computed(
-  () => hasRole("content_editor") || isSuperAdmin.value,
-);
+function buildScaledBars(entries: Array<{ label: string; value: number }>) {
+  const max = Math.max(...entries.map((entry) => entry.value), 0);
+
+  return entries.map((entry) => ({
+    ...entry,
+    percent: max > 0 ? (entry.value / max) * 100 : 0,
+  })) as ChartBar[];
+}
+
+function buildRatioBars(
+  entries: Array<{ label: string; value: number; total: number }>,
+) {
+  return entries.map((entry) => ({
+    label: entry.label,
+    value: entry.value,
+    percent: entry.total > 0 ? (entry.value / entry.total) * 100 : 0,
+    detail: `${entry.value} / ${entry.total}`,
+  })) as ChartBar[];
+}
 
 const { data: contactCount } = await useAsyncData(
   "dashboard-contact-count",
   async () => {
     if (!canReadContacts.value) return null;
     try {
-      const { count, error } = await supabase
-        .from("contact_submissions")
-        .select("id", { count: "exact", head: true });
-
-      if (error) {
-        console.warn("Unable to load contact submission count:", error.message);
-        return null;
-      }
-
-      return count ?? 0;
+      return await fetchDashboardResourceCount("contact_submissions");
     } catch (error) {
       console.warn("Unable to load contact submission count:", error);
       return null;
@@ -47,17 +60,9 @@ const { data: openJobsCount } = await useAsyncData(
   async () => {
     if (!canReadCareers.value) return null;
     try {
-      const { count, error } = await supabase
-        .from("job_postings")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "open");
-
-      if (error) {
-        console.warn("Unable to load open jobs count:", error.message);
-        return null;
-      }
-
-      return count ?? 0;
+      return await fetchDashboardResourceCount("job_postings", {
+        status: "open",
+      });
     } catch (error) {
       console.warn("Unable to load open jobs count:", error);
       return null;
@@ -71,17 +76,9 @@ const { data: openTendersCount } = await useAsyncData(
   async () => {
     if (!canReadProcurement.value) return null;
     try {
-      const { count, error } = await supabase
-        .from("tenders")
-        .select("id", { count: "exact", head: true })
-        .neq("status", "draft");
-
-      if (error) {
-        console.warn("Unable to load open tenders count:", error.message);
-        return null;
-      }
-
-      return count ?? 0;
+      return await fetchDashboardResourceCount("tenders", {
+        status: ["open", "closed", "awarded", "cancelled"],
+      });
     } catch (error) {
       console.warn("Unable to load open tenders count:", error);
       return null;
@@ -90,27 +87,55 @@ const { data: openTendersCount } = await useAsyncData(
   { default: () => null },
 );
 
-const { data: pagePulsesCount } = await useAsyncData(
-  "dashboard-page-pulses-count",
+const { data: totalJobsCount } = await useAsyncData(
+  "dashboard-total-jobs-count",
   async () => {
-    if (!canReadAnalytics.value) return null;
+    if (!canReadCareers.value) return null;
     try {
-      const { count, error } = await supabase
-        .from("page_pulses")
-        .select("id", { count: "exact", head: true });
-
-      if (error) {
-        console.warn("Unable to load page pulse count:", error.message);
-        return null;
-      }
-
-      return count ?? 0;
+      return await fetchDashboardResourceCount("job_postings");
     } catch (error) {
-      console.warn("Unable to load page pulse count:", error);
+      console.warn("Unable to load total jobs count:", error);
       return null;
     }
   },
   { default: () => null },
+);
+
+const { data: totalTendersCount } = await useAsyncData(
+  "dashboard-total-tenders-count",
+  async () => {
+    if (!canReadProcurement.value) return null;
+    try {
+      return await fetchDashboardResourceCount("tenders");
+    } catch (error) {
+      console.warn("Unable to load total tenders count:", error);
+      return null;
+    }
+  },
+  { default: () => null },
+);
+
+const workloadBars = computed<ChartBar[]>(() =>
+  buildScaledBars([
+    { label: "Contact submissions", value: contactCount.value ?? 0 },
+    { label: "Open jobs", value: openJobsCount.value ?? 0 },
+    { label: "Active tenders", value: openTendersCount.value ?? 0 },
+  ]),
+);
+
+const availabilityBars = computed<ChartBar[]>(() =>
+  buildRatioBars([
+    {
+      label: "Open jobs",
+      value: openJobsCount.value ?? 0,
+      total: totalJobsCount.value ?? 0,
+    },
+    {
+      label: "Active tenders",
+      value: openTendersCount.value ?? 0,
+      total: totalTendersCount.value ?? 0,
+    },
+  ]),
 );
 
 const quickLinks = computed(() => {
@@ -182,18 +207,95 @@ const dashboardImages = useHospitalMedia();
           {{ openTendersCount }}
         </p>
       </div>
-      <div
-        v-if="pagePulsesCount !== null"
-        class="rounded-card border border-border bg-surface p-5"
-      >
-        <p
-          class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
-        >
-          Page pulses
-        </p>
-        <p class="mt-2 tabular-nums text-h2 text-primary">
-          {{ pagePulsesCount }}
-        </p>
+    </section>
+
+    <section class="rounded-card border border-border bg-surface p-6 shadow-card">
+      <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div class="max-w-2xl">
+          <p class="text-small font-semibold uppercase tracking-wide text-info">
+            Snapshot charts
+          </p>
+          <h3 class="mt-2 font-display font-semibold text-h3 text-ink">
+            Quick activity view
+          </h3>
+          <p class="mt-2 text-small text-ink-muted">
+            A compact look at current workload and open availability.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-5 grid gap-4 xl:grid-cols-2">
+        <article class="rounded-card border border-border bg-surface-alt p-5">
+          <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            Workload mix
+          </p>
+          <p class="mt-1 text-small text-ink-muted">
+            Current counts across the busiest dashboard areas.
+          </p>
+
+          <div class="mt-5 space-y-4">
+            <div
+              v-for="entry in workloadBars"
+              :key="entry.label"
+              class="space-y-2"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <p
+                  class="min-w-0 flex-1 truncate text-small font-semibold text-ink"
+                  :title="entry.label"
+                >
+                  {{ entry.label }}
+                </p>
+                <p class="shrink-0 text-small font-semibold tabular-nums text-ink">
+                  {{ numberFormatter.format(entry.value) }}
+                </p>
+              </div>
+              <div class="h-3 rounded-full bg-surface">
+                <div
+                  class="h-3 rounded-full bg-[linear-gradient(90deg,rgba(14,165,233,0.95),rgba(53,121,255,0.85))] transition-all"
+                  :style="{ width: `${Math.max(entry.percent, 4)}%` }"
+                  :title="`${entry.label}: ${entry.value}`"
+                />
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-card border border-border bg-surface-alt p-5">
+          <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            Open share
+          </p>
+          <p class="mt-1 text-small text-ink-muted">
+            How much of each queue is currently live.
+          </p>
+
+          <div class="mt-5 space-y-4">
+            <div
+              v-for="entry in availabilityBars"
+              :key="entry.label"
+              class="space-y-2"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <p
+                  class="min-w-0 flex-1 truncate text-small font-semibold text-ink"
+                  :title="entry.label"
+                >
+                  {{ entry.label }}
+                </p>
+                <p class="shrink-0 text-small font-semibold tabular-nums text-ink">
+                  {{ entry.detail }}
+                </p>
+              </div>
+              <div class="h-3 rounded-full bg-surface">
+                <div
+                  class="h-3 rounded-full bg-[linear-gradient(90deg,rgba(16,185,129,0.95),rgba(14,165,233,0.85))] transition-all"
+                  :style="{ width: `${Math.max(entry.percent, 4)}%` }"
+                  :title="`${entry.label}: ${entry.detail}`"
+                />
+              </div>
+            </div>
+          </div>
+        </article>
       </div>
     </section>
 

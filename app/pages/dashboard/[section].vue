@@ -3,7 +3,6 @@ import {
   buildFormValues,
   buildDashboardEditorRoute,
   getDashboardSection,
-  getResourceCreateLabel,
   getFieldOptions,
   serializeFormValues,
   type CrudResourceConfig,
@@ -13,7 +12,6 @@ definePageMeta({ layout: "dashboard" });
 
 const route = useRoute();
 const router = useRouter();
-const supabase = useSupabaseClient();
 const { hasRole } = useDashboardRoles();
 
 const sectionId = computed(() => String(route.params.section ?? ""));
@@ -33,6 +31,8 @@ const visibleResources = computed(() => {
   const resources =
     current.id === "careers"
       ? current.resources.filter((resource) => resource.id === "job_postings")
+      : current.id === "tenders"
+        ? current.resources.filter((resource) => resource.id === "tenders")
       : current.resources;
 
   return resources.filter((resource) =>
@@ -65,36 +65,13 @@ const notice = ref<string | null>(null);
 const tempPassword = ref<string | null>(null);
 const tempPasswordFor = ref<string | null>(null);
 const searchTerm = ref("");
-const isAnalyticsSection = computed(() => section.value?.id === "analytics");
 const isCareersSection = computed(() => section.value?.id === "careers");
 const isSingletonResource = computed(() => Boolean(currentResource.value?.singleton));
 const useEditorPage = computed(() =>
   ["blog", "careers", "services", "tenders"].includes(section.value?.id ?? ""),
 );
 
-const resourceAreaTitle = computed(() =>
-  isAnalyticsSection.value
-    ? "Analytics overview"
-    : isCareersSection.value
-      ? "Job postings"
-    : section.value?.id === "tenders"
-      ? "Tender records"
-      : "Resources",
-);
-
-const resourceAreaDescription = computed(() =>
-  isAnalyticsSection.value
-    ? "Live page pulse data from the public site, grouped into charts."
-    : isCareersSection.value
-      ? "Open a posting to review applications in the full editor."
-    : section.value?.id === "tenders"
-      ? "Keep notices, attachments, and supporting files in one place."
-      : "",
-);
-
-const searchPlaceholder = computed(() =>
-  isAnalyticsSection.value ? "Search paths, titles, referrers" : "Search records",
-);
+const searchPlaceholder = computed(() => "Search records");
 
 watch(
   visibleResources,
@@ -152,10 +129,6 @@ const canWriteCurrentResource = computed(() => {
   );
 });
 
-const createButtonLabel = computed(() =>
-  currentResource.value ? getResourceCreateLabel(currentResource.value) : "New record",
-);
-
 watch(
   currentResource,
   (resource) => {
@@ -210,23 +183,7 @@ async function loadResource(resourceId: string) {
       return;
     }
 
-    let query = supabase.from(resourceMeta.table as never).select("*");
-    if (resourceMeta.defaultSort) {
-      query = query.order(resourceMeta.defaultSort.key, {
-        ascending: resourceMeta.defaultSort.ascending ?? false,
-      });
-    }
-    if (resourceMeta.singleton) {
-      query = query.limit(1);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw error;
-    }
-
-    resourceRows[resourceId] = (data ?? []) as Record<string, unknown>[];
+    resourceRows[resourceId] = await fetchDashboardResourceRows(resourceMeta.id);
 
     if (resourceMeta.singleton && currentResource.value?.id === resourceMeta.id) {
       const row = resourceRows[resourceId][0] ?? null;
@@ -246,35 +203,6 @@ async function loadResource(resourceId: string) {
 async function refreshActiveResource() {
   if (!currentResource.value) return;
   await loadResource(currentResource.value.id);
-}
-
-async function openCreate() {
-  const resource = currentResource.value;
-  if (
-    !resource ||
-    !canWriteCurrentResource.value ||
-    resource.allowCreate === false
-  ) {
-    return;
-  }
-
-  if (useEditorPage.value) {
-    await navigateTo(
-      buildDashboardEditorRoute(resource, {
-        mode: "create",
-        backTo: route.fullPath,
-      }),
-    );
-    return;
-  }
-
-  drawerMode.value = "create";
-  activeRecord.value = null;
-  formValues.value = buildFormValues(resource);
-  drawerOpen.value = true;
-  notice.value = null;
-  tempPassword.value = null;
-  tempPasswordFor.value = null;
 }
 
 async function openRecord(row: Record<string, unknown>) {
@@ -316,7 +244,11 @@ async function submitRecord() {
   notice.value = null;
 
   try {
-    const payload = serializeFormValues(resource, formValues.value);
+    const payload = serializeFormValues(
+      resource,
+      formValues.value,
+      drawerMode.value,
+    );
 
     if (drawerMode.value === "create") {
       const result = await $fetch<{
@@ -389,7 +321,7 @@ async function toggleProfileActivation(row: Record<string, unknown>) {
   const rawRow = (row.__rawRow as Record<string, unknown> | undefined) ?? row;
   const isActive = Boolean(rawRow.is_active);
   const nextIsActive = !isActive;
-  const label = String(rawRow.full_name ?? "this team member");
+  const label = String(rawRow.full_name ?? "this user");
   const confirmed = window.confirm(
     `${nextIsActive ? "Reactivate" : "Deactivate"} ${label}?`,
   );
@@ -463,10 +395,12 @@ const resolvedFields = computed(() => {
   const resource = currentResource.value;
   if (!resource) return [];
 
-  return resource.fields.map((field) => ({
-    ...field,
-    options: getFieldOptions(field, resourceRows),
-  }));
+  return resource.fields
+    .filter((field) => !field.createOnly || drawerMode.value === "create")
+    .map((field) => ({
+      ...field,
+      options: getFieldOptions(field, resourceRows),
+    }));
 });
 
 const displayRows = computed(() => {
@@ -546,86 +480,11 @@ watch(
 <template>
   <div class="space-y-6">
     <section
-      class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card"
-    >
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="max-w-3xl">
-          <h2 class="mt-2 font-display font-bold text-h1 text-ink">
-            {{ section?.label }}
-          </h2>
-          <p class="mt-4 text-body text-ink-muted">
-            {{ section?.description }}
-          </p>
-        </div>
-
-        <button
-          v-if="
-            currentResource &&
-            canWriteCurrentResource &&
-            currentResource.allowCreate !== false
-          "
-          type="button"
-          class="inline-flex items-center gap-2 rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark"
-          @click="openCreate"
-        >
-          <Icon name="lucide:plus" class="size-4" aria-hidden="true" />
-          {{ createButtonLabel }}
-        </button>
-      </div>
-    </section>
-
-    <section
       class="rounded-card border border-border bg-surface p-5 shadow-card"
     >
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p
-            class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
-          >
-            {{ resourceAreaTitle }}
-          </p>
-          <p
-            v-if="resourceAreaDescription"
-            class="mt-1 max-w-3xl text-small text-ink-muted"
-          >
-            {{ resourceAreaDescription }}
-          </p>
-          <div
-            v-if="!isCareersSection"
-            class="mt-3 flex flex-wrap gap-2"
-          >
-            <button
-              v-for="resource in visibleResources"
-              :key="resource.id"
-              type="button"
-              class="rounded-full border px-4 py-2 text-small font-semibold transition-colors"
-              :class="
-                activeResourceId === resource.id
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-border bg-surface-alt text-ink hover:border-primary/30 hover:bg-surface'
-              "
-              @click="activeResourceId = resource.id"
-            >
-              {{ resource.label }}
-            </button>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-3">
-          <div
-            v-if="!canWriteCurrentResource"
-            class="rounded-full bg-surface-alt px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink-muted"
-          >
-            Read only
-          </div>
-        </div>
-      </div>
-
-      <div v-if="!isSingletonResource" class="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_260px]">
+      <div v-if="!isSingletonResource" class="mb-5">
         <label class="block">
-          <span class="mb-2 block text-small font-semibold text-ink"
-            >Search</span
-          >
+          <span class="mb-2 block text-small font-semibold text-ink">Search</span>
           <input
             v-model="searchTerm"
             type="search"
@@ -633,37 +492,6 @@ watch(
             :placeholder="searchPlaceholder"
           />
         </label>
-
-        <div
-          class="rounded-card border border-dashed border-border bg-surface-alt p-4"
-        >
-          <template v-if="isAnalyticsSection">
-            <p
-              class="text-caption font-semibold uppercase tracking-wide text-info"
-            >
-              Live filter
-            </p>
-            <p class="mt-1 font-display text-h4 text-ink">
-              {{ filteredRows.length }} matching pulses
-            </p>
-            <p class="mt-1 text-small text-ink-muted">
-              The charts below update with the current search term.
-            </p>
-          </template>
-          <template v-else>
-            <p
-              class="text-caption font-semibold uppercase tracking-wide text-info"
-            >
-              Current record
-            </p>
-            <p class="mt-1 font-display text-h4 text-ink">
-              {{ currentResource?.label }}
-            </p>
-            <p class="mt-1 text-small text-ink-muted">
-              {{ currentResource?.description }}
-            </p>
-          </template>
-        </div>
       </div>
 
       <div
@@ -696,86 +524,81 @@ watch(
       </div>
 
       <div class="mt-5">
-        <DashboardAnalyticsOverview
-          v-if="isAnalyticsSection"
-          :rows="filteredRows"
-          :loading="Boolean(resourceLoading[currentResource?.id ?? ''])"
-          :has-filter="Boolean(searchTerm.trim())"
-        />
+        <template v-if="currentResource && isSingletonResource">
+          <BaseCrudForm
+            :title="currentResource!.label"
+            :description="currentResource!.description"
+            :fields="resolvedFields"
+            :model-value="formValues"
+            :submit-label="currentResource!.submitLabel ?? 'Save changes'"
+            :loading="isSaving"
+            :read-only="!canWriteCurrentResource"
+            :hide-cancel-button="true"
+            @update:modelValue="formValues = $event"
+            @submit="submitRecord"
+            @cancel="closeDrawer"
+          />
+        </template>
 
-        <BaseCrudForm
-          v-else-if="currentResource && isSingletonResource"
-          :title="currentResource.label"
-          :description="currentResource.description"
-          :fields="resolvedFields"
-          :model-value="formValues"
-          :submit-label="currentResource.submitLabel ?? 'Save changes'"
-          :loading="isSaving"
-          :read-only="!canWriteCurrentResource"
-          :hide-cancel-button="true"
-          @update:modelValue="formValues = $event"
-          @submit="submitRecord"
-          @cancel="closeDrawer"
-        />
-
-        <BaseTable
-          v-else-if="currentResource"
-          :columns="currentResource.columns"
-          :rows="filteredRows"
-          :row-key="currentResource.primaryKey ?? 'id'"
-          :loading="Boolean(resourceLoading[currentResource.id])"
-          :empty-title="`No ${currentResource.label.toLowerCase()} found`"
-          :empty-description="`Use the action button to create the first ${currentResource.label.toLowerCase().replace(/s$/, '')}.`"
-          actions-label="Table actions"
-        >
-          <template #actions="{ row }">
-            <div class="flex items-center justify-end gap-2">
-              <BaseTableActionButton
-                label="Open record"
-                icon="lucide:eye"
-                tone="open"
-                @click="openRecord(row)"
-              />
-              <BaseTableActionButton
-                v-if="
-                  canWriteCurrentResource &&
-                  currentResource.allowUpdate !== false
-                "
-                label="Edit record"
-                icon="lucide:pen-line"
-                tone="edit"
-                @click="openRecord(row)"
-              />
-              <BaseTableActionButton
-                v-if="
-                  canWriteCurrentResource &&
-                  currentResource.id === 'profiles' &&
-                  currentResource.allowUpdate !== false
-                "
-                :label="
-                  row.is_active === false
-                    ? 'Reactivate account'
-                    : 'Deactivate account'
-                "
-                icon="lucide:power"
-                tone="warning"
-                @click="toggleProfileActivation(row)"
-              >
-              </BaseTableActionButton>
-              <BaseTableActionButton
-                v-if="
-                  canWriteCurrentResource &&
-                  currentResource.allowDelete !== false &&
-                  !(isCareersSection && currentResource.id === 'job_postings')
-                "
-                label="Delete record"
-                icon="lucide:trash-2"
-                tone="delete"
-                @click="deleteRecord(row)"
-              />
-            </div>
-          </template>
-        </BaseTable>
+        <template v-else-if="currentResource">
+          <BaseTable
+            :columns="currentResource!.columns"
+            :rows="filteredRows"
+            :row-key="currentResource!.primaryKey ?? 'id'"
+            :loading="Boolean(resourceLoading[currentResource!.id])"
+            :empty-title="`No ${currentResource!.label.toLowerCase()} found`"
+            empty-description="No records found."
+            actions-label="Table actions"
+          >
+            <template #actions="{ row }">
+              <div class="flex items-center justify-end gap-2">
+                <BaseTableActionButton
+                  label="Open record"
+                  icon="lucide:eye"
+                  tone="open"
+                  @click="openRecord(row)"
+                />
+                <BaseTableActionButton
+                  v-if="
+                    canWriteCurrentResource &&
+                    currentResource!.allowUpdate !== false
+                  "
+                  label="Edit record"
+                  icon="lucide:pen-line"
+                  tone="edit"
+                  @click="openRecord(row)"
+                />
+                <BaseTableActionButton
+                  v-if="
+                    canWriteCurrentResource &&
+                    currentResource!.id === 'profiles' &&
+                    currentResource!.allowUpdate !== false
+                  "
+                  :label="
+                    row.is_active === false
+                      ? 'Reactivate account'
+                      : 'Deactivate account'
+                  "
+                  icon="lucide:power"
+                  tone="warning"
+                  @click="toggleProfileActivation(row)"
+                >
+                </BaseTableActionButton>
+                <BaseTableActionButton
+                  v-if="
+                    canWriteCurrentResource &&
+                    currentResource!.allowDelete !== false &&
+                    !(isCareersSection && currentResource!.id === 'job_postings')
+                  "
+                  label="Delete record"
+                  icon="lucide:trash-2"
+                  tone="delete"
+                  @click="deleteRecord(row)"
+                />
+              </div>
+            </template>
+          </BaseTable>
+        </template>
       </div>
     </section>
 

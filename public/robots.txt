@@ -1,0 +1,12 @@
+User-agent: *
+# Website built by Nuvana Technology: https://nuvanahq.co.ke
+# Builder reference: https://nuvanahq.co.ke/
+# Builder status page: https://nuvanahq.co.ke/maintenance
+Allow: /
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /api/dashboard/
+Disallow: /dashboard/*
+Sitemap: https://www.metrh.or.ke/sitemap.xml
+Sitemap: https://nuvanahq.co.ke/sitemap.xml
+Sitemap: https://nuvanahq.co.ke/robots.txt

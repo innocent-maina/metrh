@@ -9,6 +9,7 @@ import {
   type CrudEditorMode,
   type CrudField,
 } from "~~/shared/dashboard-crud";
+import { fetchSignedDocumentUrls } from "~~/app/composables/fetchSignedDocumentUrls";
 
 interface Props {
   resourceId: string;
@@ -29,8 +30,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-const supabase = useSupabaseClient();
 const { hasRole } = useDashboardRoles();
+const resolveStorageUrl = usePublicStorageUrl();
 
 const resourceMeta = computed(() => getDashboardResource(props.resourceId));
 
@@ -82,30 +83,18 @@ const lookupRowsByResourceId = reactive<Record<string, Record<string, unknown>[]
 );
 const activeRecord = ref<Record<string, unknown> | null>(null);
 const formValues = ref<Record<string, unknown>>({});
+const tenderDocuments = ref<
+  Array<Record<string, unknown> & { downloadUrl: string | null }>
+>([]);
+const supportingFiles = ref<
+  Array<Record<string, unknown> & { downloadUrl: string | null }>
+>([]);
 const resourceLoading = ref(false);
 const resourceError = ref<string | null>(null);
+const relatedRecordsLoading = ref(false);
+const relatedRecordsError = ref<string | null>(null);
 const notice = ref<string | null>(null);
 const isSaving = ref(false);
-
-function applyFilters(
-  query: ReturnType<typeof supabase.from>,
-  filters: Record<string, string | number | boolean | null | Array<string | number | boolean>>,
-) {
-  let nextQuery = query;
-  for (const [key, value] of Object.entries(filters)) {
-    if (value == null) continue;
-    if (Array.isArray(value)) {
-      const entries = value.map((entry) => String(entry));
-      if (entries.length > 0) {
-        nextQuery = nextQuery.in(key, entries);
-      }
-      continue;
-    }
-
-    nextQuery = nextQuery.eq(key, value as never);
-  }
-  return nextQuery;
-}
 
 async function loadResourceRows(
   resourceId: string,
@@ -114,23 +103,7 @@ async function loadResourceRows(
   const current = getDashboardResource(resourceId)?.resource;
   if (!current) return [];
 
-  let query = supabase.from(current.table as never).select("*");
-  query = applyFilters(query, filters);
-
-  if (current.defaultSort) {
-    query = query.order(current.defaultSort.key, {
-      ascending: current.defaultSort.ascending ?? false,
-    });
-  }
-
-  if (current.singleton) {
-    query = query.limit(1);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  return (data ?? []) as Record<string, unknown>[];
+  return await fetchDashboardResourceRows(resourceId, filters);
 }
 
 function getRecordIdentifier() {
@@ -146,6 +119,7 @@ function getRecordIdentifier() {
 async function loadAll() {
   resourceLoading.value = true;
   resourceError.value = null;
+  relatedRecordsError.value = null;
 
   try {
     const lookupResourceIds = new Set(
@@ -168,6 +142,8 @@ async function loadAll() {
         ...buildFormValues(resource),
         ...props.defaults,
       };
+      tenderDocuments.value = [];
+      supportingFiles.value = [];
       return;
     }
 
@@ -176,24 +152,21 @@ async function loadAll() {
       throw new Error("A record id is required.");
     }
 
-    let query = supabase.from(resource.table as never).select("*").match(identifier as never);
-    if (resource.singleton) {
-      query = query.limit(1);
-    }
-
-    const { data, error } = await query.maybeSingle();
-    if (error) throw error;
+    const data = await fetchDashboardResourceRecord(resource.id, identifier as never);
     if (!data) {
       throw new Error("Record not found.");
     }
 
     activeRecord.value = data as Record<string, unknown>;
     formValues.value = buildFormValues(resource, data as Record<string, unknown>);
+    await loadTenderRelatedRecords();
   } catch (error) {
     resourceError.value =
       error instanceof Error ? error.message : "Could not load the record.";
     activeRecord.value = null;
     formValues.value = {};
+    tenderDocuments.value = [];
+    supportingFiles.value = [];
   } finally {
     resourceLoading.value = false;
   }
@@ -265,10 +238,74 @@ function getStoredFileName(value: unknown) {
 function resolvePublicUploadUrl(field: CrudField, value: unknown) {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
-  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
   if (field.uploadBucket !== "media") return raw;
 
-  return supabase.storage.from("media").getPublicUrl(raw).data.publicUrl;
+  return resolveStorageUrl(raw, "media");
+}
+
+function getRecordFileLabel(row: Record<string, unknown>, fallbackKey: string) {
+  return String(row[fallbackKey] ?? row.file_name ?? row.title ?? row.id ?? "record");
+}
+
+async function loadTenderRelatedRecords() {
+  if (resource.id !== "tenders") {
+    tenderDocuments.value = [];
+    supportingFiles.value = [];
+    relatedRecordsError.value = null;
+    return;
+  }
+
+  const tenderId = String(activeRecord.value?.id ?? "");
+  if (!tenderId) {
+    tenderDocuments.value = [];
+    supportingFiles.value = [];
+    relatedRecordsError.value = null;
+    return;
+  }
+
+  relatedRecordsLoading.value = true;
+  relatedRecordsError.value = null;
+
+  try {
+    const [documentRows, supportingRows] = await Promise.all([
+      fetchDashboardResourceRows("tender_documents", { tender_id: tenderId }),
+      fetchDashboardResourceRows("downloads"),
+    ]);
+
+    const [documentUrls, supportingUrls] = await Promise.all([
+      fetchSignedDocumentUrls(
+        documentRows.map((row) => ({
+          resource: "tender_documents",
+          id: String(row.id),
+        })),
+      ),
+      fetchSignedDocumentUrls(
+        supportingRows.map((row) => ({
+          resource: "downloads",
+          id: String(row.id),
+        })),
+      ),
+    ]);
+
+    tenderDocuments.value = documentRows.map((row) => ({
+      ...row,
+      downloadUrl: documentUrls.get(String(row.id)) ?? null,
+    }));
+
+    supportingFiles.value = supportingRows.map((row) => ({
+      ...row,
+      downloadUrl: supportingUrls.get(String(row.id)) ?? null,
+    }));
+  } catch (error) {
+    relatedRecordsError.value =
+      error instanceof Error
+        ? error.message
+        : "Could not load related tender files.";
+    tenderDocuments.value = [];
+    supportingFiles.value = [];
+  } finally {
+    relatedRecordsLoading.value = false;
+  }
 }
 
 function updateField(key: string, value: unknown) {
@@ -311,32 +348,23 @@ async function handleUploadChange(field: CrudField, event: Event) {
   uploadingFields[field.key] = true;
 
   try {
+    const formData = new FormData();
+    formData.append("bucket", field.uploadBucket);
+    formData.append("folder", field.uploadFolder);
+    formData.append("fileName", file.name);
+    formData.append("file", file);
+
     const upload = await $fetch<{
       path: string;
-      token: string;
-      signedUrl: string;
+      publicUrl: string | null;
     }>("/api/storage/dashboard/sign-upload", {
       method: "POST",
-      body: {
-        bucket: field.uploadBucket,
-        folder: field.uploadFolder,
-        fileName: file.name,
-      },
+      body: formData,
     });
-
-    const { error } = await supabase.storage
-      .from(field.uploadBucket)
-      .uploadToSignedUrl(upload.path, upload.token, file, {
-        contentType: file.type || "application/octet-stream",
-      });
-
-    if (error) {
-      throw new Error(error.message);
-    }
 
     const storedValue =
       field.uploadBucket === "media"
-        ? supabase.storage.from(field.uploadBucket).getPublicUrl(upload.path).data.publicUrl
+        ? upload.publicUrl ?? upload.path
         : upload.path;
 
     updateField(field.key, storedValue);
@@ -356,7 +384,7 @@ async function submitRecord() {
   notice.value = null;
 
   try {
-    const payload = serializeFormValues(resource, formValues.value);
+    const payload = serializeFormValues(resource, formValues.value, props.mode);
 
     if (props.mode === "create") {
       const result = await $fetch<{
@@ -478,7 +506,7 @@ async function deleteRecord() {
             v-show="!field.serverOnly"
             :key="field.key"
             class="space-y-2"
-            :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' || field.kind === 'richtext' || field.kind === 'multiselect' || field.kind === 'icon' ? 'md:col-span-2' : ''"
+            :class="field.kind === 'textarea' || field.kind === 'upload' || field.kind === 'richtext' || field.kind === 'multiselect' || field.kind === 'icon' ? 'md:col-span-2' : ''"
           >
             <span class="block text-small font-semibold text-ink">
               {{ field.label }}
@@ -500,7 +528,7 @@ async function deleteRecord() {
             />
 
             <textarea
-              v-else-if="field.kind === 'textarea' || field.kind === 'json'"
+              v-else-if="field.kind === 'textarea'"
               :rows="field.rows ?? 5"
               class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
               :placeholder="field.placeholder"
@@ -508,6 +536,17 @@ async function deleteRecord() {
               :disabled="readOnly || field.disabled"
               :value="String(formValues[field.key] ?? '')"
               @input="updateField(field.key, ($event.target as HTMLTextAreaElement).value)"
+            />
+
+            <input
+              v-else-if="field.kind === 'json'"
+              type="text"
+              class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
+              :placeholder="field.placeholder"
+              :required="field.required"
+              :disabled="readOnly || field.disabled"
+              :value="String(formValues[field.key] ?? '')"
+              @input="updateField(field.key, ($event.target as HTMLInputElement).value)"
             />
 
             <div v-else-if="field.kind === 'upload'" class="space-y-3">
@@ -608,11 +647,12 @@ async function deleteRecord() {
 
             <input
               v-else
-              :type="field.kind === 'number' ? 'number' : field.kind === 'date' ? 'date' : field.kind === 'time' ? 'time' : 'text'"
+              :type="field.kind === 'password' ? 'password' : field.kind === 'number' ? 'number' : field.kind === 'date' ? 'date' : field.kind === 'time' ? 'time' : 'text'"
               class="w-full rounded-card border border-border bg-surface px-3 py-2.5 text-body text-ink outline-none transition-colors focus:border-primary"
               :placeholder="field.placeholder"
               :required="field.required"
               :disabled="readOnly || field.disabled"
+              :autocomplete="field.kind === 'password' ? 'new-password' : undefined"
               :value="String(formValues[field.key] ?? '')"
               @input="updateField(field.key, ($event.target as HTMLInputElement).value)"
             />
@@ -652,7 +692,134 @@ async function deleteRecord() {
         </div>
       </form>
 
-      <div v-else class="py-8 text-small text-ink-muted">
+      <div
+        v-if="activeRecord && resource.id === 'tenders' && props.mode !== 'create' && !resourceLoading"
+        class="mt-8 border-t border-border pt-6"
+      >
+        <div class="mb-4 max-w-3xl">
+          <p class="text-caption font-semibold uppercase tracking-wide text-info">
+            Related records
+          </p>
+          <h3 class="mt-1 font-display text-h3 text-ink">
+            Attachments and supporting files
+          </h3>
+          <p class="mt-2 text-small text-ink-muted">
+            Read-only file previews for the current tender.
+          </p>
+        </div>
+
+        <div
+          v-if="relatedRecordsError"
+          class="mb-4 rounded-card border border-danger/30 bg-danger/5 px-4 py-3 text-small text-danger"
+        >
+          {{ relatedRecordsError }}
+        </div>
+
+        <div v-else-if="relatedRecordsLoading" class="text-small text-ink-muted">
+          Loading related files...
+        </div>
+
+        <div v-else class="grid gap-4 lg:grid-cols-2">
+          <section class="rounded-card border border-border bg-surface-alt/40">
+            <header class="border-b border-border px-4 py-3">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="font-semibold text-ink">Attachments</p>
+                  <p class="text-caption text-ink-muted">
+                    {{ tenderDocuments.length }} file{{ tenderDocuments.length === 1 ? "" : "s" }}
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div v-if="tenderDocuments.length > 0" class="divide-y divide-border">
+              <div
+                v-for="document in tenderDocuments"
+                :key="String(document.id)"
+                class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div class="min-w-0">
+                  <p class="truncate font-medium text-ink">
+                    {{ getRecordFileLabel(document, "file_name") }}
+                  </p>
+                  <p class="mt-1 break-all text-caption text-ink-muted">
+                    {{ getStoredFileName(document.file_url) }}
+                  </p>
+                </div>
+
+                <a
+                  v-if="document.downloadUrl"
+                  :href="document.downloadUrl"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="rounded-control border border-border px-3 py-2 text-small font-semibold text-ink hover:bg-surface"
+                >
+                  Download
+                </a>
+                <span v-else class="text-caption text-ink-muted">
+                  File unavailable
+                </span>
+              </div>
+            </div>
+
+            <div v-else class="px-4 py-6 text-small text-ink-muted">
+              No attachments have been linked to this tender yet.
+            </div>
+          </section>
+
+          <section class="rounded-card border border-border bg-surface-alt/40">
+            <header class="border-b border-border px-4 py-3">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="font-semibold text-ink">Supporting files</p>
+                  <p class="text-caption text-ink-muted">
+                    {{ supportingFiles.length }} file{{ supportingFiles.length === 1 ? "" : "s" }}
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div v-if="supportingFiles.length > 0" class="divide-y divide-border">
+              <div
+                v-for="file in supportingFiles"
+                :key="String(file.id)"
+                class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div class="min-w-0">
+                  <p class="truncate font-medium text-ink">
+                    {{ getRecordFileLabel(file, "title") }}
+                  </p>
+                  <p class="mt-1 break-all text-caption text-ink-muted">
+                    {{ String(file.category ?? "Supporting file") }}
+                  </p>
+                  <p class="mt-1 text-caption text-ink-muted">
+                    {{ file.is_published ? "Published" : "Unpublished" }}
+                  </p>
+                </div>
+
+                <a
+                  v-if="file.downloadUrl"
+                  :href="file.downloadUrl"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="rounded-control border border-border px-3 py-2 text-small font-semibold text-ink hover:bg-surface"
+                >
+                  Download
+                </a>
+                <span v-else class="text-caption text-ink-muted">
+                  File unavailable
+                </span>
+              </div>
+            </div>
+
+            <div v-else class="px-4 py-6 text-small text-ink-muted">
+              No supporting files are available yet.
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div v-if="resourceLoading" class="py-8 text-small text-ink-muted">
         Loading editor...
       </div>
     </section>

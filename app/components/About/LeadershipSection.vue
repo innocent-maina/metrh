@@ -14,31 +14,16 @@ interface TeamMember {
 // that gets hardcoded here — leadership is entirely dashboard-managed via
 // `team_members`, populated once the client confirms current names/titles/
 // photos. This component only renders what's actually in the table.
-const supabase = useSupabaseClient();
-
-function resolveMediaUrl(value: string | null) {
-  if (!value) return "";
-  if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
-
-  return supabase.storage.from("media").getPublicUrl(value).data.publicUrl;
-}
+const resolveMediaUrl = usePublicStorageUrl();
 
 const { data: teamMembers, pending } = await useAsyncData<TeamMember[]>(
   "team-members-active",
   async () => {
     try {
-      const { data, error } = await supabase
-        .from("team_members")
-        .select("id, full_name, title, bio, photo_url, department")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
-
-      if (error) {
-        console.warn("Unable to load leadership profiles:", error.message);
-        return [];
-      }
-
-      return data ?? [];
+      const response = await $fetch<{ teamMembers: TeamMember[] }>(
+        "/api/public/leadership",
+      );
+      return response.teamMembers ?? [];
     } catch (error) {
       console.warn("Unable to load leadership profiles:", error);
       return [];

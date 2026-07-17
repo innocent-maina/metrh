@@ -3,6 +3,7 @@ definePageMeta({ layout: "dashboard" });
 useHead({ title: "Profile — MeTRH Dashboard" });
 
 const { me, load, pending, error: dashboardError } = useDashboardRoles();
+const resolveStorageUrl = usePublicStorageUrl();
 const supabase = useSupabaseClient();
 
 const activeTab = ref<"profile" | "security">("profile");
@@ -87,10 +88,7 @@ const memberSince = computed(() => {
 });
 
 function resolveMediaUrl(value: string | null) {
-  if (!value) return "";
-  if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
-
-  return supabase.storage.from("media").getPublicUrl(value).data.publicUrl;
+  return resolveStorageUrl(value, "media");
 }
 
 function focusAvatarInput() {
@@ -115,33 +113,21 @@ async function handleAvatarChange(event: Event) {
   isUploadingAvatar.value = true;
 
   try {
+    const formData = new FormData();
+    formData.append("bucket", "media");
+    formData.append("folder", "profiles/avatars");
+    formData.append("fileName", file.name);
+    formData.append("file", file);
+
     const upload = await $fetch<{
       path: string;
-      token: string;
-      signedUrl: string;
+      publicUrl: string | null;
     }>("/api/storage/dashboard/sign-upload", {
       method: "POST",
-      body: {
-        bucket: "media",
-        folder: "profiles/avatars",
-        fileName: file.name,
-      },
+      body: formData,
     });
 
-    const { error } = await supabase.storage
-      .from("media")
-      .uploadToSignedUrl(upload.path, upload.token, file, {
-        contentType: file.type || "application/octet-stream",
-      });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    profileForm.avatar_url = supabase.storage
-      .from("media")
-      .getPublicUrl(upload.path)
-      .data.publicUrl;
+    profileForm.avatar_url = upload.publicUrl ?? upload.path;
     profileNotice.value =
       "Avatar uploaded. Save the profile to keep the change.";
   } catch (error) {

@@ -28,7 +28,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-const supabase = useSupabaseClient();
 const { hasRole } = useDashboardRoles();
 
 const postingMeta = getDashboardResource("job_postings");
@@ -154,20 +153,16 @@ function resolveDocumentName(value: unknown) {
   }
 }
 
-async function createSignedDocumentUrl(value: unknown) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return null;
-  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+async function fetchApplicationDocumentUrls(applicationId: string) {
+  const response = await $fetch<{
+    resumeUrl: string;
+    supportingDocumentUrl: string | null;
+  }>("/api/storage/documents/sign-application-urls", {
+    method: "POST",
+    body: { applicationId },
+  });
 
-  const { data, error } = await supabase.storage
-    .from("documents")
-    .createSignedUrl(raw, 60 * 10);
-
-  if (error || !data?.signedUrl) {
-    return null;
-  }
-
-  return data.signedUrl;
+  return response;
 }
 
 async function loadLookupRows() {
@@ -182,17 +177,9 @@ async function loadLookupRows() {
       const lookupResource = getDashboardResource(lookupResourceId)?.resource;
       if (!lookupResource) return;
 
-      let query = supabase.from(lookupResource.table as never).select("*");
-      if (lookupResource.defaultSort) {
-        query = query.order(lookupResource.defaultSort.key, {
-          ascending: lookupResource.defaultSort.ascending ?? false,
-        });
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      lookupRowsByResourceId[lookupResourceId] = (data ?? []) as Record<string, unknown>[];
+      lookupRowsByResourceId[lookupResourceId] = await fetchDashboardResourceRows(
+        lookupResource.id,
+      );
     }),
   );
 }
@@ -215,17 +202,13 @@ async function loadPosting() {
       return;
     }
 
-    let query = supabase.from(postingResource.table as never).select("*");
-    if (props.recordId) {
-      query = query.eq("id", props.recordId);
-    } else if (Object.keys(props.recordIdentifier).length > 0) {
-      query = query.match(props.recordIdentifier as never);
-    } else {
-      throw new Error("A record id is required.");
-    }
-
-    const { data, error } = await query.maybeSingle();
-    if (error) throw error;
+    const data = props.recordId
+      ? await fetchDashboardResourceRecord(postingResource.id, { id: props.recordId })
+      : Object.keys(props.recordIdentifier).length > 0
+        ? await fetchDashboardResourceRecord(postingResource.id, {
+            identifier: props.recordIdentifier,
+          })
+        : null;
     if (!data) throw new Error("Job posting not found.");
 
     activeRecord.value = data as Record<string, unknown>;
@@ -249,15 +232,10 @@ async function loadApplications(record?: Record<string, unknown> | null) {
   applicationsLoading.value = true;
 
   try {
-    const { data, error } = await supabase
-      .from(applicationsResource.table as never)
-      .select("*")
-      .eq("job_id", String(posting.id))
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    applications.value = (data ?? []) as Record<string, unknown>[];
+    applications.value = await fetchDashboardResourceRows(
+      applicationsResource.id,
+      { job_id: String(posting.id) },
+    );
   } catch (error) {
     resourceError.value =
       error instanceof Error ? error.message : "Could not load applications.";
@@ -306,7 +284,7 @@ async function submitPosting() {
   notice.value = null;
 
   try {
-    const payload = serializeFormValues(postingResource, formValues.value);
+    const payload = serializeFormValues(postingResource, formValues.value, props.mode);
 
     if (props.mode === "create") {
       const result = await $fetch<{
@@ -373,12 +351,23 @@ async function deactivatePosting() {
 async function openApplication(row: Record<string, unknown>) {
   const rawRow = (row.__rawRow as Record<string, unknown> | undefined) ?? row;
   selectedApplication.value = rawRow;
-  selectedApplicationLinks.resume_url = await createSignedDocumentUrl(
-    rawRow.resume_url,
-  );
-  selectedApplicationLinks.supporting_document_url = await createSignedDocumentUrl(
-    rawRow.supporting_document_url,
-  );
+
+  if (!rawRow.id) {
+    selectedApplicationLinks.resume_url = null;
+    selectedApplicationLinks.supporting_document_url = null;
+    return;
+  }
+
+  try {
+    const links = await fetchApplicationDocumentUrls(String(rawRow.id));
+    selectedApplicationLinks.resume_url = links.resumeUrl;
+    selectedApplicationLinks.supporting_document_url =
+      links.supportingDocumentUrl;
+  } catch (error) {
+    console.warn("[careers] Could not sign application documents.", error);
+    selectedApplicationLinks.resume_url = null;
+    selectedApplicationLinks.supporting_document_url = null;
+  }
 }
 
 function closeApplication() {
@@ -606,7 +595,7 @@ function closeApplication() {
                     :key="field.key"
                     v-show="!field.serverOnly"
                     class="rounded-card border border-border bg-surface-alt p-4"
-                    :class="field.kind === 'textarea' || field.kind === 'json' || field.kind === 'upload' ? 'md:col-span-2' : ''"
+                    :class="field.kind === 'textarea' || field.kind === 'upload' ? 'md:col-span-2' : ''"
                   >
                     <p class="text-caption font-semibold uppercase tracking-wide text-info">
                       {{ field.label }}

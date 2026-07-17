@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import type { Database } from "~~/types/database.types";
 import { fetchSignedDocumentUrls } from "~~/app/composables/fetchSignedDocumentUrls";
 
 definePageMeta({ layout: "default" });
 
-const supabase = useSupabaseClient<Database>();
 const { recruitmentRounds } = useMetrhContent();
 const { data: careersContent } = await usePageContent("careers");
 
@@ -59,15 +57,11 @@ function formatEmploymentType(value: string) {
 
 const { data: careerIndex } = await useAsyncData("public-careers-index", async () => {
   try {
-    const { data: rows, error } = await supabase
-      .from("job_postings")
-      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,attachment_url,status,application_deadline,created_at,updated_at")
-      .eq("status", "open")
-      .order("application_deadline", { ascending: true });
+    const response = await $fetch<{ rounds: JobPostingRow[] }>(
+      "/api/public/careers",
+    );
 
-    if (error) throw error;
-
-    const data = rows as JobPostingRow[];
+    const data = response.rounds ?? [];
     const attachmentRows = data.filter((posting) => posting.attachment_url);
     const attachmentUrlMap = attachmentRows.length
       ? await fetchSignedDocumentUrls(

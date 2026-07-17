@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import type { Database } from "~~/types/database.types";
 import { fetchSignedDocumentUrls } from "~~/app/composables/fetchSignedDocumentUrls";
 
 definePageMeta({ layout: "default" });
 
 const route = useRoute();
-const slug = String(route.params.slug);
-const supabase = useSupabaseClient<Database>();
+const slug = computed(() => String(route.params.slug ?? ""));
 const { recruitmentRounds } = useMetrhContent();
+const supabase = useSupabaseClient();
 
 type JobPostingRow = {
   id: string;
@@ -44,18 +43,16 @@ function formatEmploymentType(value: string) {
     .join(" ");
 }
 
-const { data: postingData } = await useAsyncData(`public-career-${slug}`, async () => {
+const { data: postingData } = await useAsyncData(
+  () => `public-career-${slug.value}`,
+  async () => {
   try {
-    const { data: row, error } = await supabase
-      .from("job_postings")
-      .select("id,reference_no,title,slug,department,employment_type,positions_count,description,requirements,responsibilities,how_to_apply,attachment_url,status,application_deadline,created_at,updated_at")
-      .eq("slug", slug)
-      .eq("status", "open")
-      .maybeSingle();
+    const response = await $fetch<{
+      posting: JobPostingRow | null;
+      relatedPostings: JobPostingRow[];
+    }>(`/api/public/careers/${slug.value}`);
 
-    if (error) throw error;
-
-    const data = row as JobPostingRow | null;
+    const data = response.posting;
 
     if (data) {
       let attachmentUrl: string | null = null;
@@ -95,7 +92,7 @@ const { data: postingData } = await useAsyncData(`public-career-${slug}`, async 
     console.warn("[careers] Falling back to seeded posting.", error);
   }
 
-  const fallback = recruitmentRounds.find((entry) => entry.slug === slug);
+  const fallback = recruitmentRounds.find((entry) => entry.slug === slug.value);
   if (!fallback) return null;
 
   return {
@@ -116,7 +113,7 @@ const { data: postingData } = await useAsyncData(`public-career-${slug}`, async 
       deadlineLabel: fallback.deadlineLabel,
     },
     relatedPostings: recruitmentRounds
-      .filter((entry) => entry.slug !== slug)
+      .filter((entry) => entry.slug !== slug.value)
       .slice(0, 3)
       .map((entry) => ({
         slug: entry.slug,
@@ -125,7 +122,9 @@ const { data: postingData } = await useAsyncData(`public-career-${slug}`, async 
         status: entry.status,
       })),
   };
-});
+  },
+  { watch: [slug] },
+);
 
 const posting = computed(() => postingData.value?.posting ?? null);
 const relatedPostings = computed(() => postingData.value?.relatedPostings ?? []);
@@ -332,9 +331,9 @@ async function submitApplication() {
 
   try {
     const resumeUpload = await $fetch<{
-      path: string;
-      token: string;
       signedUrl: string;
+      token: string;
+      path: string;
     }>("/api/storage/documents/sign-upload", {
       method: "POST",
       body: {
@@ -343,23 +342,23 @@ async function submitApplication() {
       },
     });
 
-    const { error: uploadError } = await supabase.storage
+    const { error: resumeError } = await supabase.storage
       .from("documents")
       .uploadToSignedUrl(resumeUpload.path, resumeUpload.token, resumeFile.value, {
         contentType: resumeFile.value.type || "application/octet-stream",
       });
 
-    if (uploadError) {
-      throw new Error(uploadError.message);
+    if (resumeError) {
+      throw resumeError;
     }
 
     let supportingUploadPath: string | null = null;
 
     if (supportingFile.value) {
       const supportingUpload = await $fetch<{
-        path: string;
-        token: string;
         signedUrl: string;
+        token: string;
+        path: string;
       }>("/api/storage/documents/sign-upload", {
         method: "POST",
         body: {
@@ -368,7 +367,7 @@ async function submitApplication() {
         },
       });
 
-      const { error: supportingUploadError } = await supabase.storage
+      const { error: supportingError } = await supabase.storage
         .from("documents")
         .uploadToSignedUrl(
           supportingUpload.path,
@@ -379,8 +378,8 @@ async function submitApplication() {
           },
         );
 
-      if (supportingUploadError) {
-        throw new Error(supportingUploadError.message);
+      if (supportingError) {
+        throw supportingError;
       }
 
       supportingUploadPath = supportingUpload.path;
