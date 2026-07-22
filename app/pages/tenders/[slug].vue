@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { fetchSignedDocumentUrls } from "~~/app/composables/fetchSignedDocumentUrls";
+
 definePageMeta({ layout: "default" });
 
 const route = useRoute();
 const slug = computed(() => String(route.params.slug ?? ""));
+const normalizedSlug = computed(() => slug.value.trim());
 
 function formatDateLabel(value: string | null | undefined) {
   if (!value) return "Not listed";
@@ -52,65 +55,76 @@ type TenderDocumentCard = {
 };
 
 const { data: tenderData } = await useAsyncData(
-  () => `public-tender-${slug.value}`,
+  () => `public-tender-${normalizedSlug.value}`,
   async () => {
-  try {
-    const response = await $fetch<{
-      tender: TenderRow | null;
-      documents: TenderDocumentRow[];
-      relatedTenders: TenderRow[];
-    }>(`/api/public/tenders/${slug.value}`);
+    try {
+      const response = await $fetch<{
+        tender: TenderRow | null;
+        documents: TenderDocumentRow[];
+        relatedTenders: TenderRow[];
+      }>(`/api/public/tenders/${normalizedSlug.value}`);
 
-    const tender = response.tender;
-    if (!tender) return null;
-    const documentRows = response.documents ?? [];
-    const relatedRows = response.relatedTenders ?? [];
-    const documentUrlMap = await fetchSignedDocumentUrls(
-      documentRows.map((document) => ({
-        resource: "tender_documents",
-        id: document.id,
-      })),
-    );
+      const tender = response.tender;
+      if (!tender) return null;
 
-    return {
-      tender: {
-        id: tender.id,
-        tenderNumber: tender.tender_number,
-        title: tender.title,
-        slug: tender.slug,
-        category: formatTenderCategory(tender.category),
-        description: tender.description,
-        status: tender.status,
-        openingLabel: formatDateLabel(tender.opening_date),
-        closingLabel: formatDateLabel(tender.closing_date),
-        awardedTo: tender.awarded_to,
-      },
-      documents: documentRows.map((document) => ({
-        id: document.id,
-        fileName: document.file_name,
-        fileSizeKb: document.file_size_kb,
-        downloadUrl: documentUrlMap.get(document.id) ?? null,
-      })),
-      relatedTenders: relatedRows
-        .filter((entry) => entry.slug !== slug.value)
-        .slice(0, 3)
-        .map((entry) => ({
-          slug: entry.slug,
-          title: entry.title,
-          tenderNumber: entry.tender_number,
-          status: entry.status,
+      const documentRows = response.documents ?? [];
+      const relatedRows = response.relatedTenders ?? [];
+      let documentUrlMap = new Map<string, string | null>();
+
+      if (documentRows.length > 0) {
+        try {
+          documentUrlMap = await fetchSignedDocumentUrls(
+            documentRows.map((document) => ({
+              resource: "tender_documents",
+              id: document.id,
+            })),
+          );
+        } catch (error) {
+          console.warn("[tenders] Could not sign tender document URLs.", error);
+        }
+      }
+
+      return {
+        tender: {
+          id: tender.id,
+          tenderNumber: tender.tender_number,
+          title: tender.title,
+          slug: tender.slug,
+          category: formatTenderCategory(tender.category),
+          description: tender.description,
+          status: tender.status,
+          openingLabel: formatDateLabel(tender.opening_date),
+          closingLabel: formatDateLabel(tender.closing_date),
+          awardedTo: tender.awarded_to,
+        },
+        documents: documentRows.map((document) => ({
+          id: document.id,
+          fileName: document.file_name,
+          fileSizeKb: document.file_size_kb,
+          downloadUrl: documentUrlMap.get(document.id) ?? null,
         })),
-    };
-  } catch (error) {
-    console.warn("[tenders] Could not load tender detail.", error);
-    return null;
-  }
+        relatedTenders: relatedRows
+          .filter((entry) => entry.slug.trim() !== normalizedSlug.value)
+          .slice(0, 3)
+          .map((entry) => ({
+            slug: entry.slug.trim(),
+            title: entry.title,
+            tenderNumber: entry.tender_number,
+            status: entry.status,
+          })),
+      };
+    } catch (error) {
+      console.warn("[tenders] Could not load tender detail.", error);
+      return null;
+    }
   },
   { watch: [slug] },
 );
 
 const tender = computed(() => tenderData.value?.tender ?? null);
-const documents = computed<TenderDocumentCard[]>(() => tenderData.value?.documents ?? []);
+const documents = computed<TenderDocumentCard[]>(
+  () => tenderData.value?.documents ?? [],
+);
 const relatedTenders = computed(() => tenderData.value?.relatedTenders ?? []);
 
 if (!tender.value) {
@@ -136,9 +150,13 @@ useSeoMeta({
     </div>
 
     <div v-if="tender" class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <article class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
+      <article
+        class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card"
+      >
         <div class="flex flex-wrap items-center gap-3">
-          <span class="rounded-full bg-surface-alt px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+          <span
+            class="rounded-full bg-surface-alt px-3 py-1.5 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+          >
             {{ tender.tenderNumber }}
           </span>
           <span
@@ -163,7 +181,9 @@ useSeoMeta({
 
         <div class="mt-6 grid gap-3 sm:grid-cols-2">
           <div class="rounded-card bg-surface-alt p-4">
-            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            <p
+              class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+            >
               Opening date
             </p>
             <p class="mt-1 text-small text-ink">
@@ -171,15 +191,22 @@ useSeoMeta({
             </p>
           </div>
           <div class="rounded-card bg-surface-alt p-4">
-            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            <p
+              class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+            >
               Closing date
             </p>
             <p class="mt-1 text-small text-ink">
               {{ tender.closingLabel }}
             </p>
           </div>
-          <div v-if="tender.awardedTo" class="rounded-card bg-surface-alt p-4 sm:col-span-2">
-            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+          <div
+            v-if="tender.awardedTo"
+            class="rounded-card bg-surface-alt p-4 sm:col-span-2"
+          >
+            <p
+              class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+            >
               Awarded to
             </p>
             <p class="mt-1 text-small text-ink">
@@ -189,7 +216,10 @@ useSeoMeta({
         </div>
 
         <p class="mt-6 text-body text-ink-muted whitespace-pre-line">
-          {{ tender.description || "No description has been published for this tender yet." }}
+          {{
+            tender.description ||
+            "No description has been published for this tender yet."
+          }}
         </p>
 
         <section class="mt-8">
@@ -202,7 +232,9 @@ useSeoMeta({
               :key="document.id"
               class="rounded-card border border-border bg-surface-alt p-4"
             >
-              <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+              <p
+                class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+              >
                 {{ document.fileSizeKb ? `${document.fileSizeKb} KB` : "File" }}
               </p>
               <p class="mt-1 font-medium text-ink">
@@ -223,7 +255,10 @@ useSeoMeta({
               </p>
             </article>
           </div>
-          <div v-else class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink-muted">
+          <div
+            v-else
+            class="mt-3 rounded-card bg-surface-alt p-5 text-small text-ink-muted"
+          >
             No attachments have been published for this notice yet.
           </div>
         </section>
@@ -235,21 +270,30 @@ useSeoMeta({
             Tender status
           </p>
           <p class="mt-3 text-small text-ink-muted">
-            {{ tender.status === "open" ? "Accepting submissions now." : "Not currently open for new submissions." }}
+            {{
+              tender.status === "open"
+                ? "Accepting submissions now."
+                : "Not currently open for new submissions."
+            }}
           </p>
         </div>
 
-        <div v-if="relatedTenders.length" class="rounded-card border border-border bg-surface p-5">
+        <div
+          v-if="relatedTenders.length"
+          class="rounded-card border border-border bg-surface p-5"
+        >
           <p class="text-small font-semibold uppercase tracking-wide text-info">
             Other tenders
           </p>
           <ul class="mt-4 space-y-3">
             <li v-for="item in relatedTenders" :key="item.slug">
-              <NuxtLink
-                :to="`/tenders/${item.slug}`"
+            <NuxtLink
+                :to="`/tenders/${item.slug.trim()}`"
                 class="block rounded-control border border-border px-3 py-2.5 hover:border-primary/30 hover:bg-surface-alt"
               >
-                <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                <p
+                  class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                >
                   {{ item.tenderNumber }}
                 </p>
                 <p class="mt-1 text-small font-medium text-ink">

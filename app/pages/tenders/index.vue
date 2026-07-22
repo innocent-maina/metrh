@@ -6,7 +6,7 @@ const { data: tendersContent } = await usePageContent("tenders");
 useSeoMeta({
   title: "Tenders — MeTRH",
   description:
-    "Open tenders, supporting files, and procurement guidance for Meru Teaching and Referral Hospital.",
+    "Open tenders and procurement guidance for Meru Teaching and Referral Hospital.",
 });
 
 const search = ref("");
@@ -33,26 +33,6 @@ type TenderRow = {
   updated_at: string;
 };
 
-type DownloadRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  file_url: string;
-  file_size_kb: number | null;
-  is_published: boolean;
-  created_at: string;
-};
-
-type DownloadCard = {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  fileSizeKb: number | null;
-  downloadUrl: string | null;
-};
-
 function formatDateLabel(value: string | null | undefined) {
   if (!value) return "No closing date";
   return new Intl.DateTimeFormat("en-GB", {
@@ -69,59 +49,37 @@ function formatTenderCategory(value: string) {
     .join(" ");
 }
 
-const { data: tenderIndex } = await useAsyncData("public-tenders-index", async () => {
-  try {
-    const response = await $fetch<{
-      tenders: TenderRow[];
-      downloads: DownloadRow[];
-    }>("/api/public/tenders");
+const { data: tenderIndex } = await useAsyncData(
+  "public-tenders-index",
+  async () => {
+    try {
+      const response = await $fetch<{
+        tenders: TenderRow[];
+      }>("/api/public/tenders");
 
-    const tenderRows = response.tenders ?? [];
-    const downloadRows = response.downloads ?? [];
-    const downloadUrlMap = await fetchSignedDocumentUrls(
-      downloadRows.map((download) => ({
-        resource: "downloads",
-        id: download.id,
-      })),
-    );
+      const tenderRows = response.tenders ?? [];
+      const tenders = tenderRows.map((tender) => ({
+        id: tender.id,
+        tenderNumber: tender.tender_number,
+        title: tender.title,
+        slug: tender.slug,
+        category: formatTenderCategory(tender.category),
+        description: tender.description,
+        status: tender.status,
+        openingLabel: formatDateLabel(tender.opening_date),
+        closingLabel: formatDateLabel(tender.closing_date),
+        awardedTo: tender.awarded_to,
+      }));
 
-    const tenders = tenderRows.map((tender) => ({
-      id: tender.id,
-      tenderNumber: tender.tender_number,
-      title: tender.title,
-      slug: tender.slug,
-      category: formatTenderCategory(tender.category),
-      description: tender.description,
-      status: tender.status,
-      openingLabel: formatDateLabel(tender.opening_date),
-      closingLabel: formatDateLabel(tender.closing_date),
-      awardedTo: tender.awarded_to,
-    }));
-
-    const downloads = downloadRows.map((download) => ({
-      id: download.id,
-      title: download.title,
-      description: download.description,
-      category: download.category,
-      fileSizeKb: download.file_size_kb,
-      downloadUrl: downloadUrlMap.get(download.id) ?? null,
-    }));
-
-    return {
-      tenders,
-      downloads,
-    };
-  } catch (error) {
-    console.warn("[tenders] Could not load public tenders.", error);
-    return {
-      tenders: [],
-      downloads: [],
-    };
-  }
-});
+      return { tenders };
+    } catch (error) {
+      console.warn("[tenders] Could not load public tenders.", error);
+      return { tenders: [] };
+    }
+  },
+);
 
 const tenders = computed(() => tenderIndex.value?.tenders ?? []);
-const supportingFiles = computed<DownloadCard[]>(() => tenderIndex.value?.downloads ?? []);
 
 const filteredTenders = computed(() => {
   const term = search.value.trim().toLowerCase();
@@ -143,9 +101,6 @@ const filteredTenders = computed(() => {
 const openTenderCount = computed(
   () => tenders.value.filter((tender) => tender.status === "open").length,
 );
-const supportingFileCount = computed(() => supportingFiles.value.length);
-
-const tenderImages = useHospitalMedia();
 
 const tendersIntro = computed(
   () => tendersContent.value?.sectionsByKey["tenders-intro"] ?? null,
@@ -161,37 +116,38 @@ const tendersIntro = computed(
             {{ tendersIntro?.eyebrow || "Tenders" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
-            {{
-              tendersIntro?.title ||
-              "Tender notices and supporting files"
-            }}
+            {{ tendersIntro?.title || "Tender notices" }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
             {{
               tendersIntro?.summary ||
-              "This page covers open tender notices, supplier lists, and procurement PDFs. When nothing is live, the page says so plainly."
+              "This page covers open tender notices and procurement guidance. When nothing is live, the page says so plainly."
             }}
           </p>
         </div>
       </div>
     </section>
 
-    <PageMediaStrip
-      :items="tenderImages"
-      title="Procurement visuals"
-      subtitle="Planning, operations, and infrastructure imagery before the notice area."
-      compact
-    />
-
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
-            <label for="tender-search" class="block text-small font-medium text-ink">
+          <aside
+            class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start"
+          >
+            <label
+              for="tender-search"
+              class="block text-small font-medium text-ink"
+            >
               Search notices
             </label>
-            <div class="mt-2 flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2.5">
-              <Icon name="lucide:search" class="size-4 text-ink-muted" aria-hidden="true" />
+            <div
+              class="mt-2 flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2.5"
+            >
+              <Icon
+                name="lucide:search"
+                class="size-4 text-ink-muted"
+                aria-hidden="true"
+              />
               <input
                 id="tender-search"
                 v-model="search"
@@ -224,8 +180,8 @@ const tendersIntro = computed(
             <div class="mt-6 rounded-card bg-surface-alt p-4">
               <p class="text-small font-semibold text-ink">Procurement note</p>
               <p class="mt-2 text-small text-ink-muted">
-                Supporting files and supplier lists are published by the
-                procurement team and downloaded through signed URLs.
+                Tender notices are published by the procurement team and linked
+                from each tender's detail page.
               </p>
             </div>
           </aside>
@@ -233,34 +189,35 @@ const tendersIntro = computed(
           <div class="space-y-6">
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="rounded-card border border-border bg-surface p-5">
-                <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                <p
+                  class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                >
                   Open tenders
                 </p>
                 <p class="mt-2 tabular-nums text-h2 text-primary">
                   {{ openTenderCount }}
                 </p>
               </div>
-              <div class="rounded-card border border-border bg-surface p-5">
-                <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                  Supporting files
-                </p>
-                <p class="mt-2 tabular-nums text-h2 text-primary">
-                  {{ supportingFileCount }}
-                </p>
-              </div>
             </div>
 
-            <div v-if="filteredTenders.length === 0" class="rounded-card border border-dashed border-border bg-surface p-10">
+            <div
+              v-if="filteredTenders.length === 0"
+              class="rounded-card border border-dashed border-border bg-surface p-10"
+            >
               <div class="max-w-xl">
-                <p class="text-small font-semibold uppercase tracking-wide text-info">
+                <p
+                  class="text-small font-semibold uppercase tracking-wide text-info"
+                >
                   No live items yet
                 </p>
                 <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
-                  Tender notices will appear here when procurement publishes them
+                  Tender notices will appear here when procurement publishes
+                  them
                 </h2>
                 <p class="mt-3 text-small text-ink-muted">
-                  This build has the route structure and security model in place,
-                  but no public tender notices are available for the selected filter.
+                  This build has the route structure and security model in
+                  place, but no public tender notices are available for the
+                  selected filter.
                 </p>
                 <NuxtLink
                   to="/contact"
@@ -278,12 +235,18 @@ const tendersIntro = computed(
                 :key="tender.slug"
                 class="rounded-card border border-border bg-surface p-5 shadow-card"
               >
-                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div
+                  class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
+                >
                   <div class="max-w-3xl">
-                    <p class="text-caption font-semibold uppercase tracking-wide text-accent">
+                    <p
+                      class="text-caption font-semibold uppercase tracking-wide text-accent"
+                    >
                       {{ tender.tenderNumber }}
                     </p>
-                    <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
+                    <h2
+                      class="mt-2 font-display font-semibold text-h3 text-ink"
+                    >
                       {{ tender.title }}
                     </h2>
                     <p class="mt-1 text-caption text-ink-muted">
@@ -307,7 +270,7 @@ const tendersIntro = computed(
                       {{ tender.status }}
                     </span>
                     <NuxtLink
-                      :to="`/tenders/${tender.slug}`"
+                      :to="`/tenders/${tender.slug.trim()}`"
                       class="inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
                     >
                       View details
@@ -317,56 +280,6 @@ const tendersIntro = computed(
                 </div>
               </li>
             </ul>
-
-            <section class="rounded-card border border-border bg-surface p-5 md:p-6">
-              <p class="text-small font-semibold uppercase tracking-wide text-info">
-                Supporting files
-              </p>
-              <div v-if="supportingFiles.length" class="mt-4 grid gap-4 md:grid-cols-2">
-                <component
-                  v-for="download in supportingFiles"
-                  :key="download.id"
-                  :is="download.downloadUrl ? 'a' : 'div'"
-                  v-bind="
-                    download.downloadUrl
-                      ? {
-                          href: download.downloadUrl,
-                          target: '_blank',
-                          rel: 'noreferrer noopener',
-                        }
-                      : {}
-                  "
-                  class="block rounded-card bg-surface-alt p-4 transition"
-                  :class="
-                    download.downloadUrl
-                      ? 'group hover:bg-surface hover:shadow-sm'
-                      : 'opacity-75'
-                  "
-                >
-                  <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                    {{ download.category || "General" }}
-                  </p>
-                  <h3 class="mt-2 font-display font-semibold text-h4 text-ink">
-                    {{ download.title }}
-                  </h3>
-                  <p v-if="download.description" class="mt-2 text-small text-ink-muted">
-                    {{ download.description }}
-                  </p>
-                  <p class="mt-4 inline-flex items-center gap-1 text-small font-semibold text-primary">
-                    {{ download.downloadUrl ? "Download file" : "File unavailable" }}
-                    <Icon
-                      :name="download.downloadUrl ? 'lucide:download' : 'lucide:alert-triangle'"
-                      class="size-4"
-                    />
-                  </p>
-                </component>
-              </div>
-              <div v-else class="mt-4 rounded-card bg-surface-alt p-6 text-small text-ink-muted">
-                Supplier lists, policies, and procurement attachments will be
-                added here from the dashboard. When available, each file is
-                served via a signed download URL.
-              </div>
-            </section>
           </div>
         </div>
       </div>

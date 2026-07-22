@@ -41,6 +41,10 @@ function formatDayLabel(day: DayOfWeek) {
   return day.charAt(0).toUpperCase() + day.slice(1);
 }
 
+function normalizeServiceSlug(slug: string) {
+  return slug.trim();
+}
+
 function buildServiceGroups(
   categories: ServiceCategoryRow[],
   services: ServiceRow[],
@@ -63,7 +67,7 @@ function buildServiceGroups(
 
     group.services.push({
       name: service.name,
-      slug: service.slug,
+      slug: normalizeServiceSlug(service.slug),
       summary: service.summary,
       isSpecialized: service.is_specialized,
     });

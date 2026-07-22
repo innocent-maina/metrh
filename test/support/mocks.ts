@@ -145,6 +145,16 @@ export function createSupabaseAdminMock(options?: {
       operation = "insert";
       return profilesBuilder;
     }),
+    upsert: vi.fn((payload: unknown) => {
+      state.insertPayload = payload;
+      writeResponse.data = {
+        ...(options?.existingRow ?? {}),
+        id: "user-123",
+        ...(payload as Record<string, unknown>),
+      };
+      operation = "insert";
+      return profilesBuilder;
+    }),
     update: vi.fn((payload: unknown) => {
       state.updateCalls.push([payload]);
       writeResponse.data = {

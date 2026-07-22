@@ -20,9 +20,7 @@ const emergencyLine = computed(
   () => siteSettings.value?.emergency_line?.trim() || "0711-207623",
 );
 
-const visitingHours = computed(
-  () => siteSettings.value?.visiting_hours ?? [],
-);
+const visitingHours = computed(() => siteSettings.value?.visiting_hours ?? []);
 
 const socialLinks = computed(
   () =>
@@ -52,11 +50,15 @@ const socialLinks = computed(
         </p>
 
         <a
-          :href="siteSettings?.emergency_href || `tel:${emergencyLine.replace(/-/g, '')}`"
+          :href="
+            siteSettings?.emergency_href ||
+            `tel:${emergencyLine.replace(/-/g, '')}`
+          "
           class="mt-5 inline-flex items-center gap-2 rounded-control bg-accent px-4 py-2.5 text-small font-semibold text-primary-dark hover:opacity-90 transition-opacity"
         >
           <Icon name="lucide:phone-call" class="size-4" aria-hidden="true" />
-          {{ siteSettings?.emergency_label || "Emergency" }}: {{ emergencyLine }}
+          {{ siteSettings?.emergency_label || "Emergency" }}:
+          {{ emergencyLine }}
         </a>
       </div>
 
@@ -91,7 +93,9 @@ const socialLinks = computed(
             class="text-small text-white/85 flex justify-between gap-4 max-w-[14rem]"
           >
             <span class="text-white/60">{{ vh.label }}</span>
-            <span class="tabular-nums text-white">{{ vh.start }} – {{ vh.end }}</span>
+            <span class="tabular-nums text-white"
+              >{{ vh.start }} – {{ vh.end }}</span
+            >
           </li>
         </ul>
       </div>
@@ -158,36 +162,6 @@ const socialLinks = computed(
             </NuxtLink>
           </li>
         </ul>
-      </div>
-    </div>
-
-    <div class="border-t border-surface/10">
-      <div
-        class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-caption text-white/60"
-      >
-        <p class="text-center sm:text-left">
-          Website built by
-          <a
-            href="https://nuvanahq.co.ke"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="font-semibold text-accent hover:underline"
-          >
-            Nuvana Technology
-          </a>
-          for Meru Teaching and Referral Hospital.
-        </p>
-        <p class="text-center sm:text-right text-white/45">
-          Official builder site:
-          <a
-            href="https://nuvanahq.co.ke"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="font-medium text-white/70 hover:text-accent hover:underline"
-          >
-            nuvanahq.co.ke
-          </a>
-        </p>
       </div>
     </div>
   </footer>

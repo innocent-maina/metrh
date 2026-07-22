@@ -131,10 +131,6 @@ const seoImageUrl = computed(() => {
   return raw;
 });
 
-if (!service.value) {
-  throw createError({ statusCode: 404, statusMessage: "Service not found." });
-}
-
 useSeoMeta({
   title: () => `${service.value?.name ?? "Service"} — MeTRH`,
   description: () =>
@@ -158,7 +154,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
+  <div v-if="service" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
     <div class="mb-8">
       <NuxtLink
         to="/services"
@@ -169,7 +165,7 @@ useSeoMeta({
       </NuxtLink>
     </div>
 
-    <div v-if="service" class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
       <article class="rounded-card border border-border bg-surface p-6 md:p-8 shadow-card">
         <div class="flex flex-wrap items-center gap-3">
           <NuxtLink
@@ -316,6 +312,32 @@ useSeoMeta({
           </p>
         </div>
       </aside>
+    </div>
+  </div>
+
+  <div
+    v-else
+    class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-14 md:py-20"
+  >
+    <div class="rounded-card border border-border bg-surface p-8 text-center shadow-card">
+      <Icon
+        name="lucide:stethoscope"
+        class="mx-auto size-8 text-ink-muted"
+        aria-hidden="true"
+      />
+      <h1 class="mt-4 font-display font-bold text-h2 text-ink">
+        Service not found
+      </h1>
+      <p class="mt-3 text-body text-ink-muted">
+        This service link is unavailable or has been renamed. Return to the services catalog to open the current page.
+      </p>
+      <NuxtLink
+        to="/services"
+        class="mt-6 inline-flex items-center gap-1 rounded-control bg-primary px-4 py-2.5 text-small font-semibold text-white hover:bg-primary-dark"
+      >
+        Back to services
+        <Icon name="lucide:arrow-right" class="size-4" />
+      </NuxtLink>
     </div>
   </div>
 </template>

@@ -164,7 +164,9 @@ async function handleSignOut() {
               class="size-9 rounded-control bg-transparent object-contain sm:size-10"
             />
             <div class="min-w-0">
-              <p class="truncate font-display font-semibold text-h4 leading-none">
+              <p
+                class="truncate font-display font-semibold text-h4 leading-none"
+              >
                 MeTRH Dashboard
               </p>
               <p class="mt-1 hidden text-caption text-white/70 sm:block">
@@ -184,7 +186,9 @@ async function handleSignOut() {
         </div>
       </div>
 
-      <nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4 lg:py-5">
+      <nav
+        class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4 lg:py-5"
+      >
         <NuxtLink
           to="/dashboard"
           class="mb-2 flex items-center gap-3 rounded-control px-3 py-3 text-small font-medium text-white/90 hover:bg-surface/10"
@@ -277,10 +281,14 @@ async function handleSignOut() {
             </button>
 
             <div class="min-w-0 flex-1">
-              <p class="hidden text-caption uppercase tracking-wide text-ink-muted sm:block">
+              <p
+                class="hidden text-caption uppercase tracking-wide text-ink-muted sm:block"
+              >
                 Staff area
               </p>
-              <h1 class="truncate font-display font-semibold text-[1.05rem] leading-tight text-ink sm:text-h3">
+              <h1
+                class="truncate font-display font-semibold text-[1.05rem] leading-tight text-ink sm:text-h3"
+              >
                 {{ currentDashboardLabel }}
               </h1>
             </div>
@@ -394,35 +402,6 @@ async function handleSignOut() {
           <slot />
         </div>
       </main>
-
-      <footer class="shrink-0 border-t border-border bg-surface/95 backdrop-blur">
-        <div
-          class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 text-caption text-ink-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
-        >
-          <p class="font-medium text-ink">
-            Admin dashboard built by
-            <a
-              href="https://nuvanahq.co.ke"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="font-semibold text-primary hover:underline"
-            >
-              Nuvana Technology
-            </a>
-          </p>
-          <p>
-            Website link:
-            <a
-              href="https://nuvanahq.co.ke"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="font-semibold text-ink hover:underline"
-            >
-              nuvanahq.co.ke
-            </a>
-          </p>
-        </div>
-      </footer>
     </div>
   </div>
 </template>

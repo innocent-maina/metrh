@@ -26,6 +26,9 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: ["@vue/devtools-core", "@vue/devtools-kit"],
+    },
   },
 
   // Supabase reads/writes for RLS-sensitive tables happen through server/api

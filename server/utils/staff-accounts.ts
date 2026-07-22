@@ -109,6 +109,7 @@ export async function createStaffAccount(data: Record<string, unknown>) {
     email_confirm: true,
     user_metadata: {
       full_name: payload.full_name,
+      email: payload.email,
     },
   });
 
@@ -140,7 +141,7 @@ export async function createStaffAccount(data: Record<string, unknown>) {
   };
 
   const { data: row, error } = await (adminClient.from("profiles") as any)
-    .insert(profileRow)
+    .upsert(profileRow, { onConflict: "id" })
     .select("*")
     .maybeSingle();
 
@@ -192,9 +193,9 @@ export async function updateStaffAccount(
     email?: string;
     email_confirm?: boolean;
     ban_duration?: string | "none";
-    user_metadata?: { full_name?: string };
+    user_metadata?: { full_name?: string; email?: string };
   } = {};
-  authUpdate.user_metadata = { full_name: payload.full_name };
+  authUpdate.user_metadata = { full_name: payload.full_name, email: payload.email };
   const nextEmail = payload.email;
   if (nextEmail !== current.email) {
     authUpdate.email = nextEmail;

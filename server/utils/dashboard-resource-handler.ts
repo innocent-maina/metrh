@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   getDashboardResource,
   getResourceStampFields,
+  parseResourceIdentifierQuery,
 } from "~~/shared/dashboard-crud";
 import { requireAnyRole } from "~~/server/utils/require-role";
 import {
@@ -111,6 +112,7 @@ export async function handleDashboardResource(event: H3Event, resourceId: string
   if (method === "GET") {
     const { client } = await requireAnyRole(event, resource.readRoles);
     const filters = parseFilters(query.filters);
+    const identifier = parseResourceIdentifierQuery(resource, query);
     const isCountRequest = String(query.count ?? "") === "true";
 
     if (isCountRequest) {
@@ -154,6 +156,12 @@ export async function handleDashboardResource(event: H3Event, resourceId: string
       }
 
       queryBuilder = queryBuilder.eq(key, value as never);
+    }
+
+    if (identifier) {
+      for (const [key, value] of Object.entries(identifier)) {
+        queryBuilder = queryBuilder.eq(key, value as never);
+      }
     }
 
     if (resource.defaultSort) {

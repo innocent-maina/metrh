@@ -7,18 +7,36 @@ type TenderRow = {
 };
 
 export default defineEventHandler(async (event) => {
-  const slug = String(getRouterParam(event, "slug") ?? "");
+  const rawSlug = String(getRouterParam(event, "slug") ?? "");
   const admin = supabaseAdmin();
 
-  const { data: tenderData, error } = await admin
+  const { data: exactTender, error: exactError } = await admin
     .from("tenders")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", rawSlug)
     .neq("status", "draft")
     .maybeSingle();
 
-  if (error) throw error;
-  const tender = tenderData as TenderRow | null;
+  if (exactError) throw exactError;
+
+  let tender = exactTender as TenderRow | null;
+
+  if (!tender && rawSlug.trim()) {
+    const { data: tenderRows, error: listError } = await admin
+      .from("tenders")
+      .select("*")
+      .neq("status", "draft")
+      .order("closing_date", { ascending: true });
+
+    if (listError) throw listError;
+
+    const normalizedSlug = rawSlug.trim().toLowerCase();
+    tender =
+      ((tenderRows ?? []) as TenderRow[]).find(
+        (row) => String(row.slug ?? "").trim().toLowerCase() === normalizedSlug,
+      ) ?? null;
+  }
+
   if (!tender) return { tender: null, documents: [], relatedTenders: [] };
 
   const [documentsResult, relatedResult] = await Promise.all([

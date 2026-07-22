@@ -55,69 +55,75 @@ function formatEmploymentType(value: string) {
     .join(" ");
 }
 
-const { data: careerIndex } = await useAsyncData("public-careers-index", async () => {
-  try {
-    const response = await $fetch<{ rounds: JobPostingRow[] }>(
-      "/api/public/careers",
-    );
+const { data: careerIndex } = await useAsyncData(
+  "public-careers-index",
+  async () => {
+    try {
+      const response = await $fetch<{ rounds: JobPostingRow[] }>(
+        "/api/public/careers",
+      );
 
-    const data = response.rounds ?? [];
-    const attachmentRows = data.filter((posting) => posting.attachment_url);
-    const attachmentUrlMap = attachmentRows.length
-      ? await fetchSignedDocumentUrls(
-          attachmentRows.map((posting) => ({
-            resource: "job_postings",
-            id: posting.id,
-          })),
-        )
-      : new Map<string, string | null>();
+      const data = response.rounds ?? [];
+      const attachmentRows = data.filter((posting) => posting.attachment_url);
+      const attachmentUrlMap = attachmentRows.length
+        ? await fetchSignedDocumentUrls(
+            attachmentRows.map((posting) => ({
+              resource: "job_postings",
+              id: posting.id,
+            })),
+          )
+        : new Map<string, string | null>();
 
-    return {
-      source: "database",
-      rounds: (data ?? []).map((posting) => ({
-        id: posting.id,
-        slug: posting.slug,
-        referenceNo: posting.reference_no ?? posting.slug,
-        title: posting.title,
-        status: posting.status,
-        deadlineLabel: formatDateLabel(posting.application_deadline),
-        summary: posting.description,
-        description: posting.description,
-        positionsCount: posting.positions_count,
-        department: posting.department,
-        employmentType: formatEmploymentType(posting.employment_type),
-        requirements: posting.requirements,
-        responsibilities: posting.responsibilities,
-        howToApply: posting.how_to_apply,
-        attachmentUrl: posting.attachment_url
-          ? attachmentUrlMap.get(posting.id) ?? null
-          : null,
-      })),
-    };
-  } catch (error) {
-    console.warn("[careers] Falling back to seeded rounds.", error);
-    return {
-      source: "fallback",
-      rounds: recruitmentRounds.map((round) => ({
-        id: round.slug,
-        slug: round.slug,
-        referenceNo: round.referenceNo,
-        title: round.title,
-        status: round.status,
-        deadlineLabel: round.deadlineLabel,
-        summary: round.summary,
-        description: round.description,
-        positionsCount: round.positions.reduce((count, position) => count + position.posts, 0),
-        department: null,
-        employmentType: "Archived",
-        requirements: null,
-        responsibilities: null,
-        howToApply: null,
-        attachmentUrl: null,
-      })),
-    };
-  }
-});
+      return {
+        source: "database",
+        rounds: (data ?? []).map((posting) => ({
+          id: posting.id,
+          slug: posting.slug,
+          referenceNo: posting.reference_no ?? posting.slug,
+          title: posting.title,
+          status: posting.status,
+          deadlineLabel: formatDateLabel(posting.application_deadline),
+          summary: posting.description,
+          description: posting.description,
+          positionsCount: posting.positions_count,
+          department: posting.department,
+          employmentType: formatEmploymentType(posting.employment_type),
+          requirements: posting.requirements,
+          responsibilities: posting.responsibilities,
+          howToApply: posting.how_to_apply,
+          attachmentUrl: posting.attachment_url
+            ? (attachmentUrlMap.get(posting.id) ?? null)
+            : null,
+        })),
+      };
+    } catch (error) {
+      console.warn("[careers] Falling back to seeded rounds.", error);
+      return {
+        source: "fallback",
+        rounds: recruitmentRounds.map((round) => ({
+          id: round.slug,
+          slug: round.slug,
+          referenceNo: round.referenceNo,
+          title: round.title,
+          status: round.status,
+          deadlineLabel: round.deadlineLabel,
+          summary: round.summary,
+          description: round.description,
+          positionsCount: round.positions.reduce(
+            (count, position) => count + position.posts,
+            0,
+          ),
+          department: null,
+          employmentType: "Archived",
+          requirements: null,
+          responsibilities: null,
+          howToApply: null,
+          attachmentUrl: null,
+        })),
+      };
+    }
+  },
+);
 
 const rounds = computed(() => careerIndex.value?.rounds ?? []);
 
@@ -143,8 +149,6 @@ const filteredRounds = computed(() => {
 const openCount = computed(
   () => rounds.value.filter((round) => round.status === "open").length,
 );
-
-const careerImages = useHospitalMedia();
 
 const careersIntro = computed(
   () => careersContent.value?.sectionsByKey["careers-intro"] ?? null,
@@ -172,8 +176,7 @@ const documents = computed(() =>
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
             {{
-              careersIntro?.title ||
-              "Current openings and recruitment rounds"
+              careersIntro?.title || "Current openings and recruitment rounds"
             }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
@@ -186,31 +189,34 @@ const documents = computed(() =>
       </div>
     </section>
 
-    <PageMediaStrip
-      :items="careerImages"
-      title="Careers at MeTRH"
-      subtitle="Recruitment and capacity-building images placed between the intro and listings."
-      compact
-    />
-
     <section v-if="documents.length" class="border-b border-border bg-surface">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div class="rounded-card border border-border bg-surface-alt p-5 md:p-6">
-          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div
+          class="rounded-card border border-border bg-surface-alt p-5 md:p-6"
+        >
+          <div
+            class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"
+          >
             <div class="max-w-2xl">
-              <p class="text-small font-semibold uppercase tracking-wide text-info">
+              <p
+                class="text-small font-semibold uppercase tracking-wide text-info"
+              >
                 Documents
               </p>
               <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
                 Vacancy attachments and supporting files
               </h2>
               <p class="mt-2 text-small text-ink-muted">
-                When a recruitment round includes a brief, notice, or attachment,
-                you can open it here before visiting the full posting page.
+                When a recruitment round includes a brief, notice, or
+                attachment, you can open it here before visiting the full
+                posting page.
               </p>
             </div>
             <p class="text-small font-medium text-ink-muted">
-              {{ documents.length }} attachment{{ documents.length === 1 ? "" : "s" }} available
+              {{ documents.length }} attachment{{
+                documents.length === 1 ? "" : "s"
+              }}
+              available
             </p>
           </div>
 
@@ -220,7 +226,9 @@ const documents = computed(() =>
               :key="document.slug"
               class="rounded-card border border-border bg-surface p-4 shadow-card"
             >
-              <p class="text-caption font-semibold uppercase tracking-wide text-accent">
+              <p
+                class="text-caption font-semibold uppercase tracking-wide text-accent"
+              >
                 {{ document.referenceNo }}
               </p>
               <h3 class="mt-2 font-display font-semibold text-h4 text-ink">
@@ -255,12 +263,23 @@ const documents = computed(() =>
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
-            <label for="career-search" class="block text-small font-medium text-ink">
+          <aside
+            class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start"
+          >
+            <label
+              for="career-search"
+              class="block text-small font-medium text-ink"
+            >
               Search rounds
             </label>
-            <div class="mt-2 flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2.5">
-              <Icon name="lucide:search" class="size-4 text-ink-muted" aria-hidden="true" />
+            <div
+              class="mt-2 flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2.5"
+            >
+              <Icon
+                name="lucide:search"
+                class="size-4 text-ink-muted"
+                aria-hidden="true"
+              />
               <input
                 id="career-search"
                 v-model="search"
@@ -292,8 +311,12 @@ const documents = computed(() =>
           </aside>
 
           <div class="space-y-6">
-            <div class="rounded-card border border-border bg-surface p-5 md:p-6">
-              <p class="text-small font-semibold uppercase tracking-wide text-info">
+            <div
+              class="rounded-card border border-border bg-surface p-5 md:p-6"
+            >
+              <p
+                class="text-small font-semibold uppercase tracking-wide text-info"
+              >
                 {{ openCount }} open roles
               </p>
               <p class="mt-1 text-small text-ink-muted">
@@ -302,8 +325,15 @@ const documents = computed(() =>
               </p>
             </div>
 
-            <div v-if="filteredRounds.length === 0" class="rounded-card border border-dashed border-border bg-surface p-10 text-center">
-              <Icon name="lucide:briefcase" class="mx-auto size-6 text-ink-muted" aria-hidden="true" />
+            <div
+              v-if="filteredRounds.length === 0"
+              class="rounded-card border border-dashed border-border bg-surface p-10 text-center"
+            >
+              <Icon
+                name="lucide:briefcase"
+                class="mx-auto size-6 text-ink-muted"
+                aria-hidden="true"
+              />
               <p class="mt-3 text-small text-ink-muted">
                 No recruitment rounds match that filter.
               </p>
@@ -315,12 +345,18 @@ const documents = computed(() =>
                 :key="round.slug"
                 class="rounded-card border border-border bg-surface p-5 shadow-card"
               >
-                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div
+                  class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
+                >
                   <div>
-                    <p class="text-caption font-semibold uppercase tracking-wide text-accent">
+                    <p
+                      class="text-caption font-semibold uppercase tracking-wide text-accent"
+                    >
                       {{ round.referenceNo }}
                     </p>
-                    <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
+                    <h2
+                      class="mt-2 font-display font-semibold text-h3 text-ink"
+                    >
                       {{ round.title }}
                     </h2>
                     <p class="mt-2 text-small text-ink-muted">

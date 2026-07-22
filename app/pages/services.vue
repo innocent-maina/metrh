@@ -53,13 +53,18 @@ const filteredGroups = computed(() => {
 });
 
 const filteredServiceCount = computed(() =>
-  filteredGroups.value.reduce((count, group) => count + group.services.length, 0),
+  filteredGroups.value.reduce(
+    (count, group) => count + group.services.length,
+    0,
+  ),
 );
 
 const activeLabel = computed(() =>
   activeCategory.value === "all"
     ? "all service areas"
-    : categoryOptions.value.find((option) => option.slug === activeCategory.value)?.name ?? "selected area",
+    : (categoryOptions.value.find(
+        (option) => option.slug === activeCategory.value,
+      )?.name ?? "selected area"),
 );
 
 const serviceImages = useHospitalMedia();
@@ -78,7 +83,10 @@ const servicesIntro = computed(
             {{ servicesIntro?.eyebrow || "Services" }}
           </p>
           <h1 class="mt-2 font-display font-bold text-h1 text-ink">
-            {{ servicesIntro?.title || "Clinical services organized for fast access" }}
+            {{
+              servicesIntro?.title ||
+              "Clinical services organized for fast access"
+            }}
           </h1>
           <p class="mt-4 text-body text-ink-muted">
             {{
@@ -90,7 +98,9 @@ const servicesIntro = computed(
 
         <div class="mt-8 grid gap-4 sm:grid-cols-3">
           <div class="rounded-card border border-border bg-surface p-5">
-            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            <p
+              class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+            >
               Service lines
             </p>
             <p class="mt-2 tabular-nums text-h2 text-primary">
@@ -98,7 +108,9 @@ const servicesIntro = computed(
             </p>
           </div>
           <div class="rounded-card border border-border bg-surface p-5">
-            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            <p
+              class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+            >
               Categories
             </p>
             <p class="mt-2 tabular-nums text-h2 text-primary">
@@ -106,7 +118,9 @@ const servicesIntro = computed(
             </p>
           </div>
           <div class="rounded-card border border-border bg-surface p-5">
-            <p class="text-caption font-semibold uppercase tracking-wide text-ink-muted">
+            <p
+              class="text-caption font-semibold uppercase tracking-wide text-ink-muted"
+            >
               Clinic days
             </p>
             <p class="mt-2 tabular-nums text-h2 text-primary">
@@ -117,22 +131,26 @@ const servicesIntro = computed(
       </div>
     </section>
 
-    <PageMediaStrip
-      :items="serviceImages"
-      title="Services in practice"
-      subtitle="Relevant images placed between the overview and the service list."
-      compact
-    />
-
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start">
-            <label class="block text-small font-medium text-ink" for="service-search">
+          <aside
+            class="rounded-card border border-border bg-surface p-5 lg:sticky lg:top-24 lg:self-start"
+          >
+            <label
+              class="block text-small font-medium text-ink"
+              for="service-search"
+            >
               Search services
             </label>
-            <div class="mt-2 flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2.5">
-              <Icon name="lucide:search" class="size-4 text-ink-muted" aria-hidden="true" />
+            <div
+              class="mt-2 flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2.5"
+            >
+              <Icon
+                name="lucide:search"
+                class="size-4 text-ink-muted"
+                aria-hidden="true"
+              />
               <input
                 id="service-search"
                 v-model="search"
@@ -143,7 +161,9 @@ const servicesIntro = computed(
             </div>
 
             <div class="mt-6">
-              <p class="text-small font-semibold text-ink">Filter by category</p>
+              <p class="text-small font-semibold text-ink">
+                Filter by category
+              </p>
               <div class="mt-3 space-y-2">
                 <button
                   v-for="option in categoryOptions"
@@ -182,10 +202,16 @@ const servicesIntro = computed(
           </aside>
 
           <div class="space-y-8">
-            <div class="rounded-card border border-border bg-surface p-5 md:p-6">
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              class="rounded-card border border-border bg-surface p-5 md:p-6"
+            >
+              <div
+                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div>
-                  <p class="text-small font-semibold uppercase tracking-wide text-info">
+                  <p
+                    class="text-small font-semibold uppercase tracking-wide text-info"
+                  >
                     {{ activeLabel }}
                   </p>
                   <p class="mt-1 text-small text-ink-muted">
@@ -202,8 +228,15 @@ const servicesIntro = computed(
               </div>
             </div>
 
-            <div v-if="filteredGroups.length === 0" class="rounded-card border border-dashed border-border bg-surface p-10 text-center">
-              <Icon name="lucide:search-x" class="mx-auto size-6 text-ink-muted" aria-hidden="true" />
+            <div
+              v-if="filteredGroups.length === 0"
+              class="rounded-card border border-dashed border-border bg-surface p-10 text-center"
+            >
+              <Icon
+                name="lucide:search-x"
+                class="mx-auto size-6 text-ink-muted"
+                aria-hidden="true"
+              />
               <p class="mt-3 text-small text-ink-muted">
                 No services match that search. Try another term or clear the
                 category filter.
@@ -218,7 +251,9 @@ const servicesIntro = computed(
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-small font-semibold uppercase tracking-wide text-info">
+                  <p
+                    class="text-small font-semibold uppercase tracking-wide text-info"
+                  >
                     {{ group.name }}
                   </p>
                   <p class="mt-1 text-small text-ink-muted">
@@ -231,55 +266,72 @@ const servicesIntro = computed(
                 <li
                   v-for="service in group.services"
                   :key="service.slug"
-                  class="flex h-full flex-col rounded-card border border-border bg-surface p-4 shadow-card transition-all hover:border-primary/40 hover:shadow-elevated"
+                  class="h-full"
                 >
-                  <div class="flex items-start gap-3">
-                    <span class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-control bg-surface-alt text-primary">
-                      <Icon name="lucide:stethoscope" class="size-4" aria-hidden="true" />
-                    </span>
-                    <div class="min-w-0">
-                      <h2 class="font-display font-semibold text-h4 text-ink">
-                        {{ service.name }}
-                      </h2>
-                      <div class="mt-2 flex flex-wrap gap-2">
-                        <span
-                          v-if="service.isSpecialized"
-                          class="rounded-full bg-accent/10 px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-accent"
-                        >
-                          Specialized
-                        </span>
-                        <span class="rounded-full bg-surface-alt px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
-                          {{ group.name }}
-                        </span>
+                  <NuxtLink
+                    :to="{ path: `/services/${service.slug}` }"
+                    class="flex h-full flex-col rounded-card border border-border bg-surface p-4 shadow-card transition-all hover:border-primary/40 hover:shadow-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <div class="flex items-start gap-3">
+                      <span
+                        class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-control bg-surface-alt text-primary"
+                      >
+                        <Icon
+                          name="lucide:stethoscope"
+                          class="size-4"
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <div class="min-w-0">
+                        <h2 class="font-display font-semibold text-h4 text-ink">
+                          {{ service.name }}
+                        </h2>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                          <span
+                            v-if="service.isSpecialized"
+                            class="rounded-full bg-accent/10 px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-accent"
+                          >
+                            Specialized
+                          </span>
+                          <span
+                            class="rounded-full bg-surface-alt px-2.5 py-1 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                          >
+                            {{ group.name }}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <p class="mt-4 text-small text-ink-muted">
-                    {{
-                      service.summary ||
-                      "Open the service page for more detail, guidance, and related links."
-                    }}
-                  </p>
-                  <div class="mt-5 flex items-center justify-between gap-3">
-                    <NuxtLink
-                      :to="`/services/${service.slug}`"
-                      class="inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
-                    >
-                      Read more
-                      <Icon name="lucide:arrow-right" class="size-4" />
-                    </NuxtLink>
-                    <span class="text-caption text-ink-muted">
-                      Service page
-                    </span>
-                  </div>
+                    <p class="mt-4 text-small text-ink-muted">
+                      {{
+                        service.summary ||
+                        "Open the service page for more detail, guidance, and related links."
+                      }}
+                    </p>
+                    <div class="mt-auto flex items-center justify-between gap-3 pt-5">
+                      <span class="inline-flex items-center gap-1 text-small font-semibold text-primary">
+                        Read more
+                        <Icon name="lucide:arrow-right" class="size-4" />
+                      </span>
+                      <span class="text-caption text-ink-muted">
+                        Service page
+                      </span>
+                    </div>
+                  </NuxtLink>
                 </li>
               </ul>
             </section>
 
-            <section id="clinic-schedule" class="scroll-mt-28 rounded-card border border-border bg-surface p-5 md:p-6">
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <section
+              id="clinic-schedule"
+              class="scroll-mt-28 rounded-card border border-border bg-surface p-5 md:p-6"
+            >
+              <div
+                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div>
-                  <p class="text-small font-semibold uppercase tracking-wide text-info">
+                  <p
+                    class="text-small font-semibold uppercase tracking-wide text-info"
+                  >
                     Clinic schedule
                   </p>
                   <h2 class="mt-1 font-display font-semibold text-h3 text-ink">
@@ -295,20 +347,32 @@ const servicesIntro = computed(
                 <table class="min-w-full border-separate border-spacing-0">
                   <thead>
                     <tr class="text-left">
-                      <th class="border-b border-border px-4 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      <th
+                        class="border-b border-border px-4 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                      >
                         Day
                       </th>
-                      <th class="border-b border-border px-4 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                      <th
+                        class="border-b border-border px-4 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted"
+                      >
                         Clinics
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="row in clinicSchedule" :key="row.day" class="align-top">
-                      <td class="border-b border-border px-4 py-4 font-semibold text-ink">
+                    <tr
+                      v-for="row in clinicSchedule"
+                      :key="row.day"
+                      class="align-top"
+                    >
+                      <td
+                        class="border-b border-border px-4 py-4 font-semibold text-ink"
+                      >
                         {{ row.dayLabel }}
                       </td>
-                      <td class="border-b border-border px-4 py-4 text-small text-ink-muted">
+                      <td
+                        class="border-b border-border px-4 py-4 text-small text-ink-muted"
+                      >
                         <ul class="flex flex-wrap gap-2">
                           <li
                             v-for="clinic in row.clinics"

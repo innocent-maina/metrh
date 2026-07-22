@@ -39,7 +39,7 @@ describe("server/utils/staff-accounts/update", () => {
       email: "ada.updated@example.org",
       email_confirm: true,
       ban_duration: "876000h",
-      user_metadata: { full_name: "Ada Updated" },
+      user_metadata: { full_name: "Ada Updated", email: "ada.updated@example.org" },
     });
   });
 });

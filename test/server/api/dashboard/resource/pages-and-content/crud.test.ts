@@ -29,6 +29,24 @@ describe("server/api/dashboard/resource/pages-and-content", () => {
     expect(state.orderCalls.length).toBe(1);
   });
 
+  it("loads a specific page slide by id for the editor", async () => {
+    const { client, state } = createDashboardClientMock({
+      rows: [{ id: 11, title: "Welcome", page_slug: "home" }],
+    });
+    dashboardRouteMocks.requireAnyRole.mockResolvedValue({ client, userId: "user-123" });
+    dashboardRouteMocks.getMethod.mockReturnValue("GET");
+    dashboardRouteMocks.getQuery.mockReturnValue({ id: "11" });
+
+    const result = await handler({
+      context: { params: { resource: "page_slides" } },
+    } as never);
+
+    expect(result).toEqual({
+      rows: [{ id: 11, title: "Welcome", page_slug: "home" }],
+    });
+    expect(state.eqs).toContainEqual(["id", "11"]);
+  });
+
   it("creates, updates, deletes normal records, and blocks singleton deletes", async () => {
     const { client } = createDashboardClientMock({
       insertRow: { id: 2, title: "Hero Section" },

@@ -8,18 +8,38 @@ type ServiceRow = {
 };
 
 export default defineEventHandler(async (event) => {
-  const slug = String(getRouterParam(event, "slug") ?? "");
+  const rawSlug = String(getRouterParam(event, "slug") ?? "");
+  const requestSlug = rawSlug.trim();
   const admin = supabaseAdmin();
 
-  const { data: serviceData, error } = await admin
+  const { data: exactService, error: exactError } = await admin
     .from("services")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", requestSlug)
     .eq("is_active", true)
     .maybeSingle();
 
-  if (error) throw error;
-  const service = serviceData as ServiceRow | null;
+  if (exactError) throw exactError;
+
+  let service = exactService as ServiceRow | null;
+
+  if (!service && requestSlug) {
+    const { data: serviceRows, error: listError } = await admin
+      .from("services")
+      .select("*")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (listError) throw listError;
+
+    const normalizedSlug = requestSlug.toLowerCase();
+    service =
+      ((serviceRows ?? []) as ServiceRow[]).find(
+        (row) => String(row.slug ?? "").trim().toLowerCase() === normalizedSlug,
+      ) ?? null;
+  }
+
   if (!service) return { service: null, category: null, relatedServices: [] };
 
   const [categoryResult, relatedResult] = await Promise.all([

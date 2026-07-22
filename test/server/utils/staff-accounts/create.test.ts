@@ -19,7 +19,7 @@ describe("server/utils/staff-accounts/create", () => {
         email: "ada@example.org",
         avatar_url: null,
         phone: null,
-        job_title: "Nurse",
+        job_title: null,
         roles: ["hr_manager"],
         is_active: true,
       },
@@ -40,7 +40,21 @@ describe("server/utils/staff-accounts/create", () => {
       email: "ada@example.org",
       password: created.tempPassword,
       email_confirm: true,
-      user_metadata: { full_name: "Ada Example" },
+      user_metadata: { full_name: "Ada Example", email: "ada@example.org" },
     });
+    const profilesBuilder = adminClient.from("profiles") as any;
+    expect(profilesBuilder.upsert).toHaveBeenCalledWith(
+      {
+        id: "user-123",
+        full_name: "Ada Example",
+        email: "ada@example.org",
+        avatar_url: null,
+        phone: null,
+        job_title: null,
+        roles: ["hr_manager"],
+        is_active: true,
+      },
+      { onConflict: "id" },
+    );
   });
 });

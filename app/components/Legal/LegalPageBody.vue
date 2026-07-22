@@ -20,13 +20,6 @@ useSeoMeta({
       {{ title }}
     </h1>
 
-    <PageMediaStrip
-      :items="legalImages"
-      title="Policy context"
-      subtitle="Legal and policy pages shown with relevant institutional imagery."
-      compact
-    />
-
     <div class="legal-content mt-8 text-body text-ink" v-html="content" />
   </div>
 </template>

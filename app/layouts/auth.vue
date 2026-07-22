@@ -24,15 +24,7 @@ const authImages = useHospitalMedia();
       </div>
     </div>
     <p class="text-center text-caption text-ink-muted pb-6">
-      Meru Teaching and Referral Hospital — internal use only. Built by
-      <a
-        href="https://nuvanahq.co.ke"
-        target="_blank"
-        rel="noreferrer"
-        class="text-primary hover:underline"
-      >
-        Nuvana Technology
-      </a>
+      Meru Teaching and Referral Hospital — internal use only.
     </p>
   </div>
 </template>
