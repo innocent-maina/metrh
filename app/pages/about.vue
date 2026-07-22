@@ -64,6 +64,5 @@ const aboutImages = useHospitalMedia();
 
     <GrowthProjects />
     <TeachingAffiliations />
-    <LeadershipSection />
   </div>
 </template>

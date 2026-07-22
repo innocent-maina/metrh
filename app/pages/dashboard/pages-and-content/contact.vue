@@ -11,6 +11,10 @@ const contactDefaults = {
     "Use the emergency line for urgent care. Use the form for general enquiries, directions, appointments, and institutional requests.",
 };
 
+const contactFilters = {
+  page_slug: "contact",
+};
+
 useSeoMeta({
   title: "Contact Content — MeTRH Dashboard",
   description: "Edit the Contact page intro and enquiry copy.",
@@ -38,7 +42,7 @@ useSeoMeta({
       title="Contact sections"
       description="Edit the introductory block and support text for the Contact page."
       use-page-editor
-      :query-filters="contactDefaults"
+      :query-filters="contactFilters"
       :create-defaults="contactDefaults"
     />
   </div>

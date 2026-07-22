@@ -24,6 +24,30 @@ function stripNilValues(input: Record<string, unknown>) {
   );
 }
 
+function getDashboardErrorMessage(
+  fallback: string,
+  error: { code?: string | null; message?: string | null } | null,
+) {
+  const message = String(error?.message ?? "").trim();
+  return message || fallback;
+}
+
+function getDashboardWriteStatusCode(error: { code?: string | null } | null) {
+  return error?.code === "23505" ? 409 : 500;
+}
+
+function getDashboardCreateErrorMessage(
+  resourceId: string,
+  fallback: string,
+  error: { code?: string | null; message?: string | null } | null,
+) {
+  if (error?.code === "23505" && resourceId === "page_sections") {
+    return "A section with this page and section key already exists. Open the existing section or use a different section key.";
+  }
+
+  return getDashboardErrorMessage(fallback, error);
+}
+
 function parseFilterValue(value: unknown) {
   if (Array.isArray(value)) {
     return value;
@@ -213,9 +237,10 @@ export async function handleDashboardResource(event: H3Event, resourceId: string
       .maybeSingle();
 
     if (error) {
+      const fallback = `Could not create ${resource.label.toLowerCase()}.`;
       throw createError({
-        statusCode: 500,
-        statusMessage: `Could not create ${resource.label.toLowerCase()}.`,
+        statusCode: getDashboardWriteStatusCode(error),
+        statusMessage: getDashboardCreateErrorMessage(resource.id, fallback, error),
       });
     }
 
@@ -260,9 +285,10 @@ export async function handleDashboardResource(event: H3Event, resourceId: string
       .maybeSingle();
 
     if (error) {
+      const fallback = `Could not update ${resource.label.toLowerCase()}.`;
       throw createError({
-        statusCode: 500,
-        statusMessage: `Could not update ${resource.label.toLowerCase()}.`,
+        statusCode: getDashboardWriteStatusCode(error),
+        statusMessage: getDashboardErrorMessage(fallback, error),
       });
     }
 

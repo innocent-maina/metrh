@@ -46,6 +46,5 @@ const scaleStats = [
 
     <GrowthProjects />
     <TeachingAffiliations />
-    <LeadershipSection />
   </div>
 </template>

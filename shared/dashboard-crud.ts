@@ -243,7 +243,13 @@ function fields(
     }
   >,
 ): CrudField[] {
-  return entries;
+  return entries.map((field) =>
+    field.key === "display_order" &&
+    field.kind === "number" &&
+    field.defaultValue === undefined
+      ? { ...field, defaultValue: 0 }
+      : field,
+  );
 }
 
 const publishStatuses: CrudOption[] = [

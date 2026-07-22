@@ -96,6 +96,7 @@ export interface CmsSlideContent {
 }
 
 export interface CmsPageBundle {
+  sections: CmsSectionContent[];
   sectionsByKey: Record<string, CmsSectionContent>;
   itemsBySectionId: Record<string, CmsSectionItemContent[]>;
 }
@@ -179,6 +180,7 @@ export function useCmsPage(slug: string, fallback?: CmsPageContent) {
 
 export function usePageContent(pageSlug: string) {
   const emptyBundle: CmsPageBundle = {
+    sections: [],
     sectionsByKey: {},
     itemsBySectionId: {},
   };
@@ -203,6 +205,7 @@ export function usePageContent(pageSlug: string) {
       );
 
       return {
+        sections,
         sectionsByKey: sections.reduce<Record<string, CmsSectionContent>>(
           (acc, section) => {
             acc[section.section_key] = section;

@@ -96,4 +96,34 @@ describe("server/api/dashboard/resource/pages-and-content", () => {
       statusMessage: "This resource cannot be deleted from the dashboard.",
     });
   });
+
+  it("returns a conflict when a page section key already exists", async () => {
+    const { client } = createDashboardClientMock({
+      writeError: {
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "page_sections_unique_key"',
+      },
+    });
+    dashboardRouteMocks.requireAnyRole.mockResolvedValue({ client, userId: "user-123" });
+    dashboardRouteMocks.getMethod.mockReturnValue("POST");
+    dashboardRouteMocks.readBody.mockResolvedValue({
+      data: {
+        page_slug: "blog",
+        section_key: "blog-intro",
+        section_type: "content",
+        title: "Blog intro",
+      },
+    });
+
+    await expect(
+      handler({
+        context: { params: { resource: "page_sections" } },
+      } as never),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      statusMessage:
+        "A section with this page and section key already exists. Open the existing section or use a different section key.",
+    });
+  });
 });

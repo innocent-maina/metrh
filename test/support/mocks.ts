@@ -5,9 +5,9 @@ export function createDashboardClientMock(options?: {
   count?: number;
   insertRow?: unknown;
   updateRow?: unknown;
-  deleteError?: { message?: string } | null;
-  readError?: { message?: string } | null;
-  writeError?: { message?: string } | null;
+  deleteError?: { code?: string; message?: string } | null;
+  readError?: { code?: string; message?: string } | null;
+  writeError?: { code?: string; message?: string } | null;
 }) {
   const state: Record<string, unknown> = {
     table: "",

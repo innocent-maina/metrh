@@ -167,6 +167,12 @@ function openCreate() {
   if (!current || current.allowCreate === false) return;
 
   if (props.usePageEditor) {
+    const existingSection = findExistingPageSectionCreateTarget(current);
+    if (existingSection) {
+      openRecord(existingSection);
+      return;
+    }
+
     navigateTo(
       buildDashboardEditorRoute(current, {
         mode: "create",
@@ -185,6 +191,22 @@ function openCreate() {
   };
   drawerOpen.value = true;
   notice.value = null;
+}
+
+function findExistingPageSectionCreateTarget(current: CrudResourceConfig) {
+  if (current.id !== "page_sections") return null;
+
+  const pageSlug = String(props.createDefaults.page_slug ?? "").trim();
+  const sectionKey = String(props.createDefaults.section_key ?? "").trim();
+  if (!pageSlug || !sectionKey) return null;
+
+  return (
+    resourceRows.value.find(
+      (row) =>
+        String(row.page_slug ?? "").trim() === pageSlug &&
+        String(row.section_key ?? "").trim() === sectionKey,
+    ) ?? null
+  );
 }
 
 function openRecord(row: Record<string, unknown>) {

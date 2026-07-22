@@ -11,6 +11,10 @@ const careersDefaults = {
     "MeTRH recruits on a rolling basis. When there are live openings, they appear here with application instructions and upload support.",
 };
 
+const careersFilters = {
+  page_slug: "careers",
+};
+
 useSeoMeta({
   title: "Careers Content — MeTRH Dashboard",
   description: "Edit the Careers page intro and recruitment copy.",
@@ -38,7 +42,7 @@ useSeoMeta({
       title="Careers sections"
       description="Edit the Careers page introduction and support copy."
       use-page-editor
-      :query-filters="careersDefaults"
+      :query-filters="careersFilters"
       :create-defaults="careersDefaults"
     />
   </div>

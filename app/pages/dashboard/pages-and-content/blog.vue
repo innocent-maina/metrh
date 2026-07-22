@@ -11,6 +11,10 @@ const blogDefaults = {
     "MeTRH uses this space for stories that matter to patients, families, referrers, and the wider Meru community.",
 };
 
+const blogFilters = {
+  page_slug: "blog",
+};
+
 useSeoMeta({
   title: "Blog Content — MeTRH Dashboard",
   description: "Edit the Blog page intro and editorial copy.",
@@ -38,7 +42,7 @@ useSeoMeta({
       title="Blog sections"
       description="Edit the introductory block and supporting text for the Blog page."
       use-page-editor
-      :query-filters="blogDefaults"
+      :query-filters="blogFilters"
       :create-defaults="blogDefaults"
     />
   </div>

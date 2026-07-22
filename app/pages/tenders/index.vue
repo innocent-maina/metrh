@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { richTextToHtml } from "~~/shared/rich-text";
+
 definePageMeta({ layout: "default" });
 
 const { data: tendersContent } = await usePageContent("tenders");
@@ -105,6 +107,16 @@ const openTenderCount = computed(
 const tendersIntro = computed(
   () => tendersContent.value?.sectionsByKey["tenders-intro"] ?? null,
 );
+
+const additionalSections = computed(() =>
+  (tendersContent.value?.sections ?? []).filter(
+    (section) => section.section_key !== "tenders-intro",
+  ),
+);
+
+function sectionBodyHtml(value: string | null) {
+  return richTextToHtml(value);
+}
 </script>
 
 <template>
@@ -125,6 +137,52 @@ const tendersIntro = computed(
             }}
           </p>
         </div>
+      </div>
+    </section>
+
+    <section v-if="additionalSections.length" class="bg-surface">
+      <div class="mx-auto grid max-w-7xl gap-5 px-4 py-8 sm:px-6 md:grid-cols-2 lg:px-8">
+        <article
+          v-for="section in additionalSections"
+          :key="section.id"
+          class="overflow-hidden rounded-card border border-border bg-surface shadow-card"
+        >
+          <img
+            v-if="resolveContentMediaUrl(section.image_url)"
+            :src="resolveContentMediaUrl(section.image_url)"
+            :alt="section.image_alt || section.title"
+            loading="lazy"
+            decoding="async"
+            class="aspect-[16/9] w-full object-cover"
+          />
+          <div class="p-5 md:p-6">
+            <p
+              v-if="section.eyebrow"
+              class="text-caption font-semibold uppercase tracking-wide text-info"
+            >
+              {{ section.eyebrow }}
+            </p>
+            <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
+              {{ section.title }}
+            </h2>
+            <p v-if="section.summary" class="mt-3 text-small text-ink-muted">
+              {{ section.summary }}
+            </p>
+            <div
+              v-if="section.body"
+              class="mt-4 text-small text-ink-muted"
+              v-html="sectionBodyHtml(section.body)"
+            />
+            <NuxtLink
+              v-if="section.cta_label && section.cta_href"
+              :to="section.cta_href"
+              class="mt-5 inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
+            >
+              {{ section.cta_label }}
+              <Icon name="lucide:arrow-right" class="size-4" />
+            </NuxtLink>
+          </div>
+        </article>
       </div>
     </section>
 

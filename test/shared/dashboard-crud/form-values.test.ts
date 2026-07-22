@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFormValues,
+  getDashboardResource,
   serializeFormValues,
   type CrudResourceConfig,
 } from "../../../shared/dashboard-crud";
@@ -53,6 +54,35 @@ describe("shared/dashboard-crud/form-values", () => {
       tags: ["two"],
       rank: 4,
       meta: { visible: true },
+    });
+  });
+
+  it("defaults page section display order to a non-null value on create", () => {
+    const pageSections = getDashboardResource("page_sections")?.resource;
+    expect(pageSections).toBeTruthy();
+
+    const values = buildFormValues(pageSections!);
+    expect(values.display_order).toBe(0);
+
+    expect(
+      serializeFormValues(
+        pageSections!,
+        {
+          ...values,
+          page_slug: "home",
+          section_key: "community-impact",
+          section_type: "content",
+          title: "Community impact",
+        },
+        "create",
+      ),
+    ).toMatchObject({
+      page_slug: "home",
+      section_key: "community-impact",
+      section_type: "content",
+      title: "Community impact",
+      display_order: 0,
+      is_active: true,
     });
   });
 });

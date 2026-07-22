@@ -11,6 +11,10 @@ const serviceDefaults = {
     "MeTRH's services are grouped by department so patients, families, and referrers can find what they need without scanning a wall of text. Each service can also carry its own detailed page with images, links, and full descriptions.",
 };
 
+const serviceFilters = {
+  page_slug: "services",
+};
+
 useSeoMeta({
   title: "Services Content — MeTRH Dashboard",
   description: "Edit the Services page intro that frames the public service pages.",
@@ -39,7 +43,7 @@ useSeoMeta({
       title="Services sections"
       description="Edit the introductory text and any services page callouts."
       use-page-editor
-      :query-filters="serviceDefaults"
+      :query-filters="serviceFilters"
       :create-defaults="serviceDefaults"
     />
   </div>

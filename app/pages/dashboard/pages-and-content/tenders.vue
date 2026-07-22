@@ -11,6 +11,10 @@ const tendersDefaults = {
     "This section is designed for open tender notices, supplier lists, and procurement PDFs.",
 };
 
+const tendersFilters = {
+  page_slug: "tenders",
+};
+
 useSeoMeta({
   title: "Tenders Content — MeTRH Dashboard",
   description: "Edit the Tenders page intro and procurement copy.",
@@ -38,7 +42,7 @@ useSeoMeta({
       title="Tenders sections"
       description="Edit the introductory block and support text for the Tenders page."
       use-page-editor
-      :query-filters="tendersDefaults"
+      :query-filters="tendersFilters"
       :create-defaults="tendersDefaults"
     />
   </div>
