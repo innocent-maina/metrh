@@ -10,7 +10,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <DashboardPageContentEditor
+  <PageContentEditor
     slug="cookie-policy"
     title="Cookie policy"
     description="Edit the cookie policy content, metadata, and live preview."

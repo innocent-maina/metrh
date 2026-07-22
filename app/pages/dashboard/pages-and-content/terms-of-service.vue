@@ -10,7 +10,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <DashboardPageContentEditor
+  <PageContentEditor
     slug="terms-of-service"
     title="Terms of service"
     description="Edit the terms of service content, metadata, and live preview."

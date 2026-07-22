@@ -72,6 +72,10 @@ const serviceImages = useHospitalMedia();
 const servicesIntro = computed(
   () => servicesContent.value?.sectionsByKey["services-intro"] ?? null,
 );
+
+function servicePath(slug: string) {
+  return `/services/${encodeURIComponent(slug.trim())}`;
+}
 </script>
 
 <template>
@@ -269,7 +273,7 @@ const servicesIntro = computed(
                   class="h-full"
                 >
                   <NuxtLink
-                    :to="{ path: `/services/${service.slug}` }"
+                    :to="servicePath(service.slug)"
                     class="flex h-full flex-col rounded-card border border-border bg-surface p-4 shadow-card transition-all hover:border-primary/40 hover:shadow-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     <div class="flex items-start gap-3">

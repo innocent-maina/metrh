@@ -10,7 +10,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <DashboardPageContentEditor
+  <PageContentEditor
     slug="privacy-policy"
     title="Privacy policy"
     description="Edit the privacy policy content, metadata, and live preview."

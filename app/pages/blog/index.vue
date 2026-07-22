@@ -5,6 +5,7 @@ definePageMeta({ layout: "default" });
 
 const { milestoneStories } = useMetrhContent();
 const { data: blogContent } = await usePageContent("blog");
+const resolveMediaUrl = usePublicStorageUrl();
 
 type BlogCategoryRow = {
   id: string;
@@ -19,6 +20,7 @@ type BlogPostRow = {
   slug: string;
   excerpt: string | null;
   content: string;
+  cover_image_url: string | null;
   category_id: string | null;
   published_at: string | null;
   reading_minutes: number | null;
@@ -63,6 +65,10 @@ function summarize(text: string | null | undefined, fallback = "") {
     : collapsed;
 }
 
+function resolveBlogImageUrl(value: string | null | undefined) {
+  return resolveMediaUrl(value, "media");
+}
+
 const { data: blogIndex } = await useAsyncData("public-blog-index", async () => {
   try {
     const response = await $fetch<{
@@ -89,6 +95,7 @@ const { data: blogIndex } = await useAsyncData("public-blog-index", async () => 
         title: post.title,
         summary: summarize(post.excerpt, post.content),
         bodyText: richTextToPlainText(post.content),
+        coverImageUrl: resolveBlogImageUrl(post.cover_image_url),
         category: category?.name ?? "Uncategorized",
         categorySlug: category?.slug ?? slugify(category?.name ?? "Uncategorized"),
         yearLabel: formatDateLabel(post.published_at ?? post.created_at),
@@ -119,6 +126,7 @@ const { data: blogIndex } = await useAsyncData("public-blog-index", async () => 
         summary: story.summary,
         body: story.body,
         bodyText: story.body,
+        coverImageUrl: "",
         category: story.category,
         categorySlug: slugify(story.category),
         yearLabel: story.yearLabel,
@@ -157,8 +165,6 @@ const filteredStories = computed(() => {
   });
 });
 
-const blogImages = useHospitalMedia();
-
 const blogIntro = computed(
   () => blogContent.value?.sectionsByKey["blog-intro"] ?? null,
 );
@@ -187,13 +193,6 @@ const blogIntro = computed(
         </div>
       </div>
     </section>
-
-    <PageMediaStrip
-      :items="blogImages"
-      title="Blog imagery"
-      subtitle="Stories, outreach, and hospital milestones with matching visuals."
-      compact
-    />
 
     <section class="border-y border-border bg-surface-alt">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -256,26 +255,34 @@ const blogIntro = computed(
               <li
                 v-for="story in filteredStories"
                 :key="story.slug"
-                class="rounded-card border border-border bg-surface p-5 shadow-card"
+                class="overflow-hidden rounded-card border border-border bg-surface shadow-card"
               >
-                <p class="text-caption font-semibold uppercase tracking-wide text-accent">
-                  {{ story.category }}
-                </p>
-                <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
-                  {{ story.title }}
-                </h2>
-                <p class="mt-1 text-caption text-ink-muted">
-                  {{ story.yearLabel }}
-                </p>
-                <p class="mt-3 text-small text-ink-muted">
-                  {{ story.summary }}
-                </p>
-                <NuxtLink
-                  :to="`/blog/${story.slug}`"
-                  class="mt-5 inline-flex items-center gap-1 text-small font-semibold text-primary hover:underline"
-                >
-                  Read story
-                  <Icon name="lucide:arrow-right" class="size-4" />
+                <NuxtLink :to="`/blog/${story.slug}`" class="block">
+                  <img
+                    v-if="story.coverImageUrl"
+                    :src="story.coverImageUrl"
+                    :alt="story.title"
+                    loading="lazy"
+                    class="aspect-[16/9] w-full object-cover"
+                  />
+                  <div class="p-5">
+                    <p class="text-caption font-semibold uppercase tracking-wide text-accent">
+                      {{ story.category }}
+                    </p>
+                    <h2 class="mt-2 font-display font-semibold text-h3 text-ink">
+                      {{ story.title }}
+                    </h2>
+                    <p class="mt-1 text-caption text-ink-muted">
+                      {{ story.yearLabel }}
+                    </p>
+                    <p class="mt-3 text-small text-ink-muted">
+                      {{ story.summary }}
+                    </p>
+                    <span class="mt-5 inline-flex items-center gap-1 text-small font-semibold text-primary">
+                      Read story
+                      <Icon name="lucide:arrow-right" class="size-4" />
+                    </span>
+                  </div>
                 </NuxtLink>
               </li>
             </ul>

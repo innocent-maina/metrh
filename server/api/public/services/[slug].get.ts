@@ -7,9 +7,17 @@ type ServiceRow = {
   [key: string]: unknown;
 };
 
+function normalizeRouteSlug(value: string) {
+  try {
+    return decodeURIComponent(value).trim();
+  } catch {
+    return value.trim();
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const rawSlug = String(getRouterParam(event, "slug") ?? "");
-  const requestSlug = rawSlug.trim();
+  const requestSlug = normalizeRouteSlug(rawSlug);
   const admin = supabaseAdmin();
 
   const { data: exactService, error: exactError } = await admin
